@@ -1,10 +1,16 @@
 # Project Rules & Guidelines
 
-## Git Workflow Rule (MANDATORY)
-Whenever files are modified, created, or fixed in this workspace (e.g. bug fixes, feature additions, deployments):
-1. Always test/build to ensure zero errors (`npm run build`).
-2. Deploy to Cloudflare Workers if applicable (`npx wrangler deploy`).
-3. **MUST ALWAYS commit and push to Git immediately**:
+## Git Workflow Rule (SAFETY & QUALITY FIRST)
+
+Do NOT commit or push code automatically on every minor file edit or unverified change.
+
+### Mandatory Workflow:
+1. **Develop & Test Locally**: Make changes and verify using `npm run build` and tests.
+2. **Commit & Push Criteria**:
+   - Only commit and push when a specific task, bug fix, or feature is **fully completed and verified**.
+   - Before pushing to Git / deploying, confirm that there are zero TypeScript / build errors and that the solution is validated.
+3. **Execution Steps** (when ready to deliver a completed, tested milestone):
+   - `npm run build` (Must pass with 0 errors)
    - `git add .`
-   - `git commit -m "<concise descriptive summary of changes>"`
+   - `git commit -m "<concise descriptive summary of verified changes>"`
    - `git push`
