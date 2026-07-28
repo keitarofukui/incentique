@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Noto Sans JP', 'Outfit', sans-serif;
+    background-color: #0b0f19;
+    color: #f1f5f9;
+  }
+}
+
+.glass-card {
+  background: rgba(21, 28, 44, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 240, 255, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(0, 240, 255, 0.2);
+}
+
+.gradient-text-cyan {
+  background: linear-gradient(135deg, #00F0FF 0%, #7000FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pulse-glow-cyan {
+  animation: pulseCyan 2s infinite alternate;
+}
+
+@keyframes pulseCyan {
+  0% {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+  }
+}
+
+/* Page transition animation for tab switching */
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pageSlideInReverse {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.page-enter {
+  animation: pageSlideIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.page-enter-reverse {
+  animation: pageSlideInReverse 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Floating success toast shown after a log is registered */
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-enter {
+  animation: toastSlideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Hide scrollbar for header navigation */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

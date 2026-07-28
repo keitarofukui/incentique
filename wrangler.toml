@@ -1,0 +1,13 @@
+name = "quest-habit-app"
+main = "src/backend/index.ts"
+compatibility_date = "2024-12-01"
+
+assets = { directory = "./dist" }
+
+[[d1_databases]]
+binding = "DB"
+database_name = "quest-db"
+database_id = "53095c52-690e-4780-9b5e-700111490831"
+
+[vars]
+GEMINI_MODEL = "gemini-3.1-flash-lite"
