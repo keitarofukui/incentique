@@ -45,44 +45,24 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-slate-950/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        
-        {/* App Title & Parent Mode Switcher.
-            min-w-0 + flex-1 lets this group shrink (and the title truncate) so it
-            can never grow into the points badge on a narrow screen. */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <div
-            onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-2 cursor-pointer group min-w-0"
-          >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center shadow-glow-cyan group-hover:scale-105 transition-transform shrink-0">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
-            </div>
-            <span className="font-mono font-black text-base sm:text-xl tracking-wide sm:tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple truncate">
-              INCENTIQUE
-            </span>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
 
-          <button
-            onClick={onToggleParentMode}
-            className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
-              isParentMode
-                ? 'bg-amber-500 text-slate-950 shadow-glow-gold animate-pulse'
-                : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-            title={isParentMode ? '保護者モードを終了' : '保護者モードに切り替え'}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-            {/* In parent mode the points badge is hidden, so there is room for the
-                label even on mobile — and the active state is worth spelling out. */}
-            <span className={isParentMode ? 'whitespace-nowrap' : 'hidden sm:inline whitespace-nowrap'}>
-              {isParentMode ? '保護者モード中' : '保護者切り替え'}
-            </span>
-          </button>
+        {/* Brand — owns the left side on its own. Every control lives in the
+            right-hand group, so nothing can ever sit on top of the title. */}
+        <div
+          onClick={() => setActiveTab('dashboard')}
+          className="flex items-center gap-2 cursor-pointer group min-w-0"
+        >
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center shadow-glow-cyan group-hover:scale-105 transition-transform shrink-0">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
+          </div>
+          <span className="font-mono font-black text-base sm:text-xl tracking-wide sm:tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple truncate">
+            INCENTIQUE
+          </span>
         </div>
 
-        {/* User Points Badge & Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+        {/* Controls: points badge, parent mode, logout */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {currentUser && !isParentMode && (
             <div
               onClick={() => setActiveTab('wishlist')}
@@ -99,6 +79,23 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
           )}
+
+          <button
+            onClick={onToggleParentMode}
+            className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
+              isParentMode
+                ? 'bg-amber-500 text-slate-950 shadow-glow-gold animate-pulse'
+                : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
+            }`}
+            title={isParentMode ? '保護者モードを終了' : '保護者モードに切り替え'}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            {/* Icon-only on mobile while the points badge is competing for width;
+                in parent mode the badge is hidden, so the label always fits. */}
+            <span className={`whitespace-nowrap ${isParentMode ? '' : 'hidden sm:inline'}`}>
+              {isParentMode ? '保護者モード中' : '保護者切り替え'}
+            </span>
+          </button>
 
           <button
             onClick={onLogout}
