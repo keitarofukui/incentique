@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
           </div>
           <span className="font-mono font-black text-base sm:text-xl tracking-wide sm:tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple truncate">
-            INCENTIQUE
+            INCENTI QUEST
           </span>
         </div>
 
