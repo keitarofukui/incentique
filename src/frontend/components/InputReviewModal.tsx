@@ -169,7 +169,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
                 }`}
               >
                 <BookOpen className="w-6 h-6 text-purple-400" />
-                <span>読書 (+300pt)</span>
+                <span>読書 (+{rulePoints.input_book}pt)</span>
               </button>
 
               <button
@@ -182,7 +182,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
                 }`}
               >
                 <Film className="w-6 h-6 text-blue-400" />
-                <span>映画 (+120pt)</span>
+                <span>映画 (+{rulePoints.input_movie}pt)</span>
               </button>
 
               <button
@@ -195,7 +195,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
                 }`}
               >
                 <BookMarked className="w-6 h-6 text-amber-400" />
-                <span>漫画 (+50pt)</span>
+                <span>漫画 (+{rulePoints.input_manga}pt)</span>
               </button>
             </div>
           </div>
