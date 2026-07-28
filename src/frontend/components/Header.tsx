@@ -47,45 +47,54 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-slate-950/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* App Title & Parent Mode Switcher */}
-        <div className="flex items-center gap-3">
+        {/* App Title & Parent Mode Switcher.
+            min-w-0 + flex-1 lets this group shrink (and the title truncate) so it
+            can never grow into the points badge on a narrow screen. */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div
             onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-2 cursor-pointer group"
+            className="flex items-center gap-2 cursor-pointer group min-w-0"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center shadow-glow-cyan group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 text-slate-950" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center shadow-glow-cyan group-hover:scale-105 transition-transform shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
             </div>
-            <span className="font-mono font-black text-lg sm:text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple">
+            <span className="font-mono font-black text-base sm:text-xl tracking-wide sm:tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple truncate">
               INCENTIQUE
             </span>
           </div>
 
           <button
             onClick={onToggleParentMode}
-            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
+            className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
               isParentMode
                 ? 'bg-amber-500 text-slate-950 shadow-glow-gold animate-pulse'
                 : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
             }`}
+            title={isParentMode ? '保護者モードを終了' : '保護者モードに切り替え'}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>{isParentMode ? '保護者モード中' : '保護者切り替え'}</span>
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            {/* In parent mode the points badge is hidden, so there is room for the
+                label even on mobile — and the active state is worth spelling out. */}
+            <span className={isParentMode ? 'whitespace-nowrap' : 'hidden sm:inline whitespace-nowrap'}>
+              {isParentMode ? '保護者モード中' : '保護者切り替え'}
+            </span>
           </button>
         </div>
 
         {/* User Points Badge & Actions */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
           {currentUser && !isParentMode && (
             <div
               onClick={() => setActiveTab('wishlist')}
-              className="glass-card px-3 py-1.5 rounded-2xl border border-amber-500/40 flex items-center gap-2 cursor-pointer hover:border-amber-400 transition-all shadow-glow-gold"
+              className="glass-card px-2.5 sm:px-3 py-1.5 rounded-2xl border border-amber-500/40 flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:border-amber-400 transition-all shadow-glow-gold shrink-0"
             >
-              <Trophy className="w-4 h-4 text-amber-400" />
+              <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+              {/* Single compact line on mobile; the "ポイント" caption only appears
+                  once there is width for it */}
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 font-bold leading-none">ポイント</span>
-                <span className="text-sm sm:text-base font-black font-mono text-amber-400 leading-tight">
-                  {currentUser.current_points.toLocaleString()} <span className="text-[10px] font-normal">pt</span>
+                <span className="hidden sm:block text-[10px] text-slate-400 font-bold leading-none">ポイント</span>
+                <span className="text-sm sm:text-base font-black font-mono text-amber-400 leading-tight whitespace-nowrap">
+                  {currentUser.current_points.toLocaleString()}<span className="text-[10px] font-normal ml-0.5">pt</span>
                 </span>
               </div>
             </div>
