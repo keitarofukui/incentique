@@ -21,11 +21,13 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [itemType, setItemType] = useState<'goods' | 'cash'>('goods');
   const [newTitle, setNewTitle] = useState<string>('');
-  const [newPoints, setNewPoints] = useState<number>(3000);
+  const [newPointsStr, setNewPointsStr] = useState<string>('');
   const [newImageUrl, setNewImageUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   if (!currentUser && !isParentMode) return null;
+
+  const newPoints = Number(newPointsStr) || 0;
 
   // Parent mode sees every child's list; a child sees only their own
   const displayWishItems = isParentMode
@@ -76,6 +78,11 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
     const targetUser = currentUser ? currentUser : users[0];
     const availablePoints = targetUser ? targetUser.current_points : 0;
 
+    if (!newPointsStr || newPoints <= 0) {
+      alert('交換ポイントを入力してください。');
+      return;
+    }
+
     // Validation for points limit
     if (!isParentMode && newPoints > availablePoints) {
       alert(`所持ポイント（${availablePoints.toLocaleString()} pt）を超えて設定することはできません。`);
@@ -113,6 +120,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
       const data = await res.json();
       if (data.success) {
         setNewTitle('');
+        setNewPointsStr('');
         setNewImageUrl('');
         setItemType('goods');
         setShowAddModal(false);
@@ -145,8 +153,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
         <button
           onClick={() => {
-            const defaultPts = Math.min(1000, userCurrentPoints > 0 ? userCurrentPoints : 500);
-            setNewPoints(defaultPts > 0 ? defaultPts : 500);
+            setNewPointsStr('');
             setShowAddModal(true);
           }}
           className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1.5 self-start sm:self-auto shadow-lg"
@@ -354,8 +361,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
       {/* Add New Wish Target Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="glass-card w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-center justify-center">
+          <div className="glass-card w-full max-w-md my-auto rounded-3xl p-5 sm:p-6 border border-slate-700 shadow-2xl space-y-4">
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Gift className="w-5 h-5 text-amber-400" />
               <span>ご褒美・お小遣い交換リクエストの登録</span>
@@ -434,19 +441,19 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
               {/* Point Input & Validation */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
-                  <label className="font-bold text-slate-300">消費ポイント (pt)</label>
+                  <label className="font-bold text-slate-300">交換ポイント (pt)</label>
                   <span className="text-[11px] text-slate-400 font-mono">
                     所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
                   </span>
                 </div>
                 <input
                   type="number"
-                  required
+                  placeholder="例: 1000"
                   step={50}
                   min={50}
                   max={!isParentMode ? userCurrentPoints : undefined}
-                  value={newPoints}
-                  onChange={(e) => setNewPoints(Number(e.target.value))}
+                  value={newPointsStr}
+                  onChange={(e) => setNewPointsStr(e.target.value)}
                   className={`w-full bg-slate-900 border rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none ${
                     isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-amber-400'
                   }`}
@@ -459,7 +466,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
               </div>
 
               {/* Live Preview for Cash Option */}
-              {itemType === 'cash' && (
+              {itemType === 'cash' && newPoints > 0 && (
                 <div className="p-3 bg-slate-900 border border-emerald-500/40 rounded-xl flex items-center justify-between text-xs">
                   <span className="text-slate-300 font-bold">💵 受取現金金額 (7掛け):</span>
                   <span className="text-base font-black text-emerald-400 font-mono">
@@ -493,9 +500,9 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || isPointsExceeded}
+                  disabled={loading || isPointsExceeded || !newPointsStr || newPoints <= 0}
                   className={`px-5 py-2 rounded-xl text-xs font-black transition-all shadow-lg ${
-                    isPointsExceeded
+                    isPointsExceeded || !newPointsStr || newPoints <= 0
                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                       : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
                   }`}

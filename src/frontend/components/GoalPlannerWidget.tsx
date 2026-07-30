@@ -24,9 +24,11 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editTitle, setEditTitle] = useState<string>(targetTitle);
-  const [editPoints, setEditPoints] = useState<number>(targetPoints || 5000);
+  const [editPointsStr, setEditPointsStr] = useState<string>(targetPoints ? String(targetPoints) : '');
   const [editDate, setEditDate] = useState<string>(targetDateStr || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const editPoints = Number(editPointsStr) || 0;
 
   // Calculations
   const today = new Date();
@@ -127,7 +129,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
         <button
           onClick={() => {
             setEditTitle(targetTitle);
-            setEditPoints(targetPoints);
+            setEditPointsStr(targetPoints ? String(targetPoints) : '');
             setEditDate(targetDateStr);
             setIsEditing(true);
           }}
@@ -262,12 +264,11 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
                 <label className="text-xs font-bold text-slate-300">必要目標ポイント (pt)</label>
                 <input
                   type="number"
-                  required
                   min={100}
                   step={100}
                   placeholder="例: 5000"
-                  value={editPoints || ''}
-                  onChange={(e) => setEditPoints(Number(e.target.value))}
+                  value={editPointsStr}
+                  onChange={(e) => setEditPointsStr(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>

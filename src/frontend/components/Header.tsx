@@ -61,23 +61,34 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        {/* Controls: points badge, parent mode, logout */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Controls: user badge, points badge, parent mode, logout */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
           {currentUser && !isParentMode && (
-            <div
-              onClick={() => setActiveTab('wishlist')}
-              className="glass-card px-2.5 sm:px-3 py-1.5 rounded-2xl border border-amber-500/40 flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:border-amber-400 transition-all shadow-glow-gold shrink-0"
-            >
-              <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-              {/* Single compact line on mobile; the "ポイント" caption only appears
-                  once there is width for it */}
-              <div className="flex flex-col">
-                <span className="hidden sm:block text-[10px] text-slate-400 font-bold leading-none">ポイント</span>
-                <span className="text-sm sm:text-base font-black font-mono text-amber-400 leading-tight whitespace-nowrap">
-                  {currentUser.current_points.toLocaleString()}<span className="text-[10px] font-normal ml-0.5">pt</span>
-                </span>
+            <>
+              {/* User Name Badge */}
+              <div
+                onClick={() => setActiveTab('dashboard')}
+                className="glass-card px-2 sm:px-2.5 py-1 rounded-2xl border border-slate-700/80 flex items-center gap-1 cursor-pointer hover:border-slate-500 transition-all shrink-0 max-w-[85px] sm:max-w-[130px]"
+                title={`ログイン中: ${currentUser.name}`}
+              >
+                <span className="text-xs shrink-0">{currentUser.avatar || '⚡'}</span>
+                <span className="text-xs font-bold text-slate-200 truncate">{currentUser.name}</span>
               </div>
-            </div>
+
+              {/* Points Badge */}
+              <div
+                onClick={() => setActiveTab('wishlist')}
+                className="glass-card px-2 sm:px-3 py-1 rounded-2xl border border-amber-500/40 flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:border-amber-400 transition-all shadow-glow-gold shrink-0"
+              >
+                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="hidden sm:block text-[9px] text-slate-400 font-bold leading-none">ポイント</span>
+                  <span className="text-xs sm:text-base font-black font-mono text-amber-400 leading-tight whitespace-nowrap">
+                    {currentUser.current_points.toLocaleString()}<span className="text-[9px] sm:text-[10px] font-normal ml-0.5">pt</span>
+                  </span>
+                </div>
+              </div>
+            </>
           )}
 
           <button
