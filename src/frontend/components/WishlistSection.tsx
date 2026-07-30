@@ -361,8 +361,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
       {/* Add New Wish Target Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-center justify-center">
-          <div className="glass-card w-full max-w-md my-auto rounded-3xl p-5 sm:p-6 border border-slate-700 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
+          <div className="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 border border-slate-700 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto">
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Gift className="w-5 h-5 text-amber-400" />
               <span>ご褒美・お小遣い交換リクエストの登録</span>

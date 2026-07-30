@@ -74,8 +74,8 @@ export const UserRegisterModal: React.FC<UserRegisterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="glass-card w-full max-w-md rounded-3xl p-4 sm:p-6 border border-slate-700 shadow-2xl space-y-3.5 max-h-[88vh] overflow-y-auto my-auto scrollbar-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
+      <div className="glass-card w-full max-w-md rounded-3xl p-4 sm:p-6 border border-slate-700 shadow-2xl space-y-3.5 max-h-[88vh] overflow-y-auto scrollbar-none">
         
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2">

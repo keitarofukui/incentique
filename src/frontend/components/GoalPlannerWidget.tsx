@@ -240,8 +240,8 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
 
       {/* Edit Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-          <div className="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 border border-amber-500/40 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto my-auto scrollbar-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
+          <div className="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 border border-amber-500/40 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto scrollbar-none">
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Target className="w-5 h-5 text-amber-400" />
               <span>目標と達成期日の変更</span>
