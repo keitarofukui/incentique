@@ -72,12 +72,26 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalTitle = newTitle.trim() || (itemType === 'cash' ? `お小遣い現金還元 (${Math.floor(newPoints * 0.7).toLocaleString()}円)` : '');
-    if (!finalTitle) return;
 
-    // In parent mode with no child selected, fall back to the first user rather
-    // than posting an empty userId (which the API would reject silently).
-    const targetUserId = currentUser ? currentUser.id : users[0]?.id;
+    const targetUser = currentUser ? currentUser : users[0];
+    const availablePoints = targetUser ? targetUser.current_points : 0;
+
+    // Validation for points limit
+    if (!isParentMode && newPoints > availablePoints) {
+      alert(`所持ポイント（${availablePoints.toLocaleString()} pt）を超えて設定することはできません。`);
+      return;
+    }
+
+    const finalTitle = itemType === 'cash'
+      ? `現金還元 (${Math.floor(newPoints * 0.7).toLocaleString()}円)`
+      : newTitle.trim();
+
+    if (!finalTitle) {
+      alert('商品・報酬タイトルを入力してください。');
+      return;
+    }
+
+    const targetUserId = targetUser?.id;
     if (!targetUserId) {
       alert('登録先のユーザーが見つかりません。先にユーザーを登録してください。');
       return;
@@ -91,7 +105,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         body: JSON.stringify({
           userId: targetUserId,
           title: finalTitle,
-          imageUrl: newImageUrl || undefined,
+          imageUrl: itemType === 'cash' ? undefined : (newImageUrl || undefined),
           requiredPoints: newPoints,
           itemType: itemType,
         })
@@ -111,6 +125,9 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
     }
   };
 
+  const userCurrentPoints = currentUser ? currentUser.current_points : (users[0]?.current_points || 0);
+  const isPointsExceeded = !isParentMode && newPoints > userCurrentPoints;
+
   return (
     <div className="space-y-6">
 
@@ -127,7 +144,11 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            const defaultPts = Math.min(1000, userCurrentPoints > 0 ? userCurrentPoints : 500);
+            setNewPoints(defaultPts > 0 ? defaultPts : 500);
+            setShowAddModal(true);
+          }}
           className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1.5 self-start sm:self-auto shadow-lg"
         >
           <Plus className="w-4 h-4" />
@@ -380,7 +401,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     <span>7掛け（70%還元）現金交換ルール</span>
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    貯めたポイントを現金（お小遣い）に還元できます。ポイント数の <strong>70% (7掛け)</strong> の現金が手渡されます。
+                    所持ポイントを現金（お小遣い）に還元できます。ポイント数の <strong>70% (7掛け)</strong> の現金が手渡されます。
                   </p>
                 </div>
               ) : (
@@ -395,30 +416,46 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">
-                  {itemType === 'cash' ? 'リクエスト名 (任意)' : '商品・報酬タイトル'}
-                </label>
-                <input
-                  type="text"
-                  placeholder={itemType === 'cash' ? `例: お小遣い現金還元 (${Math.floor(newPoints * 0.7).toLocaleString()}円)` : '例: PS5ゲームソフト / ラグビースパイク'}
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
+              {/* Title Input: Only shown for Goods */}
+              {itemType === 'goods' && (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-300">商品・報酬タイトル</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="例: PS5ゲームソフト / ラグビースパイク"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              )}
 
+              {/* Point Input & Validation */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">消費ポイント (pt)</label>
+                <div className="flex justify-between items-center text-xs">
+                  <label className="font-bold text-slate-300">消費ポイント (pt)</label>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
+                  </span>
+                </div>
                 <input
                   type="number"
                   required
                   step={50}
                   min={50}
+                  max={!isParentMode ? userCurrentPoints : undefined}
                   value={newPoints}
                   onChange={(e) => setNewPoints(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-400"
+                  className={`w-full bg-slate-900 border rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none ${
+                    isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-amber-400'
+                  }`}
                 />
+                {isPointsExceeded && (
+                  <p className="text-[11px] font-bold text-red-400 flex items-center gap-1 mt-1">
+                    ⚠️ 所持ポイント（{userCurrentPoints.toLocaleString()} pt）を超えて入力することはできません。
+                  </p>
+                )}
               </div>
 
               {/* Live Preview for Cash Option */}
@@ -431,16 +468,20 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">画像URL (任意)</label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
+              {/* Image URL Input: Only shown for Goods */}
+              {itemType === 'goods' && (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-300">商品画像URL (任意)</label>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                  <p className="text-[10px] text-slate-400">※AmazonやWebサイトの商品画像直リンクを入力するとカードに表示されます。</p>
+                </div>
+              )}
 
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button
@@ -452,8 +493,12 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="px-5 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 transition-all shadow-lg"
+                  disabled={loading || isPointsExceeded}
+                  className={`px-5 py-2 rounded-xl text-xs font-black transition-all shadow-lg ${
+                    isPointsExceeded
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                      : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
+                  }`}
                 >
                   追加する
                 </button>
