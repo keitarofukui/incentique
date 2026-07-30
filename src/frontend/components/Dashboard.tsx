@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, ActionLog, UserGoal } from '../types';
-import { Brain, BookOpen, Dumbbell, CheckCircle2, Clock, XCircle, ArrowRight, Zap, Flame, Swords, Utensils } from 'lucide-react';
+import { Brain, BookOpen, Dumbbell, CheckCircle2, Clock, XCircle, ArrowRight, Zap, Flame, Swords, Utensils, Banknote, Coins, X } from 'lucide-react';
 import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
 import { formatLogDateTime, formatRelativeTime, logLocalDateStr, todayLocalDateStr, toLocalDateStr } from '../dateUtils';
@@ -26,6 +26,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenEatRiceModal,
   onGoalUpdated,
 }) => {
+  const [showCashBanner, setShowCashBanner] = useState<boolean>(true);
+
   if (!currentUser) return null;
 
   const userLogs = actionLogs
@@ -41,38 +43,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const userMajorLogs = userLogs.filter((log) => log.category !== 'quiz');
   const quizSuccessCount = userLogs.filter((log) => log.category === 'quiz').length;
 
-  // Check if 2-day limited announcement banner is active (July 28 ~ July 29, 2026)
-  const isNewFeatureBannerActive = todayLocalDateStr() <= '2026-07-29';
+  // Active until tomorrow (July 31, 2026)
+  const isCashBackBannerActive = todayLocalDateStr() <= '2026-07-31';
 
   return (
     <div className="space-y-6">
 
-      {/* 2-Day Limited Announcement Banner for New "Eat to Earn" (Rice & Meat 1.5x) Feature */}
-      {isNewFeatureBannerActive && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-red-950/80 via-rose-950/70 to-amber-950/80 border-2 border-rose-500/60 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-glow-purple relative overflow-hidden">
+      {/* Cash Back Announcement Banner (Top Most Header Banner, Active until July 31) */}
+      {showCashBanner && isCashBackBannerActive && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-amber-950/90 border-2 border-emerald-500/60 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl relative overflow-hidden group">
+          <button
+            onClick={() => setShowCashBanner(false)}
+            className="absolute top-2.5 right-2.5 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all z-10"
+            title="閉じる"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
           <div className="flex items-center gap-3">
-            <span className="text-3xl animate-bounce">🎉🥩</span>
-            <div>
-              <div className="text-xs sm:text-sm font-black text-rose-200 flex items-center gap-2">
-                <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-                  【新登場】2日間限定ピックアップ！
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg">
+              <Banknote className="w-7 h-7 text-emerald-400 animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs sm:text-sm font-black text-emerald-300 flex items-center gap-2 flex-wrap">
+                <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                  【新機能】ポイント現金還元スタート！
                 </span>
-                <span>新機能「🍚🥩 食べて稼ぐ（お米＆お肉）」を追加！</span>
+                <span>ポイントを現金（お小遣い）に還元できるようになりました！</span>
               </div>
-              <p className="text-xs text-slate-200 mt-1 leading-relaxed">
-                ご飯だけでなく <strong className="text-rose-300 font-black underline">お肉（唐揚げ・生姜焼き・ステーキ等）</strong> でもポイントが稼げるようになりました！お肉はタンパク質補給で <strong className="text-amber-300 font-black text-sm">還元率1.5倍ボーナス（最大15%還元）</strong>！
+              <p className="text-xs text-slate-200 leading-relaxed">
+                交換所で <strong className="text-emerald-300 font-bold">「💵 現金還元 (7掛け/70%還元)」</strong> を選んで申請できます！貯めたポイントをお小遣いに還元しよう！
               </p>
             </div>
           </div>
 
-          {onOpenEatRiceModal && (
-            <button
-              onClick={onOpenEatRiceModal}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 text-white text-xs font-black hover:brightness-110 transition-all shadow-lg shrink-0 flex items-center justify-center gap-1.5 border border-rose-300/40 whitespace-nowrap"
-            >
-              <span>🥩 さっそく食べて稼ぐ！ ➔</span>
-            </button>
-          )}
+          <button
+            onClick={() => onNavigate('wishlist')}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 text-xs font-black hover:brightness-110 transition-all shadow-lg shrink-0 flex items-center justify-center gap-1.5 border border-emerald-200/40 whitespace-nowrap"
+          >
+            <span>🎁 さっそく交換所を見る ➔</span>
+          </button>
         </div>
       )}
 
