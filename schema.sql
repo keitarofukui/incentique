@@ -112,3 +112,11 @@ INSERT OR IGNORE INTO quiz_questions (id, grade_level, category, question_text, 
 (3, 'high_3', 'social_studies', '1689年、イギリスの名誉革命の際に制定された権利の宣言を元にした文書は？', '["マグナ・カルタ", "権利の請願", "権利の章典", "大抗議書"]', 2, 1),
 (4, 'junior_1', 'english', '「私は放課後サッカーをします」の正しい英語表現は？', '["I play soccer after school.", "I am play soccer after school.", "I played soccer after school.", "I plays soccer after school."]', 0, 1),
 (5, 'junior_1', 'science', '植物が光を受けて二酸化炭素と水から養分と酸素をつくる働きを何というか？', '["呼吸", "蒸散", "光合成", "吸収"]', 2, 1);
+
+-- 外部API用レート制限カウンタ
+CREATE TABLE IF NOT EXISTS rate_limit_counters (
+  bucket_key TEXT PRIMARY KEY,
+  hits INTEGER NOT NULL DEFAULT 0,
+  window_start INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_window ON rate_limit_counters (window_start);

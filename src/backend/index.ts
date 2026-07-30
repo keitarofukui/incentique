@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, Context } from 'hono';
 import { cors } from 'hono/cors';
 // Imported as types (not via tsconfig "types") so the Workers globals don't
 // override the DOM lib the frontend compiles against.
@@ -12,6 +12,53 @@ export type Bindings = {
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+/** レート制限のウィンドウ幅（ミリ秒） */
+const RATE_LIMIT_WINDOW_MS = 60_000
+/** 1ウィンドウあたりの許容回数（呼び出し元IP × エンドポイント単位） */
+const RATE_LIMIT_MAX_HITS = 10
+
+/**
+ * 外部APIを呼ぶエンドポイント用のレート制限。
+ * 認証がないため、URLを知られると第三者が外部APIの枠を消費できてしまう。
+ * 呼び出し元IP × エンドポイント単位で数え、超過分は外部APIに到達する前に429で返す。
+ */
+const checkRateLimit = async (
+  c: Context<{ Bindings: Bindings }>,
+  label: string
+): Promise<Response | null> => {
+  try {
+    const ip = c.req.header('CF-Connecting-IP') ?? 'unknown'
+    const windowStart = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS
+    const bucketKey = `${ip}:${label}:${windowStart}`
+
+    const row = await c.env.DB.prepare(
+      `INSERT INTO rate_limit_counters (bucket_key, hits, window_start)
+       VALUES (?, 1, ?)
+       ON CONFLICT(bucket_key) DO UPDATE SET hits = hits + 1
+       RETURNING hits`
+    )
+      .bind(bucketKey, windowStart)
+      .first<{ hits: number }>()
+
+    const hits = row?.hits ?? 1
+
+    // 新しいウィンドウの最初の1回だけ、古い行を掃除する
+    if (hits === 1) {
+      await c.env.DB.prepare('DELETE FROM rate_limit_counters WHERE window_start < ?')
+        .bind(windowStart - RATE_LIMIT_WINDOW_MS * 10)
+        .run()
+    }
+
+    if (hits <= RATE_LIMIT_MAX_HITS) return null
+
+    return c.json({ error: 'リクエストが多すぎます。少し待ってから再試行してください。' }, 429)
+  } catch (err) {
+    // カウンタ側の障害で本来の機能を止めない
+    console.error('rate limit check failed', err)
+    return null
+  }
+}
 
 function isSummerBreakPeriod(): boolean {
   const now = new Date();
@@ -442,6 +489,8 @@ app.post('/api/quizzes/answer', async (c) => {
 
 app.post('/api/quizzes/generate', async (c) => {
   try {
+    const limited = await checkRateLimit(c, 'quizzes-generate')
+    if (limited) return limited;
     // process.env is not available in the Workers runtime — use the binding only
     const apiKey = c.env.GEMINI_API_KEY;
     const body = await c.req.json<{
