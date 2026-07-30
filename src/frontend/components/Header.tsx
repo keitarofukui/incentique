@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { User } from '../types';
 import { Sparkles, Trophy, LogOut, ShieldCheck } from 'lucide-react';
 
@@ -27,20 +27,49 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const activeBtnRef = useRef<HTMLButtonElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // Set when the user scrolls the strip by hand, so the correction below never
+  // yanks the strip back out from under their finger.
+  const userTouchedStripRef = useRef<boolean>(false);
 
-  // Auto-scroll the active header button into view whenever activeTab changes
-  useEffect(() => {
-    if (activeTab === 'dashboard' && containerRef.current) {
-      containerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-    } else if (activeTab === 'rivals' && containerRef.current) {
-      containerRef.current.scrollTo({ left: containerRef.current.scrollWidth, behavior: 'smooth' });
-    } else if (activeBtnRef.current) {
-      activeBtnRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      });
-    }
+  // Keep the nav strip scrolled to the active tab.
+  //
+  // The strip's scrollLeft is uncontrolled DOM state, so a fire-and-forget
+  // smooth scroll is not enough to keep it in sync with activeTab: smooth
+  // scrolling is cancellable (a competing gesture, or a second tab change
+  // before the first animation settles), and nothing would re-assert the
+  // position afterwards — the strip would stay stuck until the *next* tab
+  // change. That is the "menu doesn't follow the swipe" bug. So: compute the
+  // target ourselves, then verify it actually landed.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const btn = activeBtnRef.current;
+    if (!container || !btn) return;
+
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    if (maxScroll <= 0) return; // everything already fits, nothing to scroll
+
+    // Measure with rects rather than offsetLeft: the sticky <header> is a
+    // positioned ancestor, so offsetLeft is not relative to this container.
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const delta = (btnRect.left - containerRect.left) - (containerRect.width - btnRect.width) / 2;
+
+    // Centre the active tab, clamped. The first tab clamps to 0 and the last to
+    // maxScroll on its own, so ホーム / ライバル need no special-casing.
+    const target = Math.max(0, Math.min(maxScroll, container.scrollLeft + delta));
+
+    userTouchedStripRef.current = false;
+    container.scrollTo({ left: target, behavior: 'smooth' });
+
+    // Snap into place if the smooth scroll was interrupted and never arrived.
+    const verifyId = window.setTimeout(() => {
+      if (userTouchedStripRef.current) return;
+      if (Math.abs(container.scrollLeft - target) > 2) {
+        container.scrollTo({ left: target, behavior: 'auto' });
+      }
+    }, 700);
+
+    return () => window.clearTimeout(verifyId);
   }, [activeTab]);
 
   return (
@@ -122,7 +151,14 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Horizontal Scrollable Navigation Action Bar (Hidden in Parent Mode) */}
       {!isParentMode && (
         <div className="bg-slate-900/90 border-t border-slate-800/80 px-2 sm:px-4">
-          <div ref={containerRef} className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2 scrollbar-none">
+          {/* no-swipe: this strip scrolls horizontally itself. Without it a
+              swipe here would scroll the strip natively *and* change tabs, and
+              the momentum scroll would then fight the programmatic scroll above. */}
+          <div
+            ref={containerRef}
+            onTouchStart={() => { userTouchedStripRef.current = true; }}
+            className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2 scrollbar-none no-swipe"
+          >
             
             <button
               ref={activeTab === 'dashboard' ? activeBtnRef : null}
