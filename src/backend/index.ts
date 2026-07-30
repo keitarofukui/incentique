@@ -660,6 +660,10 @@ app.delete('/api/action-logs/:id', async (c) => {
 
 app.get('/api/wish-items', async (c) => {
   try {
+    try {
+      await c.env.DB.prepare("ALTER TABLE wish_items ADD COLUMN item_type TEXT DEFAULT 'goods'").run();
+    } catch (_) {}
+
     const userId = c.req.query('user_id');
     let query = 'SELECT wish_items.*, users.name as user_name FROM wish_items JOIN users ON wish_items.user_id = users.id';
     const params: any[] = [];
@@ -680,24 +684,31 @@ app.get('/api/wish-items', async (c) => {
 
 app.post('/api/wish-items', async (c) => {
   try {
+    try {
+      await c.env.DB.prepare("ALTER TABLE wish_items ADD COLUMN item_type TEXT DEFAULT 'goods'").run();
+    } catch (_) {}
+
     const body = await c.req.json<{
       userId: string;
       title: string;
       imageUrl?: string;
       requiredPoints: number;
+      itemType?: 'goods' | 'cash';
     }>();
 
     const id = 'wish_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    const itemType = body.itemType || 'goods';
 
     await c.env.DB.prepare(
-      'INSERT INTO wish_items (id, user_id, title, image_url, required_points, is_approved, is_claimed) VALUES (?, ?, ?, ?, ?, 0, 0)'
+      'INSERT INTO wish_items (id, user_id, title, image_url, required_points, item_type, is_approved, is_claimed) VALUES (?, ?, ?, ?, ?, ?, 0, 0)'
     )
       .bind(
         id,
         body.userId,
         body.title,
-        body.imageUrl || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop',
-        body.requiredPoints
+        body.imageUrl || (itemType === 'cash' ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop'),
+        body.requiredPoints,
+        itemType
       )
       .run();
 
@@ -785,8 +796,9 @@ app.put('/api/wish-items/:id/claim', async (c) => {
                   <p>お子様より新しいご褒美の交換リクエストが提出されました！</p>
                   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;" />
                   <p><strong>■ リクエスト者:</strong> ${childName} さん</p>
-                  <p><strong>■ 交換ご褒美:</strong> ${wish.title}</p>
+                  <p><strong>■ 交換ご褒美:</strong> ${wish.title} ${wish.item_type === 'cash' ? '💵 (現金還元 7掛け)' : ''}</p>
                   <p><strong>■ 必要ポイント:</strong> ${wish.required_points.toLocaleString()} pt</p>
+                  ${wish.item_type === 'cash' ? `<p><strong>■ 還元金額 (70%還元):</strong> ${Math.floor(wish.required_points * 0.7).toLocaleString()} 円</p>` : ''}
                   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;" />
                   <p>実生活で物品・お小遣いを手渡した後に、管理者ポータルにて「ポイント引き落とし」を行ってください。</p>
                 </div>

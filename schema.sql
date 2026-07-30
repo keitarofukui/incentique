@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS wish_items (
   title TEXT NOT NULL,
   image_url TEXT,
   required_points INTEGER NOT NULL,
+  item_type TEXT DEFAULT 'goods',
   is_approved BOOLEAN DEFAULT FALSE,
   is_claimed BOOLEAN DEFAULT FALSE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP

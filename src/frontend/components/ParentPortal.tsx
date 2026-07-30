@@ -360,34 +360,69 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {claimedWishes.map((item) => (
-              <div key={item.id} className="glass-card p-5 rounded-2xl border border-amber-500/40 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                      {item.user_name || 'お子様'}からのリクエスト
-                    </span>
-                    <h4 className="text-base font-bold text-white mt-1">{item.title}</h4>
-                  </div>
-                  <span className="text-base font-black text-amber-400 font-mono shrink-0">
-                    {item.required_points.toLocaleString()} pt
-                  </span>
-                </div>
+            {claimedWishes.map((item) => {
+              const isCash = item.item_type === 'cash';
+              const cashAmount = Math.floor(item.required_points * 0.7);
 
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <p className="text-[10px] text-amber-300 leading-relaxed">
-                    ※実生活で商品やお小遣いを手渡した後にボタンを押してください。押すと <strong>{item.user_name || 'お子様'}</strong> の所持ポイントから <strong>-{item.required_points.toLocaleString()} pt</strong> が引き落とされます。
-                  </p>
-                  <button
-                    onClick={() => handleApproveWish(item.id)}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>🎁 物品を渡した！ポイントを引き落とす (-{item.required_points.toLocaleString()} pt)</span>
-                  </button>
+              return (
+                <div key={item.id} className={`glass-card p-5 rounded-2xl border ${isCash ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-amber-500/40'} space-y-3`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                          {item.user_name || 'お子様'}からのリクエスト
+                        </span>
+                        {isCash && (
+                          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                            💵 現金還元 (7掛け)
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-base font-bold text-white mt-1">{item.title}</h4>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-base font-black text-amber-400 font-mono block">
+                        {item.required_points.toLocaleString()} pt
+                      </span>
+                      {isCash && (
+                        <span className="text-xs font-black text-emerald-400 font-mono">
+                          (¥{cashAmount.toLocaleString()}円)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isCash && (
+                    <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between font-medium">
+                      <span>手渡す現金（70%還元）:</span>
+                      <span className="text-sm font-black font-mono text-emerald-400">¥ {cashAmount.toLocaleString()} 円</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-800 space-y-2">
+                    <p className="text-[10px] text-amber-300 leading-relaxed">
+                      ※実生活で{isCash ? `お小遣い (${cashAmount.toLocaleString()}円)` : '商品'}を手渡した後にボタンを押してください。押すと <strong>{item.user_name || 'お子様'}</strong> の所持ポイントから <strong>-{item.required_points.toLocaleString()} pt</strong> が引き落とされます。
+                    </p>
+                    <button
+                      onClick={() => handleApproveWish(item.id)}
+                      className={`w-full py-2.5 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg ${
+                        isCash
+                          ? 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-emerald-950'
+                          : 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-glow-gold'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>
+                        {isCash
+                          ? `💵 現金 ${cashAmount.toLocaleString()}円を渡した！pt引き落とし (-${item.required_points.toLocaleString()} pt)`
+                          : `🎁 物品を渡した！ポイントを引き落とす (-${item.required_points.toLocaleString()} pt)`
+                        }
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

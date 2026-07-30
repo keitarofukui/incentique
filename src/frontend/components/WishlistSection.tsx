@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, WishItem } from '../types';
-import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart, Banknote, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface WishlistSectionProps {
@@ -19,6 +19,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   onRefresh,
 }) => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [itemType, setItemType] = useState<'goods' | 'cash'>('goods');
   const [newTitle, setNewTitle] = useState<string>('');
   const [newPoints, setNewPoints] = useState<number>(3000);
   const [newImageUrl, setNewImageUrl] = useState<string>('');
@@ -71,7 +72,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    const finalTitle = newTitle.trim() || (itemType === 'cash' ? `お小遣い現金還元 (${Math.floor(newPoints * 0.7).toLocaleString()}円)` : '');
+    if (!finalTitle) return;
 
     // In parent mode with no child selected, fall back to the first user rather
     // than posting an empty userId (which the API would reject silently).
@@ -88,15 +90,17 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: targetUserId,
-          title: newTitle,
+          title: finalTitle,
           imageUrl: newImageUrl || undefined,
-          requiredPoints: newPoints
+          requiredPoints: newPoints,
+          itemType: itemType,
         })
       });
       const data = await res.json();
       if (data.success) {
         setNewTitle('');
         setNewImageUrl('');
+        setItemType('goods');
         setShowAddModal(false);
         onRefresh();
       }
@@ -118,24 +122,29 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
             <span>交換所</span>
           </h2>
           <p className="text-xs text-slate-400">
-            自分で貯めたポイントで買いたい物品やお小遣いをリクエスト登録しよう！
+            貯めたポイントで欲しいご褒美物品やお小遣い（現金還元）をリクエスト登録しよう！
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1.5 self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1.5 self-start sm:self-auto shadow-lg"
         >
           <Plus className="w-4 h-4" />
-          <span>🎁 欲しいものをリクエスト</span>
+          <span>🎁 欲しいもの / 現金還元リクエスト</span>
         </button>
       </div>
 
       {/* Point Exchange Flow Explanation Banner */}
       <div className="glass-card p-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-950/20 via-slate-900 to-indigo-950/20 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-black text-amber-300">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span>🔄 ご褒美交換・ポイント引き落としの流れ</span>
+        <div className="flex items-center justify-between flex-wrap gap-2 text-xs font-black text-amber-300">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>🔄 ご褒美交換・ポイント引き落としのルール</span>
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold">
+            💵 現金還元は「7掛け (70%還元)」でお小遣い化！
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -143,15 +152,15 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
             <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-[10px] flex items-center justify-center shrink-0 border border-amber-500/40">1</span>
             <div>
               <div className="font-bold text-white">1. 交換申請</div>
-              <div className="text-[11px] text-slate-400">必要ptに達したら「ポイント交換を申請する」をタップ。</div>
+              <div className="text-[11px] text-slate-400">物品（100%換算）または現金還元（70%換算）を選択して申請。</div>
             </div>
           </div>
 
           <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-start gap-2">
             <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-[10px] flex items-center justify-center shrink-0 border border-cyan-500/40">2</span>
             <div>
-              <div className="font-bold text-white">2. 親の承認</div>
-              <div className="text-[11px] text-slate-400 font-semibold">保護者が管理者モードで申請を確認・承認します。</div>
+              <div className="font-bold text-white">2. 親の確認・手渡し</div>
+              <div className="text-[11px] text-slate-400 font-semibold">保護者が現物またはお小遣い（70%分の現金）を手渡します。</div>
             </div>
           </div>
 
@@ -159,7 +168,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
             <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] flex items-center justify-center shrink-0 border border-emerald-500/40">3</span>
             <div>
               <div className="font-bold text-white">3. ポイント減算 ＆ 確定</div>
-              <div className="text-[11px] text-slate-400">承認ボタンを押すとptが自動引き落とし（減算）されご褒美確定！</div>
+              <div className="text-[11px] text-slate-400">承認ボタンを押すとptが自動引き落とし（減算）完了！</div>
             </div>
           </div>
         </div>
@@ -170,7 +179,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         <div className="glass-card p-8 rounded-3xl border border-slate-800 text-center space-y-3">
           <Gift className="w-12 h-12 text-slate-600 mx-auto" />
           <div className="text-sm font-bold text-slate-300">リクエストされている欲しいもの（ご褒美）はまだありません。</div>
-          <p className="text-xs text-slate-500">右上「🎁 欲しいものをリクエスト」ボタンから、ポイントと交換したい物品やお小遣いを自由に登録しましょう！</p>
+          <p className="text-xs text-slate-500">右上ボタンから、物品やお小遣い（現金還元）を自由に登録しましょう！</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -179,6 +188,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
             const currentPoints = targetUser ? targetUser.current_points : (currentUser?.current_points || 0);
             const progress = Math.min(100, Math.round((currentPoints / item.required_points) * 100));
             const canClaim = currentPoints >= item.required_points;
+            const isCash = item.item_type === 'cash';
+            const cashAmount = Math.floor(item.required_points * 0.7);
 
             return (
               <div
@@ -188,14 +199,22 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 {/* Image Header */}
                 <div className="relative h-48 bg-slate-900 overflow-hidden">
                   <img
-                    src={item.image_url || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop'}
+                    src={item.image_url || (isCash ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop')}
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
 
-                  <div className="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-amber-500/40 font-mono font-black text-amber-400 text-xs shadow-glow-gold">
-                    {item.required_points.toLocaleString()} pt
+                  <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                    <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-amber-500/40 font-mono font-black text-amber-400 text-xs shadow-glow-gold">
+                      {item.required_points.toLocaleString()} pt
+                    </div>
+                    {isCash && (
+                      <div className="bg-emerald-950/90 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-emerald-500/50 text-[10px] font-black text-emerald-300 flex items-center gap-1 shadow-lg">
+                        <Banknote className="w-3 h-3 text-emerald-400" />
+                        <span>70%還元: {cashAmount.toLocaleString()}円</span>
+                      </div>
+                    )}
                   </div>
 
                   {targetUser && (
@@ -208,9 +227,28 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 {/* Card Body */}
                 <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      {isCash ? (
+                        <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-md text-[10px] font-bold flex items-center gap-1 shrink-0">
+                          <Banknote className="w-3 h-3" /> 現金還元 (7掛け)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-md text-[10px] font-bold flex items-center gap-1 shrink-0">
+                          <Gift className="w-3 h-3" /> 物品ご褒美
+                        </span>
+                      )}
+                    </div>
+
                     <h3 className="text-lg font-bold text-white leading-snug">
                       {item.title}
                     </h3>
+
+                    {isCash && (
+                      <div className="p-2 bg-emerald-950/30 border border-emerald-500/20 rounded-xl text-xs text-emerald-300 font-medium flex items-center justify-between">
+                        <span>受取現金金額:</span>
+                        <span className="font-black text-emerald-400 font-mono text-sm">¥ {cashAmount.toLocaleString()} 円</span>
+                      </div>
+                    )}
 
                     {/* Progress Bar */}
                     <div className="space-y-1">
@@ -231,7 +269,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                   <div className="pt-2 space-y-1.5">
                     {item.is_approved ? (
                       <div className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-center font-extrabold text-xs flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4" /> 🎁 物品受け取り ＆ ポイント消費完了！
+                        <CheckCircle2 className="w-4 h-4" /> {isCash ? `💵 現金 ${cashAmount.toLocaleString()}円 還元完了！` : '🎁 物品受け取り ＆ ポイント消費完了！'}
                       </div>
                     ) : isParentMode ? (
                       <div className="space-y-2">
@@ -241,7 +279,12 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
                           >
                             <CheckCircle2 className="w-4 h-4" />
-                            <span>🎁 物品を渡した！ポイント引き落とし (-{item.required_points.toLocaleString()} pt)</span>
+                            <span>
+                              {isCash
+                                ? `💵 現金 ${cashAmount.toLocaleString()}円を渡した！(-${item.required_points.toLocaleString()} pt)`
+                                : `🎁 物品を渡した！ポイント引き落とし (-${item.required_points.toLocaleString()} pt)`
+                              }
+                            </span>
                           </button>
                         ) : (
                           <div className="w-full py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-center font-bold text-xs">
@@ -258,9 +301,9 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     ) : item.is_claimed ? (
                       <div className="space-y-1">
                         <div className="w-full py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-center font-extrabold text-xs flex items-center justify-center gap-1.5">
-                          <Clock className="w-4 h-4 animate-spin" /> 📦 親の調達・手渡し待ち
+                          <Clock className="w-4 h-4 animate-spin" /> {isCash ? `💵 親のお金手渡し待ち (${cashAmount.toLocaleString()}円)` : '📦 親の調達・手渡し待ち'}
                         </div>
-                        <p className="text-[10px] text-slate-400 text-center">※現物を手渡された時に親がポイントを引き落とします</p>
+                        <p className="text-[10px] text-slate-400 text-center">※保護者が現金・物品を手渡した時にポイントを引き落とします</p>
                       </div>
                     ) : canClaim ? (
                       <div className="space-y-1">
@@ -269,7 +312,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
                         >
                           <ShoppingCart className="w-4 h-4" />
-                          <span>🎁 これと交換したい！親にリクエスト</span>
+                          <span>{isCash ? `💵 現金 ${cashAmount.toLocaleString()}円と交換申請！` : '🎁 これと交換したい！親にリクエスト'}</span>
                         </button>
                         <p className="text-[10px] text-slate-400 text-center">※手渡し時に {item.required_points.toLocaleString()} pt が引き落とされます</p>
                       </div>
@@ -294,26 +337,71 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
           <div className="glass-card w-full max-w-md rounded-3xl p-6 border border-slate-700 shadow-2xl space-y-4">
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Gift className="w-5 h-5 text-amber-400" />
-              <span>欲しいものをリクエスト・登録</span>
+              <span>ご褒美・お小遣い交換リクエストの登録</span>
             </h3>
 
             <form onSubmit={handleAddItem} className="space-y-4">
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 space-y-1">
-                <div className="font-bold flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>ご褒美リクエストのルール</span>
+              {/* Type Switcher */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300">交換タイプを選択</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setItemType('goods')}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      itemType === 'goods'
+                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-glow-gold'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Gift className="w-4 h-4 text-amber-400" />
+                    <span>🎁 物品・ご褒美 (100%)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setItemType('cash')}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      itemType === 'cash'
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-lg'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Banknote className="w-4 h-4 text-emerald-400" />
+                    <span>💵 現金還元 (7掛け)</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-slate-300">
-                  貯めたポイントで買いたい商品やご褒美と、必要な希望ポイントを登録できます。ポイント達成後に親へリクエストを送ることができます！
-                </p>
               </div>
 
+              {itemType === 'cash' ? (
+                <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 space-y-1">
+                  <div className="font-bold flex items-center gap-1 text-emerald-400">
+                    <Coins className="w-4 h-4" />
+                    <span>7掛け（70%還元）現金交換ルール</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    貯めたポイントを現金（お小遣い）に還元できます。ポイント数の <strong>70% (7掛け)</strong> の現金が手渡されます。
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 space-y-1">
+                  <div className="font-bold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ご褒美リクエストのルール</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    貯めたポイントで買いたい商品やご褒美と、必要な希望ポイントを登録できます。ポイント達成後に親へリクエストを送ることができます！
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">商品・報酬タイトル</label>
+                <label className="text-xs font-bold text-slate-300">
+                  {itemType === 'cash' ? 'リクエスト名 (任意)' : '商品・報酬タイトル'}
+                </label>
                 <input
                   type="text"
-                  required
-                  placeholder="例: PS5ゲームソフト / ラグビースパイク"
+                  placeholder={itemType === 'cash' ? `例: お小遣い現金還元 (${Math.floor(newPoints * 0.7).toLocaleString()}円)` : '例: PS5ゲームソフト / ラグビースパイク'}
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
@@ -321,7 +409,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">必要ポイント (pt)</label>
+                <label className="text-xs font-bold text-slate-300">消費ポイント (pt)</label>
                 <input
                   type="number"
                   required
@@ -332,6 +420,16 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-400"
                 />
               </div>
+
+              {/* Live Preview for Cash Option */}
+              {itemType === 'cash' && (
+                <div className="p-3 bg-slate-900 border border-emerald-500/40 rounded-xl flex items-center justify-between text-xs">
+                  <span className="text-slate-300 font-bold">💵 受取現金金額 (7掛け):</span>
+                  <span className="text-base font-black text-emerald-400 font-mono">
+                    ¥ {Math.floor(newPoints * 0.7).toLocaleString()} 円
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-300">画像URL (任意)</label>
@@ -355,7 +453,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 transition-all"
+                  className="px-5 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 transition-all shadow-lg"
                 >
                   追加する
                 </button>
