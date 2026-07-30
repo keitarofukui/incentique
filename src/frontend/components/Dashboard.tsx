@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { User, ActionLog, UserGoal } from '../types';
-import { Brain, BookOpen, Dumbbell, CheckCircle2, Clock, XCircle, ArrowRight, Zap, Flame, Swords, Utensils, Banknote, Coins, X } from 'lucide-react';
+import { Brain, BookOpen, Dumbbell, CheckCircle2, Clock, XCircle, ArrowRight, Zap, Utensils, Banknote, X } from 'lucide-react';
 import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
-import { formatLogDateTime, formatRelativeTime, logLocalDateStr, todayLocalDateStr, toLocalDateStr } from '../dateUtils';
+import { RivalPulse } from './RivalPulse';
+import { formatLogDateTime, todayLocalDateStr } from '../dateUtils';
 
 interface DashboardProps {
   currentUser: User | null;
   currentGoal: UserGoal | null;
+  users: User[];
   actionLogs: ActionLog[];
   onNavigate: (tab: string) => void;
   onOpenTrainingModal: () => void;
@@ -19,6 +21,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({
   currentUser,
   currentGoal,
+  users,
   actionLogs,
   onNavigate,
   onOpenTrainingModal,
@@ -132,90 +135,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 🔥 Rival Highlight News (Displays ONLY when a notable achievement occurs today or yesterday) */}
-      {(() => {
-        // Filter for notable rival achievements (Today or Yesterday, in local/JST days)
-        const todayStr = todayLocalDateStr();
-        const yesterdayStr = toLocalDateStr(new Date(Date.now() - 86400000));
-
-        const notableLogs = actionLogs.filter((log) => {
-          if (log.user_id === currentUser.id) return false;
-
-          if (!log.created_at) return true; // If no date, treat as recent
-          const logDay = logLocalDateStr(log.created_at);
-          if (logDay !== todayStr && logDay !== yesterdayStr) return false;
-
-          // Notable conditions: High points (>=100pt), major reading/movie review or training log
-          if (log.earned_points >= 100) return true;
-          if (log.category && (log.category.startsWith('input_') || log.category === 'training')) return true;
-          return false;
-        }).sort((a, b) => {
-          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return timeB - timeA;
-        }).slice(0, 2);
-
-        // If no notable achievements in recent logs, hide completely
-        if (notableLogs.length === 0) return null;
-
-        return (
-          <div className="glass-card p-5 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 shadow-2xl space-y-3 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                  <Flame className="w-5 h-5 animate-bounce text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-amber-300 flex items-center gap-1.5">
-                    <span>🔥 LIVE速報！ライバルの注目の頑張り</span>
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    ライバルが最新の成果や高ポイントを獲得！刺激を受けて挑戦しよう！
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onNavigate('rivals')}
-                className="px-3 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 font-bold text-xs transition-all flex items-center gap-1 shrink-0"
-              >
-                <Swords className="w-3.5 h-3.5 text-indigo-400" />
-                <span>順位表 ➔</span>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {notableLogs.map((log) => (
-                <div key={log.id} className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-lg">⚡️</span>
-                    <div className="min-w-0">
-                      <div className="text-xs font-black text-white flex items-center gap-1.5">
-                        <span>{log.user_name || 'ライバル'}</span>
-                        <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                          {log.earned_points >= 1000 ? '🎰 10倍超激レア！' : log.earned_points >= 300 ? '🔥 成果達成！' : '⚡️ 突破！'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300 truncate mt-0.5">
-                        「{log.title_or_menu}」を達成し大量ポイント獲得！
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-mono font-black text-amber-400">
-                      +{log.earned_points.toLocaleString()} pt
-                    </div>
-                    <div className="text-[10px] text-amber-300/80 font-mono font-bold">
-                      {formatRelativeTime(log.created_at)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Today's head-to-head, streaks and weekly crowns */}
+      <RivalPulse
+        users={users}
+        currentUser={currentUser}
+        actionLogs={actionLogs}
+        onNavigate={onNavigate}
+      />
 
       {/* Goal & Pace Planner */}
       <GoalPlannerWidget

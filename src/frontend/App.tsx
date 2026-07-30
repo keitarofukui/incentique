@@ -388,6 +388,7 @@ export const App: React.FC = () => {
                 <Dashboard
                   currentUser={currentUser}
                   currentGoal={currentGoal}
+                  users={users}
                   actionLogs={actionLogs}
                   onNavigate={handleSetActiveTab}
                   onOpenTrainingModal={() => handleSetActiveTab('training')}
