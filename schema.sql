@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_quiz_category_grade ON quiz_questions (category, grade_level);
+
 -- 欲しいもの（ウィッシュリスト）
 CREATE TABLE IF NOT EXISTS wish_items (
   id TEXT PRIMARY KEY,

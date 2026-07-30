@@ -221,7 +221,7 @@ app.get('/api/quizzes', async (c) => {
     const gradeLevel = c.req.query('grade_level');
     const category = c.req.query('category');
 
-    let studyWhere = ' WHERE category != \'anime_manga\'';
+    let studyWhere = " WHERE category != 'anime_manga'";
     const studyParams: any[] = [];
 
     // Category filter for academic subjects
@@ -232,22 +232,90 @@ app.get('/api/quizzes', async (c) => {
 
     // Grade Level filter for academic subjects
     if (gradeLevel && gradeLevel !== 'all' && gradeLevel !== 'other') {
-      studyWhere += ' AND (grade_level = ? OR grade_level = \'all\')';
+      studyWhere += " AND (grade_level = ? OR grade_level = 'all')";
       studyParams.push(gradeLevel);
     }
 
-    // Fetch Study Quizzes (Main Pool: 45 items)
-    const studyQuery = `SELECT * FROM quiz_questions${studyWhere} ORDER BY RANDOM() LIMIT 45`;
-    const studyRes = await c.env.DB.prepare(studyQuery).bind(...studyParams).all();
-    const studyQuizzes = studyRes.results || [];
+    const studyWhereAnd = studyWhere.replace(/^ WHERE /, ' AND ');
 
-    // Count matching study questions
-    const countRes: any = await c.env.DB.prepare(
-      `SELECT COUNT(*) as total FROM quiz_questions${studyWhere}`
-    ).bind(...studyParams).first();
-    const totalCount = countRes?.total || studyQuizzes.length;
+    // 1. Fetch Study Quizzes using Primary Key ID Random Sampling to reduce D1 row reads
+    let studyQuizzes: any[] = [];
+    const maxRow: any = await c.env.DB.prepare('SELECT MAX(id) as maxId FROM quiz_questions').first();
+    const maxId = maxRow?.maxId || 0;
 
-    // Fetch Anime Break-time Quizzes (Small Bonus Mix: Only 3 items = ~6% ratio)
+    const generateRandomIds = (max: number, count: number): number[] => {
+      const set = new Set<number>();
+      const target = Math.min(count, max);
+      while (set.size < target) {
+        const r = Math.floor(Math.random() * max) + 1;
+        set.add(r);
+      }
+      return Array.from(set);
+    };
+
+    if (maxId > 0) {
+      // Step 1: Primary Key Index-based random sampling with 150 candidate IDs
+      const ids150 = generateRandomIds(maxId, 150);
+      const inClause150 = ids150.map(() => '?').join(',');
+      const query150 = `SELECT * FROM quiz_questions WHERE id IN (${inClause150})${studyWhereAnd} LIMIT 45`;
+      const res150 = await c.env.DB.prepare(query150).bind(...ids150, ...studyParams).all();
+      studyQuizzes = res150.results || [];
+
+      // Step 2: Retry with 400 candidate IDs if first attempt returned fewer than 45 items
+      if (studyQuizzes.length < 45) {
+        const ids400 = generateRandomIds(maxId, 400);
+        const inClause400 = ids400.map(() => '?').join(',');
+        const query400 = `SELECT * FROM quiz_questions WHERE id IN (${inClause400})${studyWhereAnd} LIMIT 45`;
+        const res400 = await c.env.DB.prepare(query400).bind(...ids400, ...studyParams).all();
+        studyQuizzes = res400.results || [];
+      }
+    }
+
+    // Step 3: Fallback to ORDER BY RANDOM() if PK sampling didn't fetch 45 items
+    if (studyQuizzes.length < 45) {
+      const fallbackQuery = `SELECT * FROM quiz_questions${studyWhere} ORDER BY RANDOM() LIMIT 45`;
+      const fallbackRes = await c.env.DB.prepare(fallbackQuery).bind(...studyParams).all();
+      studyQuizzes = fallbackRes.results || [];
+    }
+
+    // 2. Cached Total Count (24-hour TTL in app_settings to prevent full table scan)
+    const cacheKey = `quiz_count_${category || 'all'}_${gradeLevel || 'all'}`;
+    let totalCount: number | null = null;
+
+    try {
+      await c.env.DB.prepare(
+        'CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)'
+      ).run();
+
+      const cacheRow: any = await c.env.DB.prepare(
+        'SELECT value FROM app_settings WHERE key = ?'
+      ).bind(cacheKey).first();
+
+      if (cacheRow && cacheRow.value) {
+        const parsed = JSON.parse(cacheRow.value);
+        if (typeof parsed.count === 'number' && typeof parsed.timestamp === 'number') {
+          if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+            totalCount = parsed.count;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (totalCount === null) {
+      const countRes: any = await c.env.DB.prepare(
+        `SELECT COUNT(*) as total FROM quiz_questions${studyWhere}`
+      ).bind(...studyParams).first();
+      totalCount = countRes?.total || studyQuizzes.length;
+
+      try {
+        const cacheValue = JSON.stringify({ count: totalCount, timestamp: Date.now() });
+        await c.env.DB.prepare(
+          'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+        ).bind(cacheKey, cacheValue).run();
+      } catch (_) {}
+    }
+
+    // 3. Fetch Anime Break-time Quizzes (Bonus Mix: 3 items)
     let animeQuizzes: any[] = [];
     if (studyQuizzes.length > 0) {
       const animeRes = await c.env.DB.prepare(
