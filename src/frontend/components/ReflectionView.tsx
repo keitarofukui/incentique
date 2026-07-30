@@ -291,12 +291,12 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
             displayLogs.map((log) => (
               <div
                 key={log.id}
-                className="glass-card p-4 rounded-2xl border border-slate-800 flex items-start justify-between gap-4 hover:border-slate-700 transition-all"
+                className="glass-card p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:border-slate-700 transition-all"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">{log.title_or_menu}</span>
-                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase font-mono">
+                <div className="space-y-1.5 flex-1 min-w-0 w-full">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-bold text-white break-words">{log.title_or_menu}</span>
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full uppercase font-mono shrink-0 mt-0.5">
                       {log.category === 'input_book'
                         ? '読書'
                         : log.category === 'input_movie'
@@ -313,19 +313,16 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
                     </span>
                   </div>
                   {log.review_text && (
-                    <p className="text-xs text-slate-300 italic">"{log.review_text}"</p>
+                    <p className="text-xs text-slate-300 italic line-clamp-3">"{log.review_text}"</p>
                   )}
                   <div className="text-[10px] text-slate-400 font-mono">
                     実施日時: {formatLogDateTime(log.created_at, true)}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
                   <span className="text-base font-black text-amber-400 font-mono">
                     +{log.earned_points} pt
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> 獲得完了
                   </span>
                   <button
                     onClick={() => onDeleteLog(log.id)}
