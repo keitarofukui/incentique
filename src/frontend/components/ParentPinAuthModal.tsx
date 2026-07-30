@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { ShieldCheck, X, AlertCircle } from 'lucide-react';
 
 interface ParentPinAuthModalProps {
@@ -60,8 +61,8 @@ export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
       <div className="relative w-full max-w-sm glass-card p-6 rounded-3xl border border-amber-500/40 shadow-2xl space-y-6 text-center">
         <button
           onClick={onClose}
@@ -131,6 +132,7 @@ export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

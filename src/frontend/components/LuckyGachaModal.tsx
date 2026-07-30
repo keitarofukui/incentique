@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { Sparkles, X } from 'lucide-react';
 
 export interface GachaResult {
@@ -55,8 +56,8 @@ export const LuckyGachaModal: React.FC<LuckyGachaModalProps> = ({ result, onClos
   // Don't show modal overlay for normal 1x unless it's a bonus
   if (result.multiplier <= 1) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in zoom-in duration-300">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in zoom-in duration-300">
       <div className={`relative w-full max-w-md rounded-3xl p-6 border-2 shadow-2xl space-y-6 text-center overflow-hidden ${
         isJackpot
           ? 'bg-gradient-to-b from-amber-950 via-slate-900 to-purple-950 border-amber-400 shadow-amber-500/30'
@@ -145,6 +146,7 @@ export const LuckyGachaModal: React.FC<LuckyGachaModalProps> = ({ result, onClos
         </button>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
