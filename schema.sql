@@ -72,6 +72,13 @@ CREATE TABLE IF NOT EXISTS wish_items (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- アプリ設定・キャッシュ（保護者PIN、通知メール、クイズ件数の24時間キャッシュ）
+-- ※ DROP しない: 保護者PINなど再作成できない設定が入るため
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
 -- 申請＆行動ログ
 CREATE TABLE IF NOT EXISTS action_logs (
   id TEXT PRIMARY KEY,

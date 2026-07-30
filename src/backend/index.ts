@@ -238,65 +238,33 @@ app.get('/api/quizzes', async (c) => {
 
     const studyWhereAnd = studyWhere.replace(/^ WHERE /, ' AND ');
 
-    // 1. Fetch Study Quizzes using Primary Key ID Random Sampling to reduce D1 row reads
-    let studyQuizzes: any[] = [];
+    // id is an INTEGER PRIMARY KEY, so MAX(id) is a single b-tree lookup (1 row
+    // read). It drives the random sampling below and doubles as a cheap
+    // "has the question pool changed?" signal for the count cache.
     const maxRow: any = await c.env.DB.prepare('SELECT MAX(id) as maxId FROM quiz_questions').first();
-    const maxId = maxRow?.maxId || 0;
+    const maxId = Number(maxRow?.maxId) || 0;
 
-    const generateRandomIds = (max: number, count: number): number[] => {
-      const set = new Set<number>();
-      const target = Math.min(count, max);
-      while (set.size < target) {
-        const r = Math.floor(Math.random() * max) + 1;
-        set.add(r);
-      }
-      return Array.from(set);
-    };
-
-    if (maxId > 0) {
-      // Step 1: Primary Key Index-based random sampling with 150 candidate IDs
-      const ids150 = generateRandomIds(maxId, 150);
-      const inClause150 = ids150.map(() => '?').join(',');
-      const query150 = `SELECT * FROM quiz_questions WHERE id IN (${inClause150})${studyWhereAnd} LIMIT 45`;
-      const res150 = await c.env.DB.prepare(query150).bind(...ids150, ...studyParams).all();
-      studyQuizzes = res150.results || [];
-
-      // Step 2: Retry with 400 candidate IDs if first attempt returned fewer than 45 items
-      if (studyQuizzes.length < 45) {
-        const ids400 = generateRandomIds(maxId, 400);
-        const inClause400 = ids400.map(() => '?').join(',');
-        const query400 = `SELECT * FROM quiz_questions WHERE id IN (${inClause400})${studyWhereAnd} LIMIT 45`;
-        const res400 = await c.env.DB.prepare(query400).bind(...ids400, ...studyParams).all();
-        studyQuizzes = res400.results || [];
-      }
-    }
-
-    // Step 3: Fallback to ORDER BY RANDOM() if PK sampling didn't fetch 45 items
-    if (studyQuizzes.length < 45) {
-      const fallbackQuery = `SELECT * FROM quiz_questions${studyWhere} ORDER BY RANDOM() LIMIT 45`;
-      const fallbackRes = await c.env.DB.prepare(fallbackQuery).bind(...studyParams).all();
-      studyQuizzes = fallbackRes.results || [];
-    }
-
-    // 2. Cached Total Count (24-hour TTL in app_settings to prevent full table scan)
+    // 1. Cached total count (24h TTL in app_settings).
+    //    COUNT(*) is a full table scan (~3,600 rows), so it is cached — and the
+    //    value doubles as the selectivity estimate that picks the sampling
+    //    strategy below.
+    //    The cache is also keyed on maxId: importing new questions (via the seed
+    //    scripts or /api/quizzes/generate) bumps it and invalidates the entry
+    //    immediately, instead of leaving the screen showing a stale "全 N 問"
+    //    for up to 24 hours.
     const cacheKey = `quiz_count_${category || 'all'}_${gradeLevel || 'all'}`;
     let totalCount: number | null = null;
 
     try {
-      await c.env.DB.prepare(
-        'CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)'
-      ).run();
-
       const cacheRow: any = await c.env.DB.prepare(
         'SELECT value FROM app_settings WHERE key = ?'
       ).bind(cacheKey).first();
 
       if (cacheRow && cacheRow.value) {
         const parsed = JSON.parse(cacheRow.value);
-        if (typeof parsed.count === 'number' && typeof parsed.timestamp === 'number') {
-          if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-            totalCount = parsed.count;
-          }
+        const fresh = Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000;
+        if (typeof parsed.count === 'number' && typeof parsed.timestamp === 'number' && fresh && parsed.maxId === maxId) {
+          totalCount = parsed.count;
         }
       }
     } catch (_) {}
@@ -305,14 +273,55 @@ app.get('/api/quizzes', async (c) => {
       const countRes: any = await c.env.DB.prepare(
         `SELECT COUNT(*) as total FROM quiz_questions${studyWhere}`
       ).bind(...studyParams).first();
-      totalCount = countRes?.total || studyQuizzes.length;
+      totalCount = countRes?.total || 0;
 
       try {
-        const cacheValue = JSON.stringify({ count: totalCount, timestamp: Date.now() });
         await c.env.DB.prepare(
           'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
-        ).bind(cacheKey, cacheValue).run();
+        ).bind(cacheKey, JSON.stringify({ count: totalCount, timestamp: Date.now(), maxId })).run();
       } catch (_) {}
+    }
+
+    // 2. Fetch study quizzes.
+    //
+    //    Random primary-key sampling avoids ORDER BY RANDOM() reading the whole
+    //    table, but it only pays off when the filter is loose enough that a
+    //    sample of SAMPLE_SIZE ids reliably contains NEEDED matches. For a
+    //    selective filter (e.g. a single subject) the sample mostly misses and
+    //    we would pay for the attempt *and* the fallback, so go straight to the
+    //    indexed ORDER BY RANDOM() instead.
+    const NEEDED = 45;
+    const SAMPLE_SIZE = 150;
+
+    let studyQuizzes: any[] = [];
+    const expectedHits = maxId > 0 ? (SAMPLE_SIZE * (totalCount ?? 0)) / maxId : 0;
+
+    if (expectedHits >= NEEDED * 1.4) {
+      const ids = new Set<number>();
+      while (ids.size < Math.min(SAMPLE_SIZE, maxId)) {
+        ids.add(Math.floor(Math.random() * maxId) + 1);
+      }
+
+      // D1 allows at most 100 bound parameters per query, so the sampled ids are
+      // inlined rather than bound. They are integers generated here, never input.
+      const idList = Array.from(ids).map((n) => Math.trunc(n)).join(',');
+
+      // ORDER BY RANDOM() over the sampled ids only (<= SAMPLE_SIZE rows, not the
+      // table). Without it, LIMIT returns the lowest ids of the sample, which
+      // biases every quiz session towards the earliest-seeded questions.
+      const sampledRes = await c.env.DB.prepare(
+        `SELECT * FROM quiz_questions WHERE id IN (${idList})${studyWhereAnd} ORDER BY RANDOM() LIMIT ${NEEDED}`
+      ).bind(...studyParams).all();
+      studyQuizzes = sampledRes.results || [];
+    }
+
+    // Fallback: selective filter, or an unlucky draw. The index on
+    // (category, grade_level) keeps this to the matching rows, not the table.
+    if (studyQuizzes.length < NEEDED) {
+      const fallbackRes = await c.env.DB.prepare(
+        `SELECT * FROM quiz_questions${studyWhere} ORDER BY RANDOM() LIMIT ${NEEDED}`
+      ).bind(...studyParams).all();
+      studyQuizzes = fallbackRes.results || [];
     }
 
     // 3. Fetch Anime Break-time Quizzes (Bonus Mix: 3 items)
