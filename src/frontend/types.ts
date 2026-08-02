@@ -24,6 +24,8 @@ export interface User {
   current_streak_days?: number;
   last_50pt_date?: string;
   current_50pt_streak_days?: number;
+  last_100pt_date?: string;
+  current_100pt_streak_days?: number;
   created_at: string;
 }
 

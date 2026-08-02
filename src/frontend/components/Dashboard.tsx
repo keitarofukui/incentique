@@ -165,6 +165,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             )}
 
+            { (currentUser.current_100pt_streak_days || 0) > 0 && (
+              <div className="text-center px-4 border-r border-slate-700/50 hidden md:block">
+                <div className="text-[10px] sm:text-xs text-slate-400 font-bold mb-1">100pt超え</div>
+                <div className="text-xl sm:text-2xl font-black text-amber-300 flex items-center justify-center gap-1">
+                  👑 {currentUser.current_100pt_streak_days} <span className="text-xs text-amber-300/70 font-normal">日連続</span>
+                </div>
+              </div>
+            )}
+
             <div className="text-center px-4">
               <div className="text-[10px] sm:text-xs text-slate-400 font-semibold mb-1">現在獲得ポイント</div>
               <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">

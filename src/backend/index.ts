@@ -133,7 +133,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   const logicalToday = getLogicalDate();
 
   const user = await db.prepare(
-    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days FROM users WHERE id = ?'
+    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days FROM users WHERE id = ?'
   ).bind(userId).first();
 
   if (!user) return;
@@ -144,6 +144,8 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   let newCurrentStreak = user.current_streak_days || 0;
   let newLast50ptDate = user.last_50pt_date;
   let newCurrent50ptStreak = user.current_50pt_streak_days || 0;
+  let newLast100ptDate = user.last_100pt_date;
+  let newCurrent100ptStreak = user.current_100pt_streak_days || 0;
 
   let updatesRequired = false;
   let bonusPointsTotal = 0;
@@ -172,8 +174,8 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     }
   }
 
-  // --- 50pt以上ストリーク判定 ---
-  if (newLast50ptDate !== logicalToday) {
+  // --- 50pt / 100pt 以上ストリーク判定 ---
+  if (newLast50ptDate !== logicalToday || newLast100ptDate !== logicalToday) {
     // 今日の合計ポイントを算出 (UTCのcreated_atをJSTにして判定)
     const todayPointsResult = await db.prepare(`
       SELECT SUM(earned_points) as total 
@@ -184,7 +186,8 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
 
     const todayPoints = todayPointsResult?.total || 0;
 
-    if (todayPoints >= 50) {
+    // 50pt判定
+    if (todayPoints >= 50 && newLast50ptDate !== logicalToday) {
       updatesRequired = true;
       newLast50ptDate = logicalToday;
 
@@ -202,7 +205,31 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
       if (STREAK_MILESTONES.includes(newCurrent50ptStreak)) {
         const bonus = newCurrent50ptStreak * 30;
         bonusPointsTotal += bonus;
-        bonusMessages.push(`【🔥超人！50pt以上${newCurrent50ptStreak}日連続達成！特大ボーナス】`);
+        bonusMessages.push(`【🔥超人！50pt以上${newCurrent50ptStreak}日連続！特大ボーナス】`);
+      }
+    }
+
+    // 100pt判定
+    if (todayPoints >= 100 && newLast100ptDate !== logicalToday) {
+      updatesRequired = true;
+      newLast100ptDate = logicalToday;
+
+      if (!user.last_100pt_date) {
+        newCurrent100ptStreak = 1;
+      } else {
+        const diff = getDaysDifference(user.last_100pt_date, logicalToday);
+        if (diff === 1) {
+          newCurrent100ptStreak += 1;
+        } else {
+          newCurrent100ptStreak = 1; // 途切れた
+        }
+      }
+
+      if (STREAK_MILESTONES.includes(newCurrent100ptStreak)) {
+        // 100pt超えは「日数 × 100pt」をボーナスとして設定（50ptの約3倍の価値）
+        const bonus = newCurrent100ptStreak * 100;
+        bonusPointsTotal += bonus;
+        bonusMessages.push(`【👑神！100pt以上${newCurrent100ptStreak}日連続！神ボーナス】`);
       }
     }
   }
@@ -210,9 +237,9 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   if (updatesRequired) {
     await db.prepare(`
       UPDATE users 
-      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ? 
+      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_100pt_date = ?, current_100pt_streak_days = ? 
       WHERE id = ?
-    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, userId).run();
+    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast100ptDate, newCurrent100ptStreak, userId).run();
 
     if (bonusPointsTotal > 0) {
       // ポイント付与
