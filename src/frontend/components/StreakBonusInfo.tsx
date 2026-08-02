@@ -129,6 +129,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <span className="text-amber-400">×</span>
               <span className="text-amber-400">100 pt</span>
             </div>
+            
+            <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-700/50">
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+300 pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+1,000 pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+5,000 pt</span></li>
+              <li className="flex justify-between items-center text-amber-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+10,000 pt</span></li>
+            </ul>
           </div>
         </div>
       </div>
