@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS users (
   avatar TEXT DEFAULT '⚡',
   pin_code TEXT DEFAULT '1234',
   current_points INTEGER DEFAULT 0,
+  last_action_date TEXT,
+  current_streak_days INTEGER DEFAULT 0,
+  last_50pt_date TEXT,
+  current_50pt_streak_days INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

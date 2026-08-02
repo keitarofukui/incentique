@@ -124,10 +124,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </p>
           </div>
 
-          <div className="glass-card p-4 rounded-2xl border border-amber-500/30 flex items-center justify-around gap-4 shrink-0 bg-slate-900/80">
+          <div className="glass-card p-4 rounded-2xl border border-amber-500/30 flex flex-wrap items-center justify-around gap-4 shrink-0 bg-slate-900/80">
+            <div className="text-center px-4 border-r border-slate-700/50">
+              <div className="text-[10px] sm:text-xs text-slate-400 font-bold mb-1">連続アクション</div>
+              <div className="text-xl sm:text-2xl font-black text-white flex items-center justify-center gap-1">
+                🔥 {currentUser.current_streak_days || 0} <span className="text-xs text-slate-400 font-normal">日連続</span>
+              </div>
+            </div>
+
+            { (currentUser.current_50pt_streak_days || 0) > 0 && (
+              <div className="text-center px-4 border-r border-slate-700/50 hidden sm:block">
+                <div className="text-[10px] sm:text-xs text-slate-400 font-bold mb-1">50pt超え</div>
+                <div className="text-xl sm:text-2xl font-black text-rose-400 flex items-center justify-center gap-1">
+                  💥 {currentUser.current_50pt_streak_days} <span className="text-xs text-rose-400/70 font-normal">日連続</span>
+                </div>
+              </div>
+            )}
+
             <div className="text-center px-4">
-              <div className="text-xs text-slate-400 font-semibold">現在獲得ポイント</div>
-              <div className="text-3xl font-black text-amber-400 font-mono">
+              <div className="text-[10px] sm:text-xs text-slate-400 font-semibold mb-1">現在獲得ポイント</div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
                 {currentUser.current_points.toLocaleString()} <span className="text-xs text-amber-300">pt</span>
               </div>
             </div>

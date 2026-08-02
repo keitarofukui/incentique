@@ -20,6 +20,10 @@ export interface User {
   grade_level: 'high_3' | 'junior_1' | 'other';
   avatar?: string;
   current_points: number;
+  last_action_date?: string;
+  current_streak_days?: number;
+  last_50pt_date?: string;
+  current_50pt_streak_days?: number;
   created_at: string;
 }
 

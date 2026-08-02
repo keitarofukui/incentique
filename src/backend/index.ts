@@ -106,6 +106,129 @@ function rollGachaMultiplier(): { multiplier: number; bonusTier: string; bonusLa
   }
 }
 
+/** 1日の区切りを朝4時とする論理日付（YYYY-MM-DD）を取得する */
+function getLogicalDate(): string {
+  const now = new Date();
+  const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  
+  if (jstNow.getUTCHours() < 4) {
+    jstNow.setUTCDate(jstNow.getUTCDate() - 1);
+  }
+  
+  const yyyy = jstNow.getUTCFullYear();
+  const mm = String(jstNow.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(jstNow.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getDaysDifference(date1: string, date2: string): number {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  const diffTime = Math.abs(d2.getTime() - d1.getTime());
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
+/** アクション記録後にストリークを更新し、節目に達していればボーナスを付与する */
+async function updateStreaks(db: any, userId: string): Promise<void> {
+  const logicalToday = getLogicalDate();
+
+  const user = await db.prepare(
+    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days FROM users WHERE id = ?'
+  ).bind(userId).first();
+
+  if (!user) return;
+
+  const STREAK_MILESTONES = [3, 5, 10, 20, 30, 50, 100, 150, 200, 250, 300, 365];
+
+  let newLastActionDate = user.last_action_date;
+  let newCurrentStreak = user.current_streak_days || 0;
+  let newLast50ptDate = user.last_50pt_date;
+  let newCurrent50ptStreak = user.current_50pt_streak_days || 0;
+
+  let updatesRequired = false;
+  let bonusPointsTotal = 0;
+  let bonusMessages: string[] = [];
+
+  // --- 通常ストリーク判定 ---
+  if (user.last_action_date !== logicalToday) {
+    updatesRequired = true;
+    newLastActionDate = logicalToday;
+
+    if (!user.last_action_date) {
+      newCurrentStreak = 1;
+    } else {
+      const diff = getDaysDifference(user.last_action_date, logicalToday);
+      if (diff === 1) {
+        newCurrentStreak += 1;
+      } else {
+        newCurrentStreak = 1; // 途切れた
+      }
+    }
+
+    if (STREAK_MILESTONES.includes(newCurrentStreak)) {
+      const bonus = newCurrentStreak * 10;
+      bonusPointsTotal += bonus;
+      bonusMessages.push(`【🔥${newCurrentStreak}日連続達成！ボーナス】`);
+    }
+  }
+
+  // --- 50pt以上ストリーク判定 ---
+  if (newLast50ptDate !== logicalToday) {
+    // 今日の合計ポイントを算出 (UTCのcreated_atをJSTにして判定)
+    const todayPointsResult = await db.prepare(`
+      SELECT SUM(earned_points) as total 
+      FROM action_logs 
+      WHERE user_id = ? 
+      AND date(datetime(created_at, '+5 hours')) = ?
+    `).bind(userId, logicalToday).first();
+
+    const todayPoints = todayPointsResult?.total || 0;
+
+    if (todayPoints >= 50) {
+      updatesRequired = true;
+      newLast50ptDate = logicalToday;
+
+      if (!user.last_50pt_date) {
+        newCurrent50ptStreak = 1;
+      } else {
+        const diff = getDaysDifference(user.last_50pt_date, logicalToday);
+        if (diff === 1) {
+          newCurrent50ptStreak += 1;
+        } else {
+          newCurrent50ptStreak = 1; // 途切れた
+        }
+      }
+
+      if (STREAK_MILESTONES.includes(newCurrent50ptStreak)) {
+        const bonus = newCurrent50ptStreak * 30;
+        bonusPointsTotal += bonus;
+        bonusMessages.push(`【🔥超人！50pt以上${newCurrent50ptStreak}日連続達成！特大ボーナス】`);
+      }
+    }
+  }
+
+  if (updatesRequired) {
+    await db.prepare(`
+      UPDATE users 
+      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ? 
+      WHERE id = ?
+    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, userId).run();
+
+    if (bonusPointsTotal > 0) {
+      // ポイント付与
+      await db.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
+        .bind(bonusPointsTotal, userId).run();
+
+      // ボーナスログ記録
+      const logId = 'log_bonus_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      const title = bonusMessages.join(' ');
+      await db.prepare(
+        'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
+      ).bind(logId, userId, 'bonus', title, '連続記録によるボーナスポイントが付与されました！', bonusPointsTotal, 'approved').run();
+    }
+  }
+}
+
 app.use('*', cors());
 
 // ==========================================
@@ -467,6 +590,9 @@ app.post('/api/quizzes/answer', async (c) => {
         .run();
     }
 
+    // ストリーク更新
+    await updateStreaks(c.env.DB, body.userId);
+
     const user: any = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
       .bind(body.userId)
       .first();
@@ -743,6 +869,9 @@ app.post('/api/action-logs', async (c) => {
     )
       .bind(finalEarnedPoints, body.userId)
       .run();
+
+    // ストリーク更新
+    await updateStreaks(c.env.DB, body.userId);
 
     return c.json({
       success: true,
