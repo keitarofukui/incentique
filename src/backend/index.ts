@@ -133,7 +133,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   const logicalToday = getLogicalDate();
 
   const user = await db.prepare(
-    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_200pt_date, current_200pt_streak_days FROM users WHERE id = ?'
+    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date FROM users WHERE id = ?'
   ).bind(userId).first();
 
   if (!user) return;
@@ -144,8 +144,10 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   let newCurrentStreak = user.current_streak_days || 0;
   let newLast50ptDate = user.last_50pt_date;
   let newCurrent50ptStreak = user.current_50pt_streak_days || 0;
-  let newLast200ptDate = user.last_200pt_date;
-  let newCurrent200ptStreak = user.current_200pt_streak_days || 0;
+  let newLast100ptDate = user.last_100pt_date;
+  let newCurrent100ptStreak = user.current_100pt_streak_days || 0;
+  let newLast300ptBonusDate = user.last_300pt_bonus_date;
+  let newLast500ptBonusDate = user.last_500pt_bonus_date;
 
   let updatesRequired = false;
   let bonusPointsTotal = 0;
@@ -174,8 +176,8 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     }
   }
 
-  // --- 50pt / 200pt 以上ストリーク判定 ---
-  if (newLast50ptDate !== logicalToday || newLast200ptDate !== logicalToday) {
+  // --- 50pt / 100pt 以上ストリーク & 単発特大ボーナス判定 ---
+  if (newLast50ptDate !== logicalToday || newLast100ptDate !== logicalToday || newLast300ptBonusDate !== logicalToday || newLast500ptBonusDate !== logicalToday) {
     // 今日の合計ポイントを算出 (UTCのcreated_atをJSTにして判定)
     const todayPointsResult = await db.prepare(`
       SELECT SUM(earned_points) as total 
@@ -209,37 +211,53 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
       }
     }
 
-    // 200pt判定
-    if (todayPoints >= 200 && newLast200ptDate !== logicalToday) {
+    // 100pt判定 (ストリーク)
+    if (todayPoints >= 100 && newLast100ptDate !== logicalToday) {
       updatesRequired = true;
-      newLast200ptDate = logicalToday;
+      newLast100ptDate = logicalToday;
 
-      if (!user.last_200pt_date) {
-        newCurrent200ptStreak = 1;
+      if (!user.last_100pt_date) {
+        newCurrent100ptStreak = 1;
       } else {
-        const diff = getDaysDifference(user.last_200pt_date, logicalToday);
+        const diff = getDaysDifference(user.last_100pt_date, logicalToday);
         if (diff === 1) {
-          newCurrent200ptStreak += 1;
+          newCurrent100ptStreak += 1;
         } else {
-          newCurrent200ptStreak = 1; // 途切れた
+          newCurrent100ptStreak = 1; // 途切れた
         }
       }
 
-      if (STREAK_MILESTONES.includes(newCurrent200ptStreak)) {
-        // 200pt超えは「日数 × 100pt」をボーナスとして設定
-        const bonus = newCurrent200ptStreak * 100;
+      if (STREAK_MILESTONES.includes(newCurrent100ptStreak)) {
+        // 100pt超えは「日数 × 100pt」をボーナスとして設定
+        const bonus = newCurrent100ptStreak * 100;
         bonusPointsTotal += bonus;
-        bonusMessages.push(`【👑神！200pt以上${newCurrent200ptStreak}日連続！神ボーナス】`);
+        bonusMessages.push(`【👑神！100pt以上${newCurrent100ptStreak}日連続！神ボーナス】`);
       }
+    }
+
+    // 300pt単発ボーナス判定
+    if (todayPoints >= 300 && newLast300ptBonusDate !== logicalToday) {
+      updatesRequired = true;
+      newLast300ptBonusDate = logicalToday;
+      bonusPointsTotal += 300;
+      bonusMessages.push(`【🎉1日300pt突破！特大ボーナス＋300pt！】`);
+    }
+
+    // 500pt単発ボーナス判定
+    if (todayPoints >= 500 && newLast500ptBonusDate !== logicalToday) {
+      updatesRequired = true;
+      newLast500ptBonusDate = logicalToday;
+      bonusPointsTotal += 500;
+      bonusMessages.push(`【🤯1日500pt突破！やりすぎ神ボーナス＋500pt！】`);
     }
   }
 
   if (updatesRequired) {
     await db.prepare(`
       UPDATE users 
-      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_200pt_date = ?, current_200pt_streak_days = ? 
+      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_100pt_date = ?, current_100pt_streak_days = ?, last_300pt_bonus_date = ?, last_500pt_bonus_date = ? 
       WHERE id = ?
-    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast200ptDate, newCurrent200ptStreak, userId).run();
+    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast100ptDate, newCurrent100ptStreak, newLast300ptBonusDate, newLast500ptBonusDate, userId).run();
 
     if (bonusPointsTotal > 0) {
       // ポイント付与

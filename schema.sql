@@ -36,8 +36,10 @@ CREATE TABLE IF NOT EXISTS users (
   current_streak_days INTEGER DEFAULT 0,
   last_50pt_date TEXT,
   current_50pt_streak_days INTEGER DEFAULT 0,
-  last_200pt_date TEXT,
-  current_200pt_streak_days INTEGER DEFAULT 0,
+  last_100pt_date TEXT,
+  current_100pt_streak_days INTEGER DEFAULT 0,
+  last_300pt_bonus_date TEXT,
+  last_500pt_bonus_date TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

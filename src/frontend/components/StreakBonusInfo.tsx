@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Star, Zap, TrendingUp, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Flame, Star, Zap, TrendingUp, Calendar, CheckCircle2, ArrowRight, PartyPopper } from 'lucide-react';
 
 interface Props {
   onNavigate: (tab: string) => void;
@@ -103,7 +103,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* 200pt超えストリーク */}
+        {/* 100pt超えストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-900/40 to-transparent space-y-5 md:col-span-2 relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-gold rotate-12">
             Legendary!
@@ -113,13 +113,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <Star className="w-6 h-6 text-amber-300 fill-amber-300" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">👑 200pt超え 神ボーナス</h3>
+              <h3 className="text-xl font-black text-white">👑 100pt超え 神ボーナス</h3>
               <p className="text-xs text-amber-300 font-bold">限界を超えた勇者への最強ボーナス！</p>
             </div>
           </div>
           
           <p className="text-sm text-slate-300 leading-relaxed">
-            1日の合計獲得ポイントが<strong className="text-amber-300">200pt以上</strong>に達した日が連続すると、デイリー・50ptボーナスに加えて<strong className="text-amber-300 underline">さらに究極の神ボーナス</strong>が発動します！
+            1日の合計獲得ポイントが<strong className="text-amber-300">100pt以上</strong>に達した日が連続すると、デイリー・50ptボーナスに加えて<strong className="text-amber-300 underline">さらに究極の神ボーナス</strong>が発動します！
           </p>
           
           <div className="bg-slate-900/60 rounded-2xl p-4 border border-amber-500/20 space-y-3">
@@ -136,6 +136,27 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+5,000 pt</span></li>
               <li className="flex justify-between items-center text-amber-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+10,000 pt</span></li>
             </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 300pt/500pt 単発特大ボーナス */}
+      <div className="glass-card p-6 rounded-3xl border-2 border-fuchsia-500/40 bg-gradient-to-br from-fuchsia-900/30 via-purple-900/20 to-transparent space-y-4">
+        <h4 className="text-lg font-black text-white flex items-center gap-2 border-b border-fuchsia-500/30 pb-3">
+          <PartyPopper className="w-5 h-5 text-fuchsia-400" />
+          🎉 1日 特大突破ボーナス
+        </h4>
+        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          1日の合計獲得ポイントが特定のラインを突破すると、連続記録に関係なく<strong className="text-fuchsia-300">その日限定の特大単発ボーナス</strong>が即座に付与されます！（それぞれ1日1回まで）
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
+            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">300pt</span> 突破で</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 300 pt</div>
+          </div>
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
+            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">500pt</span> 突破で</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 500 pt</div>
           </div>
         </div>
       </div>
@@ -157,7 +178,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
           <div className="flex gap-2">
             <span className="text-amber-400 font-bold shrink-0">3.</span>
-            <p>「🔥デイリー」「💥50pt超え」「👑200pt超え」の条件を全て満たした節目の日は、<strong>3種類のボーナスをトリプルで獲得</strong>できます！</p>
+            <p>「🔥デイリー」「💥50pt超え」「👑100pt超え」の条件を全て満たした節目の日は、<strong>3種類のボーナスをトリプルで獲得</strong>できます！</p>
           </div>
         </div>
       </div>
