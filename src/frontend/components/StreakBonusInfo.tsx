@@ -103,7 +103,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* 100pt超えストリーク */}
+        {/* 200pt超えストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-900/40 to-transparent space-y-5 md:col-span-2 relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-gold rotate-12">
             Legendary!
@@ -113,13 +113,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <Star className="w-6 h-6 text-amber-300 fill-amber-300" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">👑 100pt超え 神ボーナス</h3>
+              <h3 className="text-xl font-black text-white">👑 200pt超え 神ボーナス</h3>
               <p className="text-xs text-amber-300 font-bold">限界を超えた勇者への最強ボーナス！</p>
             </div>
           </div>
           
           <p className="text-sm text-slate-300 leading-relaxed">
-            1日の合計獲得ポイントが<strong className="text-amber-300">100pt以上</strong>に達した日が連続すると、デイリー・50ptボーナスに加えて<strong className="text-amber-300 underline">さらに究極の神ボーナス</strong>が発動します！
+            1日の合計獲得ポイントが<strong className="text-amber-300">200pt以上</strong>に達した日が連続すると、デイリー・50ptボーナスに加えて<strong className="text-amber-300 underline">さらに究極の神ボーナス</strong>が発動します！
           </p>
           
           <div className="bg-slate-900/60 rounded-2xl p-4 border border-amber-500/20 space-y-3">
@@ -150,7 +150,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
           <div className="flex gap-2">
             <span className="text-amber-400 font-bold shrink-0">3.</span>
-            <p>「🔥デイリー」「💥50pt超え」「👑100pt超え」の条件を全て満たした節目の日は、<strong>3種類のボーナスをトリプルで獲得</strong>できます！</p>
+            <p>「🔥デイリー」「💥50pt超え」「👑200pt超え」の条件を全て満たした節目の日は、<strong>3種類のボーナスをトリプルで獲得</strong>できます！</p>
           </div>
         </div>
       </div>
