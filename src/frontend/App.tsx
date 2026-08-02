@@ -14,6 +14,7 @@ import { RivalBoard } from './components/RivalBoard';
 import { ReflectionView } from './components/ReflectionView';
 import { LuckyGachaModal, GachaResult } from './components/LuckyGachaModal';
 import { ParentPinAuthModal } from './components/ParentPinAuthModal';
+import { StreakBonusInfo } from './components/StreakBonusInfo';
 
 export const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -445,6 +446,12 @@ export const App: React.FC = () => {
                   currentUser={currentUser}
                   actionLogs={actionLogs}
                   onDeleteLog={handleDeleteLog}
+                />
+              )}
+
+              {activeTab === 'streak_bonus_info' && (
+                <StreakBonusInfo
+                  onNavigate={handleSetActiveTab}
                 />
               )}
 
