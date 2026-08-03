@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 
 interface ParentPortalProps {
@@ -228,16 +228,37 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true);
+    onRefresh();
+    await fetchAllLogs(currentPage, selectedUserIdFilter);
+    fetchRules();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   return (
     <div className="space-y-6">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h2 className="text-2xl font-black text-amber-400 flex items-center gap-2">
-            <ShieldCheck className="w-7 h-7" />
-            <span>管理者コントロールポータル</span>
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-amber-400 flex items-center gap-2">
+              <ShieldCheck className="w-7 h-7" />
+              <span>管理者コントロールポータル</span>
+            </h2>
+            <button
+              onClick={handleRefreshAll}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shrink-0 active:scale-95 shadow-sm"
+              title="全データを再読み込み"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
+              <span>{isRefreshing ? '更新中...' : 'データを再読み込み'}</span>
+            </button>
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             申請の承認、アクション履歴管理、ユーザー・運動メニューのマスター設定を行えます。
           </p>
@@ -402,7 +423,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 <span>📝 全員のアクション履歴 (管理・削除)</span>
               </h3>
 
-              {/* User Filter Dropdown */}
+              {/* User Filter & Refresh */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 font-bold">絞り込み:</span>
                 <select
@@ -417,6 +438,14 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                     </option>
                   ))}
                 </select>
+                <button
+                  onClick={() => fetchAllLogs(currentPage, selectedUserIdFilter)}
+                  disabled={loadingLogs}
+                  className="p-1.5 rounded-xl bg-slate-950 border border-slate-700 hover:border-indigo-400 text-indigo-300 transition-all"
+                  title="履歴を再読み込み"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingLogs ? 'animate-spin text-indigo-400' : ''}`} />
+                </button>
               </div>
             </div>
 
