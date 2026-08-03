@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
 import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail } from 'lucide-react';
+import { formatLogDateTime } from '../dateUtils';
 
 interface ParentPortalProps {
   users: User[];
@@ -440,12 +441,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                           return (
                             <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                               <td className="py-2.5 text-slate-400 font-mono text-[11px]">
-                                {new Date(log.created_at).toLocaleString('ja-JP', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                                {formatLogDateTime(log.created_at)}
                               </td>
                               <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
                               <td className="py-2.5">
