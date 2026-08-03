@@ -35,6 +35,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   const [allLogs, setAllLogs] = useState<ActionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
   const [selectedUserIdFilter, setSelectedUserIdFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
 
   // サブタブ管理 ('requests_logs' | 'users_training' | 'point_rules' | 'settings')
   const [activeSubTab, setActiveSubTab] = useState<'requests_logs' | 'users_training' | 'point_rules' | 'settings'>('requests_logs');
@@ -132,14 +134,25 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
-  const fetchAllLogs = async () => {
+  const fetchAllLogs = async (page: number = 1, filterUserId: string = selectedUserIdFilter) => {
     setLoadingLogs(true);
     try {
-      const res = await fetch('/api/action-logs');
+      const url = new URL(window.location.origin + '/api/action-logs');
+      url.searchParams.append('page', page.toString());
+      url.searchParams.append('limit', '50');
+      if (filterUserId && filterUserId !== 'all') {
+        url.searchParams.append('user_id', filterUserId);
+      }
+
+      const res = await fetch(url.toString());
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.logs) {
           setAllLogs(data.logs);
+          if (data.pagination) {
+            setCurrentPage(data.pagination.page);
+            setTotalPages(data.pagination.totalPages);
+          }
         }
       }
     } catch (err) {
@@ -151,8 +164,13 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
   useEffect(() => {
     fetchRules();
-    fetchAllLogs();
+    fetchAllLogs(1, 'all');
   }, []);
+
+  const handleFilterChange = (newUserId: string) => {
+    setSelectedUserIdFilter(newUserId);
+    fetchAllLogs(1, newUserId);
+  };
 
   const handlePointChange = (category: string, newPoints: number) => {
     setEditingPoints((prev) => ({ ...prev, [category]: newPoints }));
@@ -201,7 +219,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       if (data.success) {
         // 全ユーザーポイントや履歴の再取得
         onRefresh();
-        fetchAllLogs();
+        fetchAllLogs(currentPage, selectedUserIdFilter);
       } else {
         alert(data.error || '削除に失敗しました');
       }
@@ -389,7 +407,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 <span className="text-xs text-slate-400 font-bold">絞り込み:</span>
                 <select
                   value={selectedUserIdFilter}
-                  onChange={(e) => setSelectedUserIdFilter(e.target.value)}
+                  onChange={(e) => handleFilterChange(e.target.value)}
                   className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-indigo-400"
                 >
                   <option value="all">👥 全員を表示</option>
@@ -406,78 +424,102 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
               <div className="text-center py-4 text-xs text-slate-400">読み込み中...</div>
             ) : (
               (() => {
-                const filteredLogs = selectedUserIdFilter === 'all'
-                  ? allLogs
-                  : allLogs.filter((log) => log.user_id === selectedUserIdFilter);
-
-                if (filteredLogs.length === 0) {
+                if (allLogs.length === 0) {
                   return <div className="text-center py-4 text-xs text-slate-400">該当するアクション履歴はありません。</div>;
                 }
 
                 return (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[600px]">
-                      <thead>
-                        <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
-                          <th className="pb-2 font-medium">日時</th>
-                          <th className="pb-2 font-medium">ユーザー</th>
-                          <th className="pb-2 font-medium">カテゴリー / 内容</th>
-                          <th className="pb-2 font-medium text-right">獲得ポイント</th>
-                          <th className="pb-2 font-medium text-center">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs">
-                        {filteredLogs.slice(0, 100).map((log) => {
-                          const categoryLabels: { [k: string]: string } = {
-                            quiz: '🧠 クイズ',
-                            study: '📚 学習',
-                            input_book: '📖 読書',
-                            input_movie: '🎬 映画',
-                            input_manga: '💬 漫画',
-                            training: '🏋️‍♂️ 運動',
-                          };
-                          const catLabel = categoryLabels[log.category] || log.category;
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                          <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
+                            <th className="pb-2 font-medium">日時</th>
+                            <th className="pb-2 font-medium">ユーザー</th>
+                            <th className="pb-2 font-medium">カテゴリー / 内容</th>
+                            <th className="pb-2 font-medium text-right">獲得ポイント</th>
+                            <th className="pb-2 font-medium text-center">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-xs">
+                          {allLogs.map((log) => {
+                            const categoryLabels: { [k: string]: string } = {
+                              quiz: '🧠 クイズ',
+                              study: '📚 学習',
+                              input_book: '📖 読書',
+                              input_movie: '🎬 映画',
+                              input_manga: '💬 漫画',
+                              training: '🏋️‍♂️ 運動',
+                            };
+                            const catLabel = categoryLabels[log.category] || log.category;
 
-                          return (
-                            <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                              <td className="py-2.5 text-slate-400 font-mono text-[11px]">
-                                {formatLogDateTime(log.created_at)}
-                              </td>
-                              <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
-                              <td className="py-2.5">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                    {catLabel}
-                                  </span>
-                                  <span className="text-slate-200 font-bold">{log.title_or_menu || '（タイトルなし）'}</span>
-                                </div>
-                                {log.review_text && (
-                                  <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[300px]">
-                                    {log.review_text}
+                            return (
+                              <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                                <td className="py-2.5 text-slate-400 font-mono text-[11px]">
+                                  {formatLogDateTime(log.created_at)}
+                                </td>
+                                <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
+                                <td className="py-2.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                      {catLabel}
+                                    </span>
+                                    {log.title_or_menu && (
+                                      <span className="text-white font-medium">{log.title_or_menu}</span>
+                                    )}
                                   </div>
-                                )}
-                              </td>
-                              <td className="py-2.5 text-right">
-                                <span className={`font-mono font-black ${log.status === 'approved' ? 'text-amber-400' : 'text-slate-500 line-through'}`}>
-                                  +{log.earned_points} pt
-                                </span>
-                              </td>
-                              <td className="py-2.5 text-center">
-                                <button
-                                  onClick={() => handleDeleteLog(log.id)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex"
-                                  title="この記録を削除 (ポイントは減算されます)"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                    {filteredLogs.length > 100 && (
-                      <div className="text-center pt-2 text-[10px] text-slate-500">※最新100件まで表示しています。</div>
+                                  {log.review_text && (
+                                    <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{log.review_text}</p>
+                                  )}
+                                </td>
+                                <td className="py-2.5 text-right font-mono font-black text-emerald-400">
+                                  +{log.earned_points}
+                                </td>
+                                <td className="py-2.5 text-center">
+                                  <button
+                                    onClick={() => handleDeleteLog(log.id)}
+                                    className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                                    title="この履歴を削除"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-4 pt-2">
+                        <button
+                          onClick={() => fetchAllLogs(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            currentPage === 1
+                              ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
+                              : 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30'
+                          }`}
+                        >
+                          前へ
+                        </button>
+                        <span className="text-xs text-slate-400 font-mono">
+                          {currentPage} / {totalPages} ページ
+                        </span>
+                        <button
+                          onClick={() => fetchAllLogs(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            currentPage === totalPages
+                              ? 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
+                              : 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30'
+                          }`}
+                        >
+                          次へ
+                        </button>
+                      </div>
                     )}
                   </div>
                 );

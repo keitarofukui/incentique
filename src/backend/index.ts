@@ -832,8 +832,11 @@ app.get('/api/action-logs', async (c) => {
   try {
     const userId = c.req.query('user_id');
     const status = c.req.query('status');
+    const page = parseInt(c.req.query('page') || '1', 10);
+    const limit = parseInt(c.req.query('limit') || '50', 10);
+    const offset = (page - 1) * limit;
 
-    let query = 'SELECT action_logs.*, users.name as user_name FROM action_logs JOIN users ON action_logs.user_id = users.id';
+    let baseQuery = ' FROM action_logs JOIN users ON action_logs.user_id = users.id';
     const conditions: string[] = [];
     const params: any[] = [];
 
@@ -847,13 +850,30 @@ app.get('/api/action-logs', async (c) => {
     }
 
     if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
+      baseQuery += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ' ORDER BY action_logs.created_at DESC';
+    // 総件数の取得
+    const countQuery = 'SELECT COUNT(*) as total' + baseQuery;
+    const countResult: any = await c.env.DB.prepare(countQuery).bind(...params).first();
+    const totalCount = countResult?.total || 0;
 
-    const { results } = await c.env.DB.prepare(query).bind(...params).all();
-    return c.json({ success: true, logs: results });
+    // データ一覧の取得
+    const dataQuery = 'SELECT action_logs.*, users.name as user_name' + baseQuery + ' ORDER BY action_logs.created_at DESC LIMIT ? OFFSET ?';
+    const dataParams = [...params, limit, offset];
+    
+    const { results } = await c.env.DB.prepare(dataQuery).bind(...dataParams).all();
+
+    return c.json({
+      success: true,
+      logs: results,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
   }
