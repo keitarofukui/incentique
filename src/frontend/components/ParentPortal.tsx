@@ -33,6 +33,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
   const [allLogs, setAllLogs] = useState<ActionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
+  const [selectedUserIdFilter, setSelectedUserIdFilter] = useState<string>('all');
 
   const handleSaveParentPin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,65 +470,115 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
       {/* All Users Action Logs */}
       <div className="glass-card p-6 rounded-3xl border border-indigo-500/30 space-y-4 shadow-2xl">
-        <h3 className="text-lg font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Settings className="w-5 h-5 text-indigo-400" />
-          <span>📝 全員のアクション履歴 (管理・削除)</span>
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+            <Settings className="w-5 h-5 text-indigo-400" />
+            <span>📝 全員のアクション履歴 (管理・削除)</span>
+          </h3>
+
+          {/* User Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold">絞り込み:</span>
+            <select
+              value={selectedUserIdFilter}
+              onChange={(e) => setSelectedUserIdFilter(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-indigo-400"
+            >
+              <option value="all">👥 全員を表示</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.avatar || '⚡'} {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         {loadingLogs ? (
           <div className="text-center py-4 text-xs text-slate-400">読み込み中...</div>
-        ) : allLogs.length === 0 ? (
-          <div className="text-center py-4 text-xs text-slate-400">アクション履歴はありません。</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
-                  <th className="pb-2 font-medium">日時</th>
-                  <th className="pb-2 font-medium">ユーザー</th>
-                  <th className="pb-2 font-medium">アクション</th>
-                  <th className="pb-2 font-medium text-right">獲得ポイント</th>
-                  <th className="pb-2 font-medium text-center">操作</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs">
-                {allLogs.slice(0, 100).map((log) => (
-                  <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                    <td className="py-2 text-slate-400 font-mono">
-                      {new Date(log.created_at).toLocaleString('ja-JP', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="py-2 text-white font-bold">{log.user_name}</td>
-                    <td className="py-2">
-                      <div className="text-indigo-300 font-bold">{log.action_title}</div>
-                      {log.memo && <div className="text-[10px] text-slate-400 truncate max-w-[200px]">{log.memo}</div>}
-                    </td>
-                    <td className="py-2 text-right">
-                      <span className={`font-mono font-black ${log.status === 'approved' ? 'text-amber-400' : 'text-slate-500 line-through'}`}>
-                        +{log.earned_points} pt
-                      </span>
-                    </td>
-                    <td className="py-2 text-center">
-                      <button
-                        onClick={() => handleDeleteLog(log.id)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex"
-                        title="この記録を削除 (ポイントは減算されます)"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {allLogs.length > 100 && (
-              <div className="text-center pt-2 text-[10px] text-slate-500">※最新100件まで表示しています。</div>
-            )}
-          </div>
+          (() => {
+            const filteredLogs = selectedUserIdFilter === 'all'
+              ? allLogs
+              : allLogs.filter((log) => log.user_id === selectedUserIdFilter);
+
+            if (filteredLogs.length === 0) {
+              return <div className="text-center py-4 text-xs text-slate-400">該当するアクション履歴はありません。</div>;
+            }
+
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
+                      <th className="pb-2 font-medium">日時</th>
+                      <th className="pb-2 font-medium">ユーザー</th>
+                      <th className="pb-2 font-medium">カテゴリー / 内容</th>
+                      <th className="pb-2 font-medium text-right">獲得ポイント</th>
+                      <th className="pb-2 font-medium text-center">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-xs">
+                    {filteredLogs.slice(0, 100).map((log) => {
+                      const categoryLabels: { [k: string]: string } = {
+                        quiz: '🧠 クイズ',
+                        study: '📚 学習',
+                        input_book: '📖 読書',
+                        input_movie: '🎬 映画',
+                        input_manga: '💬 漫画',
+                        training: '🏋️‍♂️ 運動',
+                      };
+                      const catLabel = categoryLabels[log.category] || log.category;
+
+                      return (
+                        <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                          <td className="py-2.5 text-slate-400 font-mono text-[11px]">
+                            {new Date(log.created_at).toLocaleString('ja-JP', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </td>
+                          <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
+                          <td className="py-2.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                {catLabel}
+                              </span>
+                              <span className="text-slate-200 font-bold">{log.title_or_menu || '（タイトルなし）'}</span>
+                            </div>
+                            {log.review_text && (
+                              <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[300px]">
+                                {log.review_text}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <span className={`font-mono font-black ${log.status === 'approved' ? 'text-amber-400' : 'text-slate-500 line-through'}`}>
+                              +{log.earned_points} pt
+                            </span>
+                          </td>
+                          <td className="py-2.5 text-center">
+                            <button
+                              onClick={() => handleDeleteLog(log.id)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex"
+                              title="この記録を削除 (ポイントは減算されます)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filteredLogs.length > 100 && (
+                  <div className="text-center pt-2 text-[10px] text-slate-500">※最新100件まで表示しています。</div>
+                )}
+              </div>
+            );
+          })()
         )}
       </div>
 
