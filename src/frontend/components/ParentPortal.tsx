@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, WishItem, PointRule } from '../types';
+import { User, WishItem, PointRule, ActionLog } from '../types';
 import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail } from 'lucide-react';
 
 interface ParentPortalProps {
@@ -30,6 +30,9 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
   const [notificationEmail, setNotificationEmail] = useState<string>('');
   const [emailSaveSuccess, setEmailSaveSuccess] = useState<string>('');
+
+  const [allLogs, setAllLogs] = useState<ActionLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
 
   const handleSaveParentPin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,8 +127,26 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
+  const fetchAllLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const res = await fetch('/api/action-logs');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.logs) {
+          setAllLogs(data.logs);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch logs:', err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
   useEffect(() => {
     fetchRules();
+    fetchAllLogs();
   }, []);
 
   const handlePointChange = (category: string, newPoints: number) => {
@@ -160,6 +181,25 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       const data = await res.json();
       if (data.success) onRefresh();
       else alert(data.error || 'ポイントの引き落としに失敗しました');
+    } catch (err) {
+      alert('通信エラーが発生しました');
+    }
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (!window.confirm('この履歴を削除してもよろしいですか？\n※承認済みの場合は獲得したポイントも減算されます。')) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/action-logs/${logId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        // 全ユーザーポイントや履歴の再取得
+        onRefresh();
+        fetchAllLogs();
+      } else {
+        alert(data.error || '削除に失敗しました');
+      }
     } catch (err) {
       alert('通信エラーが発生しました');
     }
@@ -423,6 +463,70 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* All Users Action Logs */}
+      <div className="glass-card p-6 rounded-3xl border border-indigo-500/30 space-y-4 shadow-2xl">
+        <h3 className="text-lg font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+          <Settings className="w-5 h-5 text-indigo-400" />
+          <span>📝 全員のアクション履歴 (管理・削除)</span>
+        </h3>
+
+        {loadingLogs ? (
+          <div className="text-center py-4 text-xs text-slate-400">読み込み中...</div>
+        ) : allLogs.length === 0 ? (
+          <div className="text-center py-4 text-xs text-slate-400">アクション履歴はありません。</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
+                  <th className="pb-2 font-medium">日時</th>
+                  <th className="pb-2 font-medium">ユーザー</th>
+                  <th className="pb-2 font-medium">アクション</th>
+                  <th className="pb-2 font-medium text-right">獲得ポイント</th>
+                  <th className="pb-2 font-medium text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs">
+                {allLogs.slice(0, 100).map((log) => (
+                  <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                    <td className="py-2 text-slate-400 font-mono">
+                      {new Date(log.created_at).toLocaleString('ja-JP', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="py-2 text-white font-bold">{log.user_name}</td>
+                    <td className="py-2">
+                      <div className="text-indigo-300 font-bold">{log.action_title}</div>
+                      {log.memo && <div className="text-[10px] text-slate-400 truncate max-w-[200px]">{log.memo}</div>}
+                    </td>
+                    <td className="py-2 text-right">
+                      <span className={`font-mono font-black ${log.status === 'approved' ? 'text-amber-400' : 'text-slate-500 line-through'}`}>
+                        +{log.earned_points} pt
+                      </span>
+                    </td>
+                    <td className="py-2 text-center">
+                      <button
+                        onClick={() => handleDeleteLog(log.id)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex"
+                        title="この記録を削除 (ポイントは減算されます)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {allLogs.length > 100 && (
+              <div className="text-center pt-2 text-[10px] text-slate-500">※最新100件まで表示しています。</div>
+            )}
           </div>
         )}
       </div>
