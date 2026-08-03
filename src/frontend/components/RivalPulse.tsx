@@ -43,6 +43,10 @@ interface Row {
   /** 今日どのカテゴリを記録済みか（全カテゴリ制覇ボーナス用） */
   todayCategories: { [key: string]: boolean };
   streak: number;
+  /** 素点50pt以上の日の連続日数（バックエンドの判定と同じ基準） */
+  streak50: number;
+  /** 素点100pt以上の日の連続日数 */
+  streak100: number;
   week: WeekTally;
 }
 
@@ -140,9 +144,9 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
   const rows = useMemo<Row[]>(() => {
     const weekStart = daysBefore(todayStr, 6);
 
-    const acc = new Map<string, { todayBase: number; todayPoints: number; todayCount: number; todayCategories: { [key: string]: boolean }; days: Set<string>; week: WeekTally }>();
+    const acc = new Map<string, { todayBase: number; todayPoints: number; todayCount: number; todayCategories: { [key: string]: boolean }; days: Set<string>; dayBase: Map<string, number>; week: WeekTally }>();
     users.forEach((u) => {
-      acc.set(u.id, { todayBase: 0, todayPoints: 0, todayCount: 0, todayCategories: {}, days: new Set(), week: { training: 0, input: 0, quiz: 0, grams: 0 } });
+      acc.set(u.id, { todayBase: 0, todayPoints: 0, todayCount: 0, todayCategories: {}, days: new Set(), dayBase: new Map(), week: { training: 0, input: 0, quiz: 0, grams: 0 } });
     });
 
     actionLogs.forEach((log) => {
@@ -153,6 +157,12 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
       const day = logLogicalDateStr(log.created_at);
       if (!day) return;
       entry.days.add(day);
+
+      // 50pt/100ptストリークはサーバ側も素点で判定するので、こちらも素点で日別集計する
+      if (log.category !== 'bonus') {
+        const base = Number(log.base_points ?? log.earned_points) || 0;
+        entry.dayBase.set(day, (entry.dayBase.get(day) || 0) + base);
+      }
 
       if (day === todayStr) {
         const earned = Number(log.earned_points) || 0;
@@ -201,8 +211,13 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
     return users
       .map((user) => {
         const entry = acc.get(user.id)!;
+        const daysAtLeast = (min: number) =>
+          new Set(Array.from(entry.dayBase.entries()).filter(([, v]) => v >= min).map(([d]) => d));
+
         return {
           user,
+          streak50: streakOf(daysAtLeast(50)),
+          streak100: streakOf(daysAtLeast(100)),
           todayBase: entry.todayBase,
           // Whatever isn't base is uplift: gacha multiplier + milestone payouts
           todayBonus: Math.max(0, entry.todayPoints - entry.todayBase),
@@ -440,6 +455,22 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
               );
             })}
           </div>
+
+          {/* 50pt/100pt ストリークは係数が大きい（×30 / ×100）ので、動いている時だけ出す */}
+          {me && (me.streak50 > 0 || me.streak100 > 0) && (
+            <div className="flex items-center gap-3 pt-1.5 border-t border-slate-800/80 text-[11px]">
+              {me.streak50 > 0 && (
+                <span className="font-bold text-rose-300">
+                  💥 50pt超え <span className="font-mono">{me.streak50}</span>日連続
+                </span>
+              )}
+              {me.streak100 > 0 && (
+                <span className="font-bold text-amber-300">
+                  👑 100pt超え <span className="font-mono">{me.streak100}</span>日連続
+                </span>
+              )}
+            </div>
+          )}
 
           {!doneToday ? (
             <div className="pt-2 border-t border-slate-800/80 space-y-1.5">

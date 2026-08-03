@@ -393,9 +393,6 @@ export const App: React.FC = () => {
                   users={users}
                   actionLogs={actionLogs}
                   onNavigate={handleSetActiveTab}
-                  onOpenTrainingModal={() => handleSetActiveTab('training')}
-                  onOpenInputReviewModal={handleOpenInputReviewModal}
-                  onOpenEatRiceModal={() => handleSetActiveTab('eat_rice')}
                   onGoalUpdated={(newGoal) => setCurrentGoal(newGoal)}
                 />
               )}
