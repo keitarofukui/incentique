@@ -104,29 +104,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Streak Bonus Release Banner (Limited time until tomorrow) */}
-      {new Date() < new Date('2026-08-04T00:00:00+09:00') && (
-        <button
-          onClick={() => onNavigate('streak_bonus_info')}
-          className="w-full text-left p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 border-2 border-indigo-400/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-glow-indigo group cursor-pointer hover:brightness-110 transition-all"
-        >
-          <div className="flex items-center gap-3 w-full">
-            <span className="text-3xl group-hover:scale-110 transition-transform">🔥</span>
-            <div className="flex-1">
-              <div className="text-sm font-black text-indigo-300 flex items-center gap-1.5">
-                <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider">New</span>
-                <span>新機能「連続記録ボーナス」リリース！</span>
-              </div>
-              <p className="text-xs text-slate-200 mt-0.5 font-bold">
-                毎日続けてボーナスポイント大量GET！詳細は<span className="text-indigo-300 underline underline-offset-2">こちらをタップして確認</span>👆
-              </p>
+      {/* Streak Bonus permanent banner */}
+      <button
+        onClick={() => onNavigate('streak_bonus_info')}
+        className="w-full text-left p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 border-2 border-indigo-400/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-glow-indigo group cursor-pointer hover:brightness-110 transition-all"
+      >
+        <div className="flex items-center gap-3 w-full">
+          <span className="text-3xl group-hover:scale-110 transition-transform">🔥</span>
+          <div className="flex-1">
+            <div className="text-sm font-black text-indigo-300 flex items-center gap-1.5">
+              <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">ボーナス制度</span>
+              <span>連続記録＆1日300/600pt突破ボーナス制度の詳細</span>
             </div>
-            <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-400/30 group-hover:bg-indigo-500/40 transition-colors">
-              <span className="text-indigo-300 text-xl font-bold">➔</span>
-            </div>
+            <p className="text-xs text-slate-200 mt-0.5 font-bold">
+              毎日続けてポイント大量GET！【300pt突破で+200pt / 600pt突破で+300pt】ルールは<span className="text-indigo-300 underline underline-offset-2">こちらをタップ</span>👆
+            </p>
           </div>
-        </button>
-      )}
+          <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-400/30 group-hover:bg-indigo-500/40 transition-colors">
+            <span className="text-indigo-300 text-xl font-bold">➔</span>
+          </div>
+        </div>
+      </button>
 
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 border border-slate-700/80 shadow-2xl">

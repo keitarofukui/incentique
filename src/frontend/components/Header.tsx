@@ -223,6 +223,18 @@ export const Header: React.FC<HeaderProps> = ({
             )}
 
             <button
+              ref={activeTab === 'streak_bonus_info' ? activeBtnRef : null}
+              onClick={() => setActiveTab('streak_bonus_info')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 shrink-0 ${
+                activeTab === 'streak_bonus_info'
+                  ? 'bg-rose-500 text-white border-2 border-rose-300 shadow-glow-rose font-black'
+                  : 'text-rose-300 hover:text-white bg-rose-950/60 border border-rose-500/40'
+              }`}
+            >
+              <span>🔥 連続ボーナス</span>
+            </button>
+
+            <button
               ref={activeTab === 'action-logs' ? activeBtnRef : null}
               onClick={() => setActiveTab('action-logs')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
