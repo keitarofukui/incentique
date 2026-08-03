@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { User, ActionLog } from '../types';
-import { Flame, Swords, Crown, AlertTriangle, Sunrise } from 'lucide-react';
+import { Flame, Swords, Crown, Sunrise } from 'lucide-react';
 import { logLogicalDateStr, todayLogicalDateStr, toLocalDateStr } from '../dateUtils';
 
 interface RivalPulseProps {
@@ -48,6 +48,18 @@ interface Row {
  * 1日ボリュームボーナスの段。バックエンドの VOLUME_BONUS_TIERS と揃えること。
  * 付与ポイントは保護者ポータルの設定を優先する。
  */
+/**
+ * 連続記録の節目。バックエンドの STREAK_MILESTONE_DAYS と揃えること。
+ * 序盤が厚いのは、子どもたちが到達している3〜4日のすぐ先に必ず報酬を置くため。
+ */
+const STREAK_MILESTONES = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365];
+
+/** 行動ストリークの節目ボーナス = 日数 × これ（バックエンドと同じ係数） */
+const STREAK_BONUS_PER_DAY = 10;
+
+const nextMilestoneAfter = (days: number): number | undefined =>
+  STREAK_MILESTONES.find((m) => m > days);
+
 const VOLUME_TIERS = [
   { threshold: 300, ruleKey: 'bonus_300pt', defaultPoints: 200, awardedField: 'last_300pt_bonus_date' as const },
   { threshold: 500, ruleKey: 'bonus_500pt', defaultPoints: 300, awardedField: 'last_500pt_bonus_date' as const },
@@ -196,7 +208,15 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
   const runnerUp = rows.find((r) => r.user.id !== leader.user.id);
   const gap = me ? leader.todayPoints - me.todayPoints : 0;
   const catchUp = describeCatchUp(gap, rulePoints);
-  const streakAtRisk = !!me && me.streak >= 2 && me.todayCount === 0;
+  // 今日まだ記録していないなら、記録した場合の到達日数と、しなかった場合に
+  // 消える日数の両方を出す。「途切れます」だけでは失う量が伝わらない。
+  const doneToday = !!me && me.todayCount > 0;
+  const streakIfRecorded = me ? (doneToday ? me.streak : me.streak + 1) : 0;
+  const reachedMilestone = me && !doneToday && STREAK_MILESTONES.includes(streakIfRecorded)
+    ? streakIfRecorded
+    : undefined;
+  const upcomingMilestone = nextMilestoneAfter(streakIfRecorded);
+  const rival = me ? rows.find((r) => r.user.id !== me.user.id && r.user.id !== currentUser.id) : undefined;
 
   // 次に狙えるボリュームボーナス。判定は素点なので、残りも素点で示さないと
   // 「あと少しのはずなのに出ない」ことになる。
@@ -359,23 +379,88 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
         </div>
       )}
 
-      {/* Call to action — the line that should actually move them */}
-      {streakAtRisk ? (
-        <div className="p-3 rounded-2xl bg-red-950/70 border border-red-500/50 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 animate-pulse" />
-            <p className="text-xs font-bold text-red-200">
-              今日はまだ0件。このままだと <strong className="text-red-100">{me!.streak}日連続</strong> が途切れます
-            </p>
+      {/* 連続記録：今日やった場合に得るものと、やらなかった場合に失うものを並べる */}
+      {me && (
+        <div className={`p-3 rounded-2xl border space-y-2.5 ${
+          !doneToday && me.streak >= 1
+            ? 'bg-red-950/60 border-red-500/50'
+            : 'bg-slate-950/80 border-slate-800'
+        }`}>
+          <div className="flex items-center gap-1.5">
+            <Flame className={`w-4 h-4 shrink-0 ${!doneToday && me.streak >= 1 ? 'text-red-400 animate-pulse' : 'text-orange-400'}`} />
+            <h4 className="text-[11px] font-black text-slate-200">🔥 連続記録</h4>
           </div>
-          <button
-            onClick={() => onNavigate('quiz')}
-            className="px-3 py-1.5 rounded-xl bg-red-500 text-white font-black text-xs hover:brightness-110 transition-all shrink-0 whitespace-nowrap"
-          >
-            記録する ➔
-          </button>
+
+          {/* 二人しかいないので、相手が今日やったかどうかが一番効く */}
+          <div className="space-y-1">
+            {[me, rival].filter(Boolean).map((r) => {
+              const row = r as Row;
+              const isMe = row.user.id === currentUser.id;
+              return (
+                <div key={row.user.id} className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0">{row.user.avatar || '⚡'}</span>
+                    <span className={`font-bold truncate ${isMe ? 'text-cyber-neonCyan' : 'text-slate-200'}`}>
+                      {isMe ? 'きみ' : row.user.name}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <span className={`font-bold ${row.todayCount > 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                      {row.todayCount > 0 ? '✅ 今日は記録済み' : '❌ まだ0件'}
+                    </span>
+                    <span className="font-mono font-black text-orange-300 w-14 text-right">{row.streak}日連続</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {!doneToday ? (
+            <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+              <div className="flex items-start gap-1.5 text-[11px]">
+                <span className="text-emerald-400 font-black shrink-0">記録すれば</span>
+                <span className="text-slate-200">
+                  → <strong className="text-white">{streakIfRecorded}日連続</strong>
+                  {reachedMilestone
+                    ? <> 達成！ <strong className="text-emerald-300 font-mono">+{(reachedMilestone * STREAK_BONUS_PER_DAY).toLocaleString()}pt</strong></>
+                    : upcomingMilestone
+                      ? <span className="text-slate-400">（次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * STREAK_BONUS_PER_DAY).toLocaleString()}pt）</span>
+                      : null}
+                </span>
+              </div>
+
+              {me.streak >= 1 && (
+                <div className="flex items-start gap-1.5 text-[11px]">
+                  <span className="text-red-400 font-black shrink-0">しなければ</span>
+                  <span className="text-red-200">
+                    → <strong className="text-red-100">0日に戻る</strong>
+                    <span className="text-red-300/80">（積み上げた{me.streak}日が消滅）</span>
+                  </span>
+                </div>
+              )}
+
+              <button
+                onClick={() => onNavigate('quiz')}
+                className="w-full mt-1 py-2 rounded-xl bg-red-500 text-white font-black text-xs hover:brightness-110 transition-all"
+              >
+                クイズ1問で今日を確保する ➔
+              </button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-slate-800/80 text-[11px] font-bold text-emerald-300">
+              ✅ 今日はもう確保済み。
+              {upcomingMilestone && (
+                <span className="text-slate-300 font-normal">
+                  {' '}次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * STREAK_BONUS_PER_DAY).toLocaleString()}pt
+                </span>
+              )}
+            </div>
+          )}
         </div>
-      ) : nobodyMoved ? (
+      )}
+
+      {/* Call to action — the line that should actually move them */}
+      {nobodyMoved ? (
         <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-700 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Sunrise className="w-4 h-4 text-amber-400 shrink-0" />

@@ -129,6 +129,14 @@ function getDaysDifference(date1: string, date2: string): number {
 }
 
 /**
+ * 連続記録の節目（日数）。序盤を厚くしてある。
+ * 実績上、子どもたちは3〜4日連続を繰り返し作れているのに5日には一度も届いていない。
+ * 旧テーブル（3,5,10,20,…）は4日目に報酬が無く、到達範囲のすぐ先にご褒美が無かった。
+ * フロント側（RivalPulse.tsx の STREAK_MILESTONES）と揃えること。
+ */
+const STREAK_MILESTONE_DAYS = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365];
+
+/**
  * 1日ボリュームボーナスの段。threshold は「ボーナス・ガチャ倍率を除いた素点」で判定する。
  * 付与ポイントは point_rules（保護者ポータル）で変更でき、0 にすればその段を止められる。
  */
@@ -148,7 +156,11 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
 
   if (!user) return;
 
-  const STREAK_MILESTONES = [3, 5, 10, 20, 30, 50, 100, 150, 200, 250, 300, 365];
+  // 序盤を厚くしてある。実績上、二人とも3〜4日連続は繰り返し作れているのに
+  // 5日には一度も届いていない。旧テーブル（3,5,10,20,…）では4日目に報酬が無く、
+  // 到達している範囲のすぐ先に必ずご褒美が無い状態だった。
+  // 変更する場合はフロントの STREAK_MILESTONES（RivalPulse.tsx）も揃えること。
+  const STREAK_MILESTONES = STREAK_MILESTONE_DAYS;
 
   let newLastActionDate = user.last_action_date;
   let newCurrentStreak = user.current_streak_days || 0;
