@@ -30,6 +30,8 @@ export interface User {
   last_300pt_bonus_date?: string | null;
   last_500pt_bonus_date?: string | null;
   last_1000pt_bonus_date?: string | null;
+  /** 全カテゴリ制覇ボーナスを付与した論理日 */
+  last_all_category_date?: string | null;
   created_at: string;
 }
 

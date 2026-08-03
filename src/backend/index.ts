@@ -137,6 +137,17 @@ function getDaysDifference(date1: string, date2: string): number {
 const STREAK_MILESTONE_DAYS = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365];
 
 /**
+ * 「全カテゴリ制覇」判定に使うカテゴリ群。1日でこの4つすべてに記録があればボーナス。
+ * 付与ポイントは point_rules の 'bonus_all_category'（保護者ポータルで変更・0で無効化）。
+ */
+const ALL_CATEGORY_GROUPS = [
+  { key: 'quiz', label: 'クイズ', icon: '🧠', match: "category IN ('quiz','study')" },
+  { key: 'input', label: 'インプット', icon: '📚', match: "category LIKE 'input\\_%' ESCAPE '\\'" },
+  { key: 'training', label: '運動', icon: '🏋️', match: "category = 'training'" },
+  { key: 'meal', label: '食事', icon: '🍚', match: "category IN ('eat_rice','eat_meat')" },
+] as const;
+
+/**
  * 1日ボリュームボーナスの段。threshold は「ボーナス・ガチャ倍率を除いた素点」で判定する。
  * 付与ポイントは point_rules（保護者ポータル）で変更でき、0 にすればその段を止められる。
  */
@@ -151,7 +162,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   const logicalToday = getLogicalDate();
 
   const user = await db.prepare(
-    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date FROM users WHERE id = ?'
+    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date, last_all_category_date FROM users WHERE id = ?'
   ).bind(userId).first();
 
   if (!user) return;
@@ -171,6 +182,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   let newLast300ptBonusDate = user.last_300pt_bonus_date;
   let newLast500ptBonusDate = user.last_500pt_bonus_date;
   let newLast1000ptBonusDate = user.last_1000pt_bonus_date;
+  let newLastAllCategoryDate = user.last_all_category_date;
 
   let updatesRequired = false;
   let bonusPointsTotal = 0;
@@ -205,7 +217,8 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     newLast100ptDate !== logicalToday ||
     newLast300ptBonusDate !== logicalToday ||
     newLast500ptBonusDate !== logicalToday ||
-    newLast1000ptBonusDate !== logicalToday
+    newLast1000ptBonusDate !== logicalToday ||
+    newLastAllCategoryDate !== logicalToday
   ) {
     // 判定に使うのは「素点」= ボーナスもガチャ倍率も含まない、行動そのものの価値。
     //
@@ -215,8 +228,13 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     // 判定に乗ると、ボーナスがボーナスを呼ぶ連鎖になる。
     // そのため category='bonus' を除外したうえで base_points で合計する。
     // （base_points 導入前の古いログは earned_points で代替）
+    const categoryFlags = ALL_CATEGORY_GROUPS
+      .map((g) => `MAX(CASE WHEN ${g.match} THEN 1 ELSE 0 END) AS has_${g.key}`)
+      .join(',\n             ');
+
     const todayPointsResult = await db.prepare(`
-      SELECT SUM(COALESCE(base_points, earned_points)) as total
+      SELECT SUM(COALESCE(base_points, earned_points)) as total,
+             ${categoryFlags}
       FROM action_logs
       WHERE user_id = ?
       AND category != 'bonus'
@@ -271,7 +289,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     let rulePoints: { [category: string]: number } = {};
     try {
       const ruleRows = await db.prepare(
-        "SELECT category, points FROM point_rules WHERE category IN ('bonus_300pt','bonus_500pt','bonus_1000pt')"
+        "SELECT category, points FROM point_rules WHERE category IN ('bonus_300pt','bonus_500pt','bonus_1000pt','bonus_all_category')"
       ).all();
       (ruleRows.results || []).forEach((r: any) => { rulePoints[r.category] = Number(r.points); });
     } catch (_) {}
@@ -294,14 +312,31 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     newLast300ptBonusDate = tierState.last_300pt_bonus_date;
     newLast500ptBonusDate = tierState.last_500pt_bonus_date;
     newLast1000ptBonusDate = tierState.last_1000pt_bonus_date;
+
+    // --- 全カテゴリ制覇ボーナス（1日1回）---
+    // 素点の多寡は問わない。4カテゴリすべてに手を出したこと自体を評価する。
+    const coveredAll = ALL_CATEGORY_GROUPS.every(
+      (g) => Number((todayPointsResult as any)?.[`has_${g.key}`]) === 1
+    );
+
+    if (coveredAll && newLastAllCategoryDate !== logicalToday) {
+      const pts = Number.isFinite(rulePoints.bonus_all_category) ? rulePoints.bonus_all_category : 100;
+      newLastAllCategoryDate = logicalToday;
+      updatesRequired = true;
+
+      if (pts > 0) {
+        bonusPointsTotal += pts;
+        bonusMessages.push(`【🎯全カテゴリ制覇！クイズ・インプット・運動・食事コンプリート＋${pts}pt！】`);
+      }
+    }
   }
 
   if (updatesRequired) {
     await db.prepare(`
       UPDATE users 
-      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_100pt_date = ?, current_100pt_streak_days = ?, last_300pt_bonus_date = ?, last_500pt_bonus_date = ?, last_1000pt_bonus_date = ?
+      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_100pt_date = ?, current_100pt_streak_days = ?, last_300pt_bonus_date = ?, last_500pt_bonus_date = ?, last_1000pt_bonus_date = ?, last_all_category_date = ?
       WHERE id = ?
-    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast100ptDate, newCurrent100ptStreak, newLast300ptBonusDate, newLast500ptBonusDate, newLast1000ptBonusDate, userId).run();
+    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast100ptDate, newCurrent100ptStreak, newLast300ptBonusDate, newLast500ptBonusDate, newLast1000ptBonusDate, newLastAllCategoryDate, userId).run();
 
     if (bonusPointsTotal > 0) {
       // ポイント付与
@@ -328,7 +363,7 @@ app.get('/api/users', async (c) => {
     // Never select pin_code — the login screen is public and 1-click, so no
     // client needs it. (Per-child PIN login was removed; only the parent PIN
     // in app_settings is still used, via /api/parent/verify-pin.)
-    const { results } = await c.env.DB.prepare('SELECT id, name, grade_level, avatar, current_points, created_at, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date FROM users ORDER BY created_at ASC').all();
+    const { results } = await c.env.DB.prepare('SELECT id, name, grade_level, avatar, current_points, created_at, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date, last_all_category_date FROM users ORDER BY created_at ASC').all();
     return c.json({ success: true, users: results });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
@@ -404,6 +439,9 @@ app.get('/api/point-rules', async (c) => {
       ).run();
       await c.env.DB.prepare(
         "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_1000pt', '🤯 1日1000pt突破ボーナス', 500, 'ボーナス・ガチャ倍率を除いた1日の素点が1000ptを超えた時の単発ボーナス')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_all_category', '🎯 全カテゴリ制覇ボーナス', 100, '1日でクイズ・インプット・運動・食事の4カテゴリすべてを記録した時の単発ボーナス（0で無効化）')"
       ).run();
     } catch (_) {}
 

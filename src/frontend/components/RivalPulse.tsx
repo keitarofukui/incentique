@@ -40,6 +40,8 @@ interface Row {
   /** 実際に増えたポイント（素点 + ボーナス） */
   todayPoints: number;
   todayCount: number;
+  /** 今日どのカテゴリを記録済みか（全カテゴリ制覇ボーナス用） */
+  todayCategories: { [key: string]: boolean };
   streak: number;
   week: WeekTally;
 }
@@ -59,6 +61,18 @@ const STREAK_BONUS_PER_DAY = 10;
 
 const nextMilestoneAfter = (days: number): number | undefined =>
   STREAK_MILESTONES.find((m) => m > days);
+
+/**
+ * 全カテゴリ制覇の判定グループ。バックエンドの ALL_CATEGORY_GROUPS と揃えること。
+ */
+const CATEGORY_GROUPS = [
+  { key: 'quiz' as const, label: 'クイズ', icon: '🧠', tab: 'quiz', match: (c: string) => c === 'quiz' || c === 'study' },
+  { key: 'input' as const, label: 'インプット', icon: '📚', tab: 'input_book', match: (c: string) => c.startsWith('input_') },
+  { key: 'training' as const, label: '運動', icon: '🏋️', tab: 'training', match: (c: string) => c === 'training' },
+  { key: 'meal' as const, label: '食事', icon: '🍚', tab: 'eat_rice', match: (c: string) => c === 'eat_rice' || c === 'eat_meat' },
+];
+
+const ALL_CATEGORY_DEFAULT_POINTS = 100;
 
 const VOLUME_TIERS = [
   { threshold: 300, ruleKey: 'bonus_300pt', defaultPoints: 200, awardedField: 'last_300pt_bonus_date' as const },
@@ -126,9 +140,9 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
   const rows = useMemo<Row[]>(() => {
     const weekStart = daysBefore(todayStr, 6);
 
-    const acc = new Map<string, { todayBase: number; todayPoints: number; todayCount: number; days: Set<string>; week: WeekTally }>();
+    const acc = new Map<string, { todayBase: number; todayPoints: number; todayCount: number; todayCategories: { [key: string]: boolean }; days: Set<string>; week: WeekTally }>();
     users.forEach((u) => {
-      acc.set(u.id, { todayBase: 0, todayPoints: 0, todayCount: 0, days: new Set(), week: { training: 0, input: 0, quiz: 0, grams: 0 } });
+      acc.set(u.id, { todayBase: 0, todayPoints: 0, todayCount: 0, todayCategories: {}, days: new Set(), week: { training: 0, input: 0, quiz: 0, grams: 0 } });
     });
 
     actionLogs.forEach((log) => {
@@ -150,6 +164,10 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
           // base_points is missing on logs written before it existed
           entry.todayBase += Number(log.base_points ?? earned) || 0;
           entry.todayCount += 1;
+
+          const cat = log.category || '';
+          const group = CATEGORY_GROUPS.find((g) => g.match(cat));
+          if (group) entry.todayCategories[group.key] = true;
         }
       }
 
@@ -190,6 +208,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
           todayBonus: Math.max(0, entry.todayPoints - entry.todayBase),
           todayPoints: entry.todayPoints,
           todayCount: entry.todayCount,
+          todayCategories: entry.todayCategories,
           streak: streakOf(entry.days),
           week: entry.week,
         };
@@ -217,6 +236,13 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
     : undefined;
   const upcomingMilestone = nextMilestoneAfter(streakIfRecorded);
   const rival = me ? rows.find((r) => r.user.id !== me.user.id && r.user.id !== currentUser.id) : undefined;
+
+  // 全カテゴリ制覇：残っているカテゴリを名指しできると「あと1つ」が具体的な行動になる
+  const allCategoryAwarded = me?.user.last_all_category_date === todayStr;
+  const missingCategories = me ? CATEGORY_GROUPS.filter((g) => !me.todayCategories[g.key]) : [];
+  const allCategoryPoints = Number.isFinite(rulePoints.bonus_all_category)
+    ? rulePoints.bonus_all_category
+    : ALL_CATEGORY_DEFAULT_POINTS;
 
   // 次に狙えるボリュームボーナス。判定は素点なので、残りも素点で示さないと
   // 「あと少しのはずなのに出ない」ことになる。
@@ -455,6 +481,71 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
                 </span>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* 全カテゴリ制覇：4つ埋めるだけで固定ボーナス。残りを名指しする */}
+      {me && allCategoryPoints > 0 && (
+        <div className={`p-3 rounded-2xl border space-y-2 ${
+          allCategoryAwarded || missingCategories.length === 0
+            ? 'bg-emerald-950/50 border-emerald-500/40'
+            : 'bg-indigo-950/40 border-indigo-500/40'
+        }`}>
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-[11px] font-black text-slate-200 flex items-center gap-1.5">
+              🎯 全カテゴリ制覇
+            </h4>
+            <span className="text-[11px] font-mono font-black text-indigo-300 shrink-0">
+              +{allCategoryPoints.toLocaleString()}pt
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {CATEGORY_GROUPS.map((g) => {
+              const done = !!me.todayCategories[g.key];
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => !done && onNavigate(g.tab)}
+                  disabled={done}
+                  className={`px-1 py-1.5 rounded-xl border text-center transition-all ${
+                    done
+                      ? 'bg-emerald-500/15 border-emerald-500/40 cursor-default'
+                      : 'bg-slate-950/80 border-slate-700 hover:border-indigo-400'
+                  }`}
+                >
+                  <div className="text-sm leading-none">{g.icon}</div>
+                  <div className={`text-[10px] font-bold mt-0.5 ${done ? 'text-emerald-300' : 'text-slate-300'}`}>
+                    {g.label}
+                  </div>
+                  <div className={`text-[10px] font-black ${done ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {done ? '✅' : '未'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {allCategoryAwarded ? (
+            <p className="text-[11px] font-bold text-emerald-300">
+              ✅ 今日は制覇済み！ +{allCategoryPoints.toLocaleString()}pt 獲得ずみ
+            </p>
+          ) : missingCategories.length === 0 ? (
+            <p className="text-[11px] font-bold text-emerald-300">
+              🎉 4つ揃った！次の記録で +{allCategoryPoints.toLocaleString()}pt が入ります
+            </p>
+          ) : missingCategories.length === 1 ? (
+            <p className="text-[11px] font-bold text-indigo-200">
+              あと <strong className="text-white">「{missingCategories[0].label}」</strong> だけ！
+              1件やれば +{allCategoryPoints.toLocaleString()}pt
+            </p>
+          ) : (
+            <p className="text-[11px] text-slate-300">
+              残り{missingCategories.length}カテゴリ（{missingCategories.map((g) => g.label).join('・')}）。
+              量は問われないので、1件ずつでOK
+            </p>
           )}
         </div>
       )}
