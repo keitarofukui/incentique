@@ -178,11 +178,12 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
 
   // --- 50pt / 100pt 以上ストリーク & 単発特大ボーナス判定 ---
   if (newLast50ptDate !== logicalToday || newLast100ptDate !== logicalToday || newLast300ptBonusDate !== logicalToday || newLast500ptBonusDate !== logicalToday) {
-    // 今日の合計ポイントを算出 (UTCのcreated_atをJSTにして判定)
+    // 今日の合計ポイントを算出 (ボーナス分を除外した純粋なアクティビティ獲得ポイント。UTCのcreated_atをJSTにして判定)
     const todayPointsResult = await db.prepare(`
       SELECT SUM(earned_points) as total 
       FROM action_logs 
       WHERE user_id = ? 
+      AND category != 'bonus'
       AND date(datetime(created_at, '+5 hours')) = ?
     `).bind(userId, logicalToday).first();
 
