@@ -152,11 +152,11 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
             <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">300pt</span> 突破で</div>
-            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 300 pt</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 200 pt</div>
           </div>
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
-            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">500pt</span> 突破で</div>
-            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 500 pt</div>
+            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">600pt</span> 突破で</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 300 pt</div>
           </div>
         </div>
       </div>

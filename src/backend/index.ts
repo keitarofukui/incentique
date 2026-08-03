@@ -240,16 +240,16 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     if (todayPoints >= 300 && newLast300ptBonusDate !== logicalToday) {
       updatesRequired = true;
       newLast300ptBonusDate = logicalToday;
-      bonusPointsTotal += 300;
-      bonusMessages.push(`【🎉1日300pt突破！特大ボーナス＋300pt！】`);
+      bonusPointsTotal += 200;
+      bonusMessages.push(`【🎉1日300pt突破！特大ボーナス＋200pt！】`);
     }
 
-    // 500pt単発ボーナス判定
-    if (todayPoints >= 500 && newLast500ptBonusDate !== logicalToday) {
+    // 600pt単発ボーナス判定
+    if (todayPoints >= 600 && newLast500ptBonusDate !== logicalToday) {
       updatesRequired = true;
       newLast500ptBonusDate = logicalToday;
-      bonusPointsTotal += 500;
-      bonusMessages.push(`【🤯1日500pt突破！やりすぎ神ボーナス＋500pt！】`);
+      bonusPointsTotal += 300;
+      bonusMessages.push(`【🤯1日600pt突破！やりすぎ神ボーナス＋300pt！】`);
     }
   }
 
