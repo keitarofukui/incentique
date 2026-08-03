@@ -316,7 +316,7 @@ app.get('/api/users', async (c) => {
     // Never select pin_code — the login screen is public and 1-click, so no
     // client needs it. (Per-child PIN login was removed; only the parent PIN
     // in app_settings is still used, via /api/parent/verify-pin.)
-    const { results } = await c.env.DB.prepare('SELECT id, name, grade_level, avatar, current_points, created_at FROM users ORDER BY created_at ASC').all();
+    const { results } = await c.env.DB.prepare('SELECT id, name, grade_level, avatar, current_points, created_at, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date FROM users ORDER BY created_at ASC').all();
     return c.json({ success: true, users: results });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { User, ActionLog } from '../types';
 import { Flame, Swords, Crown, AlertTriangle, Sunrise } from 'lucide-react';
-import { logLocalDateStr, todayLocalDateStr, toLocalDateStr } from '../dateUtils';
+import { logLogicalDateStr, todayLogicalDateStr, toLocalDateStr } from '../dateUtils';
 
 interface RivalPulseProps {
   users: User[];
@@ -33,11 +33,26 @@ interface WeekTally {
 
 interface Row {
   user: User;
+  /** 行動そのものの価値。ガチャ倍率もボーナスも含まない = ボリュームボーナスの判定値 */
+  todayBase: number;
+  /** ガチャ倍率で増えた分 ＋ 突破・連続ボーナスの付与分 */
+  todayBonus: number;
+  /** 実際に増えたポイント（素点 + ボーナス） */
   todayPoints: number;
   todayCount: number;
   streak: number;
   week: WeekTally;
 }
+
+/**
+ * 1日ボリュームボーナスの段。バックエンドの VOLUME_BONUS_TIERS と揃えること。
+ * 付与ポイントは保護者ポータルの設定を優先する。
+ */
+const VOLUME_TIERS = [
+  { threshold: 300, ruleKey: 'bonus_300pt', defaultPoints: 200, awardedField: 'last_300pt_bonus_date' as const },
+  { threshold: 500, ruleKey: 'bonus_500pt', defaultPoints: 300, awardedField: 'last_500pt_bonus_date' as const },
+  { threshold: 1000, ruleKey: 'bonus_1000pt', defaultPoints: 500, awardedField: 'last_1000pt_bonus_date' as const },
+];
 
 /**
  * Concrete way to close a points gap, phrased with the point values the parent
@@ -93,14 +108,15 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
       .catch(() => {});
   }, []);
 
-  const todayStr = todayLocalDateStr();
+  // 連続記録もボリュームボーナスも朝4時区切りで判定されるため、この画面も同じ境界に揃える
+  const todayStr = todayLogicalDateStr();
 
   const rows = useMemo<Row[]>(() => {
     const weekStart = daysBefore(todayStr, 6);
 
-    const acc = new Map<string, { todayPoints: number; todayCount: number; days: Set<string>; week: WeekTally }>();
+    const acc = new Map<string, { todayBase: number; todayPoints: number; todayCount: number; days: Set<string>; week: WeekTally }>();
     users.forEach((u) => {
-      acc.set(u.id, { todayPoints: 0, todayCount: 0, days: new Set(), week: { training: 0, input: 0, quiz: 0, grams: 0 } });
+      acc.set(u.id, { todayBase: 0, todayPoints: 0, todayCount: 0, days: new Set(), week: { training: 0, input: 0, quiz: 0, grams: 0 } });
     });
 
     actionLogs.forEach((log) => {
@@ -108,13 +124,21 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
       const entry = acc.get(log.user_id);
       if (!entry) return;
 
-      const day = logLocalDateStr(log.created_at);
+      const day = logLogicalDateStr(log.created_at);
       if (!day) return;
       entry.days.add(day);
 
       if (day === todayStr) {
-        entry.todayPoints += Number(log.earned_points) || 0;
-        entry.todayCount += 1;
+        const earned = Number(log.earned_points) || 0;
+        entry.todayPoints += earned;
+
+        // Bonus payouts are not actions: they don't count towards the base and
+        // shouldn't inflate the action count either.
+        if (log.category !== 'bonus') {
+          // base_points is missing on logs written before it existed
+          entry.todayBase += Number(log.base_points ?? earned) || 0;
+          entry.todayCount += 1;
+        }
       }
 
       // 'YYYY-MM-DD' strings compare correctly with >=
@@ -149,6 +173,9 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
         const entry = acc.get(user.id)!;
         return {
           user,
+          todayBase: entry.todayBase,
+          // Whatever isn't base is uplift: gacha multiplier + milestone payouts
+          todayBonus: Math.max(0, entry.todayPoints - entry.todayBase),
           todayPoints: entry.todayPoints,
           todayCount: entry.todayCount,
           streak: streakOf(entry.days),
@@ -170,6 +197,17 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
   const gap = me ? leader.todayPoints - me.todayPoints : 0;
   const catchUp = describeCatchUp(gap, rulePoints);
   const streakAtRisk = !!me && me.streak >= 2 && me.todayCount === 0;
+
+  // 次に狙えるボリュームボーナス。判定は素点なので、残りも素点で示さないと
+  // 「あと少しのはずなのに出ない」ことになる。
+  // 付与済みの段は除外する。素点が届いていなくてもフラグが立っていることが
+  // あり（誤発火分の手動削除など）、その段は今日もう出ないため。
+  const nextTier = me
+    ? VOLUME_TIERS.find((t) => me.todayBase < t.threshold && me.user[t.awardedField] !== todayStr)
+    : undefined;
+  const nextTierPoints = nextTier
+    ? (Number.isFinite(rulePoints[nextTier.ruleKey]) ? rulePoints[nextTier.ruleKey] : nextTier.defaultPoints)
+    : 0;
 
   const champions = [
     { key: 'training' as const, icon: '🏋️', title: '運動王', unit: '回', format: (v: number) => `${v}回` },
@@ -213,7 +251,9 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
       <div className="space-y-2">
         {rows.map((row, idx) => {
           const isMe = row.user.id === currentUser.id;
-          const widthPercent = Math.max(row.todayPoints > 0 ? 6 : 0, Math.round((row.todayPoints / maxToday) * 100));
+          const totalPercent = Math.max(row.todayPoints > 0 ? 6 : 0, Math.round((row.todayPoints / maxToday) * 100));
+          const basePercent = row.todayPoints > 0 ? Math.round((row.todayBase / row.todayPoints) * totalPercent) : 0;
+          const bonusPercent = Math.max(0, totalPercent - basePercent);
 
           return (
             <div
@@ -249,18 +289,75 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
                 </div>
               </div>
 
-              <div className="mt-1.5 h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+              {/* Stacked bar: solid part is the base points, the lighter tail is
+                  the gacha/milestone uplift — so luck is visibly separate from effort. */}
+              <div className="mt-1.5 h-1.5 w-full bg-slate-900 rounded-full overflow-hidden flex">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${
+                  className={`h-full transition-all duration-700 ${
                     isMe ? 'bg-gradient-to-r from-cyan-500 to-cyber-neonCyan' : 'bg-gradient-to-r from-amber-600 to-amber-400'
                   }`}
-                  style={{ width: `${widthPercent}%` }}
+                  style={{ width: `${basePercent}%` }}
+                />
+                <div
+                  className="h-full bg-fuchsia-500/60 transition-all duration-700"
+                  style={{ width: `${bonusPercent}%` }}
                 />
               </div>
+
+              {row.todayPoints > 0 && (
+                <div className="mt-1.5 flex items-center gap-2 text-[10px] font-mono">
+                  <span className={isMe ? 'text-cyan-300' : 'text-amber-300'}>
+                    素点 {row.todayBase.toLocaleString()}
+                  </span>
+                  <span className="text-slate-600">＋</span>
+                  <span className={row.todayBonus > 0 ? 'text-fuchsia-300' : 'text-slate-600'}>
+                    ボーナス {row.todayBonus.toLocaleString()}
+                  </span>
+                  <span className="text-slate-600">＝</span>
+                  <span className="text-white font-bold">{row.todayPoints.toLocaleString()}pt</span>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {/* 自分の今日の内訳と、次のボリュームボーナスまでの残り（素点ベース） */}
+      {me && (
+        <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div className="text-[10px] text-slate-400 font-bold">素点（実力）</div>
+              <div className="text-base font-black font-mono text-cyan-300">{me.todayBase.toLocaleString()}<span className="text-[9px] font-normal ml-0.5">pt</span></div>
+            </div>
+            <div className="border-x border-slate-800">
+              <div className="text-[10px] text-slate-400 font-bold">ボーナス（運・突破）</div>
+              <div className="text-base font-black font-mono text-fuchsia-300">+{me.todayBonus.toLocaleString()}<span className="text-[9px] font-normal ml-0.5">pt</span></div>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-400 font-bold">今日の合計</div>
+              <div className="text-base font-black font-mono text-amber-400">{me.todayPoints.toLocaleString()}<span className="text-[9px] font-normal ml-0.5">pt</span></div>
+            </div>
+          </div>
+
+          {nextTier && nextTierPoints > 0 && (
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-300 font-bold">
+                次の <span className="text-fuchsia-300">{nextTier.threshold.toLocaleString()}pt突破</span> まで
+                素点あと <span className="text-white font-mono">{(nextTier.threshold - me.todayBase).toLocaleString()}pt</span>
+              </span>
+              <span className="text-[11px] font-mono font-black text-fuchsia-300 shrink-0 whitespace-nowrap">
+                +{nextTierPoints.toLocaleString()}pt
+              </span>
+            </div>
+          )}
+          {!nextTier && (
+            <div className="pt-2 border-t border-slate-800 text-[11px] font-bold text-emerald-300 text-center">
+              🏆 今日の突破ボーナスは全部獲得済み！
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Call to action — the line that should actually move them */}
       {streakAtRisk ? (

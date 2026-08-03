@@ -84,3 +84,20 @@ export const formatRelativeTime = (raw?: string): string => {
   if (diffHours < 48) return '昨日';
   return `${Math.floor(diffHours / 24)}日前`;
 };
+
+/**
+ * 「朝4時区切り」の論理日付。バックエンドの getLogicalDate() と同じ境界。
+ * 連続記録とボリュームボーナスはこの単位で判定されるので、それらを表示する画面は
+ * カレンダー日ではなくこちらを使う（深夜0〜4時に数字が食い違わないように）。
+ */
+export const toLogicalDateStr = (d: Date): string =>
+  toLocalDateStr(new Date(d.getTime() - 4 * 60 * 60 * 1000));
+
+/** ログの論理日付（'YYYY-MM-DD'）。日付が読めなければ ''。 */
+export const logLogicalDateStr = (raw?: string): string => {
+  const d = parseLogDate(raw);
+  return d ? toLogicalDateStr(d) : '';
+};
+
+/** 今日の論理日付（朝4時区切り） */
+export const todayLogicalDateStr = (): string => toLogicalDateStr(new Date());

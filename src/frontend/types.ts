@@ -26,8 +26,10 @@ export interface User {
   current_50pt_streak_days?: number;
   last_100pt_date?: string;
   current_100pt_streak_days?: number;
-  last_300pt_bonus_date?: string;
-  last_500pt_bonus_date?: string;
+  // その日にどの1日ボリュームボーナスを付与済みか（論理日 YYYY-MM-DD、朝4時区切り）
+  last_300pt_bonus_date?: string | null;
+  last_500pt_bonus_date?: string | null;
+  last_1000pt_bonus_date?: string | null;
   created_at: string;
 }
 
@@ -68,11 +70,14 @@ export interface ActionLog {
   id: string;
   user_id: string;
   user_name?: string;
-  // 'quiz' is written by POST /api/quizzes/answer; 'study' is legacy data
-  category: 'quiz' | 'study' | 'input_book' | 'input_manga' | 'input_movie' | 'training' | 'eat_rice' | 'eat_meat';
+  // 'quiz' is written by POST /api/quizzes/answer, 'bonus' by the streak /
+  // volume milestone payouts in updateStreaks; 'study' is legacy data
+  category: 'quiz' | 'bonus' | 'study' | 'input_book' | 'input_manga' | 'input_movie' | 'training' | 'eat_rice' | 'eat_meat';
   title_or_menu: string;
   review_text?: string;
   earned_points: number;
+  /** ガチャ倍率・ボーナスを含まない素点。1日ボリュームボーナスの判定に使う（旧ログは未設定） */
+  base_points?: number | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
