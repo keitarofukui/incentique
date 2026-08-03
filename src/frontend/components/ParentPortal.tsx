@@ -35,6 +35,9 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
   const [selectedUserIdFilter, setSelectedUserIdFilter] = useState<string>('all');
 
+  // サブタブ管理 ('requests_logs' | 'users_training' | 'point_rules' | 'settings')
+  const [activeSubTab, setActiveSubTab] = useState<'requests_logs' | 'users_training' | 'point_rules' | 'settings'>('requests_logs');
+
   const handleSaveParentPin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parentPinInput || parentPinInput.length !== 4 || !/^\d{4}$/.test(parentPinInput)) {
@@ -207,383 +210,473 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
           <h2 className="text-2xl font-black text-amber-400 flex items-center gap-2">
             <ShieldCheck className="w-7 h-7" />
             <span>管理者コントロールポータル</span>
           </h2>
-          <p className="text-xs text-slate-400">
-            ポイント付与ルール設定、申請のワンクリック承認、50,000pt報酬の獲得許可を行えます。
+          <p className="text-xs text-slate-400 mt-1">
+            申請の承認、アクション履歴管理、ユーザー・運動メニューのマスター設定を行えます。
           </p>
+        </div>
+
+        {/* Quick User summary badge */}
+        <div className="flex items-center gap-2 overflow-x-auto py-1">
+          {users.map((u) => (
+            <div key={u.id} className="bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2 shrink-0">
+              <span className="text-xs">{u.avatar || '⚡'}</span>
+              <span className="text-xs font-bold text-white">{u.name}</span>
+              <span className="text-xs font-mono font-black text-amber-400">{u.current_points.toLocaleString()}pt</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* User Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {users.map((user) => (
-          <div key={user.id} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-white flex items-center gap-2">
-                <span>{user.avatar || '⚡'}</span>
-                <span>{user.name}</span>
-              </span>
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-800/80 pb-2 overflow-x-auto scrollbar-none">
+        <button
+          onClick={() => setActiveSubTab('requests_logs')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap relative ${
+            activeSubTab === 'requests_logs'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-glow-gold'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Gift className="w-4 h-4" />
+          <span>🎁 リクエスト & 履歴</span>
+          {claimedWishes.length > 0 && (
+            <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
+              {claimedWishes.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('users_training')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${
+            activeSubTab === 'users_training'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-glow-gold'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Dumbbell className="w-4 h-4" />
+          <span>👥 ユーザー & 運動管理</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('point_rules')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${
+            activeSubTab === 'point_rules'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-glow-gold'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>⚙️ ポイント獲得ルール</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('settings')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${
+            activeSubTab === 'settings'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-glow-gold'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          <span>🛡 保護者設定</span>
+        </button>
+      </div>
+
+      {/* Tab 1: Requests & Action Logs */}
+      {activeSubTab === 'requests_logs' && (
+        <div className="space-y-8 animate-fade-in">
+          {/* Pending Wish Claims */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+              <Gift className="w-5 h-5 text-amber-400" />
+              <span>🎁 お子様からの交換リクエスト（物品手渡し ＆ ポイント引き落とし）</span>
+            </h3>
+
+            {claimedWishes.length === 0 ? (
+              <div className="glass-card p-6 rounded-2xl text-center text-xs text-slate-400">
+                現在、承認・手渡し待ちのご褒美交換リクエストはありません。
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {claimedWishes.map((item) => {
+                  const isCash = item.item_type === 'cash';
+                  const cashAmount = Math.floor(item.required_points * 0.7);
+
+                  return (
+                    <div key={item.id} className={`glass-card p-5 rounded-2xl border ${isCash ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-amber-500/40'} space-y-3`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                              {item.user_name || 'お子様'}からのリクエスト
+                            </span>
+                            {isCash && (
+                              <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                                💵 現金還元 (7掛け)
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-base font-bold text-white mt-1">{item.title}</h4>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-base font-black text-amber-400 font-mono block">
+                            {item.required_points.toLocaleString()} pt
+                          </span>
+                          {isCash && (
+                            <span className="text-xs font-black text-emerald-400 font-mono">
+                              (¥{cashAmount.toLocaleString()}円)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {isCash && (
+                        <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between font-medium">
+                          <span>手渡す現金（70%還元）:</span>
+                          <span className="text-sm font-black font-mono text-emerald-400">¥ {cashAmount.toLocaleString()} 円</span>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-slate-800 space-y-2">
+                        <p className="text-[10px] text-amber-300 leading-relaxed">
+                          ※実生活で{isCash ? `お小遣い (${cashAmount.toLocaleString()}円)` : '商品'}を手渡した後にボタンを押してください。押すと <strong>{item.user_name || 'お子様'}</strong> の所持ポイントから <strong>-{item.required_points.toLocaleString()} pt</strong> が引き落とされます。
+                        </p>
+                        <button
+                          onClick={() => handleApproveWish(item.id)}
+                          className={`w-full py-2.5 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg ${
+                            isCash
+                              ? 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-emerald-950'
+                              : 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-glow-gold'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>
+                            {isCash
+                              ? `💵 現金 ${cashAmount.toLocaleString()}円を渡した！pt引き落とし (-${item.required_points.toLocaleString()} pt)`
+                              : `🎁 物品を渡した！ポイントを引き落とす (-${item.required_points.toLocaleString()} pt)`
+                            }
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* All Users Action Logs */}
+          <div className="glass-card p-6 rounded-3xl border border-indigo-500/30 space-y-4 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-indigo-400" />
+                <span>📝 全員のアクション履歴 (管理・削除)</span>
+              </h3>
+
+              {/* User Filter Dropdown */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">
-                  {user.grade_level === 'high_3' ? '高校レベル' : user.grade_level === 'junior_1' ? '中学レベル' : '一般・その他'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteUser(user.id, user.name, user.current_points)}
-                  className="p-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
-                  title="ユーザーアカウントを削除"
+                <span className="text-xs text-slate-400 font-bold">絞り込み:</span>
+                <select
+                  value={selectedUserIdFilter}
+                  onChange={(e) => setSelectedUserIdFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-indigo-400"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <option value="all">👥 全員を表示</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.avatar || '⚡'} {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {loadingLogs ? (
+              <div className="text-center py-4 text-xs text-slate-400">読み込み中...</div>
+            ) : (
+              (() => {
+                const filteredLogs = selectedUserIdFilter === 'all'
+                  ? allLogs
+                  : allLogs.filter((log) => log.user_id === selectedUserIdFilter);
+
+                if (filteredLogs.length === 0) {
+                  return <div className="text-center py-4 text-xs text-slate-400">該当するアクション履歴はありません。</div>;
+                }
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[600px]">
+                      <thead>
+                        <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
+                          <th className="pb-2 font-medium">日時</th>
+                          <th className="pb-2 font-medium">ユーザー</th>
+                          <th className="pb-2 font-medium">カテゴリー / 内容</th>
+                          <th className="pb-2 font-medium text-right">獲得ポイント</th>
+                          <th className="pb-2 font-medium text-center">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-xs">
+                        {filteredLogs.slice(0, 100).map((log) => {
+                          const categoryLabels: { [k: string]: string } = {
+                            quiz: '🧠 クイズ',
+                            study: '📚 学習',
+                            input_book: '📖 読書',
+                            input_movie: '🎬 映画',
+                            input_manga: '💬 漫画',
+                            training: '🏋️‍♂️ 運動',
+                          };
+                          const catLabel = categoryLabels[log.category] || log.category;
+
+                          return (
+                            <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                              <td className="py-2.5 text-slate-400 font-mono text-[11px]">
+                                {new Date(log.created_at).toLocaleString('ja-JP', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </td>
+                              <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
+                              <td className="py-2.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                    {catLabel}
+                                  </span>
+                                  <span className="text-slate-200 font-bold">{log.title_or_menu || '（タイトルなし）'}</span>
+                                </div>
+                                {log.review_text && (
+                                  <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[300px]">
+                                    {log.review_text}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-2.5 text-right">
+                                <span className={`font-mono font-black ${log.status === 'approved' ? 'text-amber-400' : 'text-slate-500 line-through'}`}>
+                                  +{log.earned_points} pt
+                                </span>
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <button
+                                  onClick={() => handleDeleteLog(log.id)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex"
+                                  title="この記録を削除 (ポイントは減算されます)"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {filteredLogs.length > 100 && (
+                      <div className="text-center pt-2 text-[10px] text-slate-500">※最新100件まで表示しています。</div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Users & Training Management */}
+      {activeSubTab === 'users_training' && (
+        <div className="space-y-8 animate-fade-in">
+          {/* User Overview */}
+          <div className="space-y-3">
+            <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <span>👥 登録アカウント一覧（削除・管理）</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {users.map((user) => (
+                <div key={user.id} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-extrabold text-white flex items-center gap-2">
+                      <span>{user.avatar || '⚡'}</span>
+                      <span>{user.name}</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">
+                        {user.grade_level === 'high_3' ? '高校レベル' : user.grade_level === 'junior_1' ? '中学レベル' : '一般・その他'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(user.id, user.name, user.current_points)}
+                        className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+                        title="ユーザーアカウントを削除"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">
+                    {user.current_points.toLocaleString()} <span className="text-xs text-slate-400">pt</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Training Menu Master Maintenance Widget */}
+          <TrainingMenuManager />
+        </div>
+      )}
+
+      {/* Tab 3: Point Rules */}
+      {activeSubTab === 'point_rules' && (
+        <div className="animate-fade-in">
+          {/* Point Rules Management Section */}
+          <div className="glass-card p-6 rounded-3xl border border-amber-500/30 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-amber-400" />
+                <h3 className="text-lg font-black text-white">⚙️ ポイント獲得ルールの設定・変更</h3>
+              </div>
+              <span className="text-xs text-slate-400">各アクションで獲得できるポイント数を自由に変更可能</span>
+            </div>
+
+            {saveSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold animate-in fade-in">
+                {saveSuccess}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {pointRules.map((rule) => {
+                const currentEdit = editingPoints[rule.category] ?? rule.points;
+
+                return (
+                  <div key={rule.category} className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-white">{rule.title}</div>
+                      <p className="text-[11px] text-slate-400">{rule.description}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input
+                        type="number"
+                        step={50}
+                        min={10}
+                        value={currentEdit}
+                        onChange={(e) => handlePointChange(rule.category, Number(e.target.value))}
+                        className="w-24 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-amber-400 font-mono font-bold text-right focus:outline-none focus:border-amber-400"
+                      />
+                      <span className="text-xs font-bold text-slate-400">pt</span>
+                      <button
+                        onClick={() => handleSaveRule(rule.category)}
+                        className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-all"
+                        title="設定を保存"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Parent Settings */}
+      {activeSubTab === 'settings' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Email Notification Settings Card */}
+          <div className="glass-card p-6 rounded-3xl space-y-4 border border-cyan-500/30 bg-slate-900/60 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-cyan-400" />
+                  <span>📧 ご褒美交換リクエストの保護者メール通知設定</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  お子様が「🎁 これと交換したい！親にリクエスト」を提出した際、通知メールを受け取るメールアドレスを登録できます。
+                </p>
+              </div>
+            </div>
+
+            {emailSaveSuccess && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-300">
+                ✅ {emailSaveSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveNotificationEmail} className="space-y-3">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <input
+                  type="email"
+                  required
+                  placeholder="例: parent@example.com"
+                  value={notificationEmail}
+                  onChange={(e) => setNotificationEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-xs hover:opacity-90 transition-all shrink-0 shadow-glow-cyan"
+                >
+                  保存する
                 </button>
               </div>
-            </div>
-            <div className="text-2xl font-black text-amber-400 font-mono">
-              {user.current_points.toLocaleString()} <span className="text-xs text-slate-400">pt</span>
-            </div>
+              <p className="text-[11px] text-slate-400">
+                ※メールアドレスを登録しておくと、お子様がポイント到達後にリクエストした瞬間、即座にメールでお知らせが届きます。
+              </p>
+            </form>
           </div>
-        ))}
-      </div>
 
-      {/* Point Rules Management Section */}
-      <div className="glass-card p-6 rounded-3xl border border-amber-500/30 space-y-4 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-amber-400" />
-            <h3 className="text-lg font-black text-white">⚙️ ポイント獲得ルールの設定・変更</h3>
-          </div>
-          <span className="text-xs text-slate-400">各アクションで獲得できるポイント数を自由に変更可能</span>
-        </div>
-
-        {saveSuccess && (
-          <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold animate-in fade-in">
-            {saveSuccess}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {pointRules.map((rule) => {
-            const currentEdit = editingPoints[rule.category] ?? rule.points;
-
-            return (
-              <div key={rule.category} className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="font-bold text-sm text-white">{rule.title}</div>
-                  <p className="text-[11px] text-slate-400">{rule.description}</p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <input
-                    type="number"
-                    step={50}
-                    min={10}
-                    value={currentEdit}
-                    onChange={(e) => handlePointChange(rule.category, Number(e.target.value))}
-                    className="w-24 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-amber-400 font-mono font-bold text-right focus:outline-none focus:border-amber-400"
-                  />
-                  <span className="text-xs font-bold text-slate-400">pt</span>
-                  <button
-                    onClick={() => handleSaveRule(rule.category)}
-                    className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-all"
-                    title="設定を保存"
-                  >
-                    <Save className="w-4 h-4" />
-                  </button>
-                </div>
+          {/* Parent Security PIN Settings Card */}
+          <div className="glass-card p-6 rounded-3xl space-y-4 border border-amber-500/30 bg-slate-900/60 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  <span>🛡 保護者管理者用 4桁PINコードの設定・変更</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  管理者モードに入る際に入力するセキュリティPINコードを設定・変更できます。（初期値: <strong className="text-amber-400 font-mono">1234</strong>）
+                </p>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </div>
 
-
-
-      {/* Email Notification Settings Card */}
-      <div className="glass-card p-6 rounded-3xl space-y-4 border border-cyan-500/30 bg-slate-900/60 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div>
-            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-              <Mail className="w-5 h-5 text-cyan-400" />
-              <span>📧 ご褒美交換リクエストの保護者メール通知設定</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              お子様が「🎁 これと交換したい！親にリクエスト」を提出した際、通知メールを受け取るメールアドレスを登録できます。
-            </p>
-          </div>
-        </div>
-
-        {emailSaveSuccess && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-300">
-            ✅ {emailSaveSuccess}
-          </div>
-        )}
-
-        <form onSubmit={handleSaveNotificationEmail} className="space-y-3">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <input
-              type="email"
-              required
-              placeholder="例: parent@example.com"
-              value={notificationEmail}
-              onChange={(e) => setNotificationEmail(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
-            />
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-xs hover:opacity-90 transition-all shrink-0 shadow-glow-cyan"
-            >
-              保存する
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-400">
-            ※メールアドレスを登録しておくと、お子様がポイント到達後にリクエストした瞬間、即座にメールでお知らせが届きます。
-          </p>
-        </form>
-      </div>
-
-      {/* Parent Security PIN Settings Card */}
-      <div className="glass-card p-6 rounded-3xl space-y-4 border border-amber-500/30 bg-slate-900/60 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div>
-            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-amber-400" />
-              <span>🛡 保護者管理者用 4桁PINコードの設定・変更</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              管理者モードに入る際に入力するセキュリティPINコードを設定・変更できます。（初期値: <strong className="text-amber-400 font-mono">1234</strong>）
-            </p>
-          </div>
-        </div>
-
-        {parentPinSaveSuccess && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-300">
-            ✅ {parentPinSaveSuccess}
-          </div>
-        )}
-
-        <form onSubmit={handleSaveParentPin} className="space-y-3">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <input
-              type="password"
-              maxLength={4}
-              placeholder="新しい4桁PIN (例: 5678)"
-              value={parentPinInput}
-              onChange={(e) => setParentPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              className="w-full sm:w-64 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white font-mono tracking-widest focus:outline-none focus:border-amber-400"
-            />
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs hover:opacity-90 transition-all shrink-0 shadow-glow-gold"
-            >
-              PINを変更する
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Pending Wish Claims */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-          <Gift className="w-5 h-5 text-amber-400" />
-          <span>🎁 お子様からの交換リクエスト（物品手渡し ＆ ポイント引き落とし）</span>
-        </h3>
-
-        {claimedWishes.length === 0 ? (
-          <div className="glass-card p-6 rounded-2xl text-center text-xs text-slate-400">
-            現在、承認・手渡し待ちのご褒美交換リクエストはありません。
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {claimedWishes.map((item) => {
-              const isCash = item.item_type === 'cash';
-              const cashAmount = Math.floor(item.required_points * 0.7);
-
-              return (
-                <div key={item.id} className={`glass-card p-5 rounded-2xl border ${isCash ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-amber-500/40'} space-y-3`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                          {item.user_name || 'お子様'}からのリクエスト
-                        </span>
-                        {isCash && (
-                          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/40">
-                            💵 現金還元 (7掛け)
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="text-base font-bold text-white mt-1">{item.title}</h4>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-base font-black text-amber-400 font-mono block">
-                        {item.required_points.toLocaleString()} pt
-                      </span>
-                      {isCash && (
-                        <span className="text-xs font-black text-emerald-400 font-mono">
-                          (¥{cashAmount.toLocaleString()}円)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {isCash && (
-                    <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between font-medium">
-                      <span>手渡す現金（70%還元）:</span>
-                      <span className="text-sm font-black font-mono text-emerald-400">¥ {cashAmount.toLocaleString()} 円</span>
-                    </div>
-                  )}
-
-                  <div className="pt-2 border-t border-slate-800 space-y-2">
-                    <p className="text-[10px] text-amber-300 leading-relaxed">
-                      ※実生活で{isCash ? `お小遣い (${cashAmount.toLocaleString()}円)` : '商品'}を手渡した後にボタンを押してください。押すと <strong>{item.user_name || 'お子様'}</strong> の所持ポイントから <strong>-{item.required_points.toLocaleString()} pt</strong> が引き落とされます。
-                    </p>
-                    <button
-                      onClick={() => handleApproveWish(item.id)}
-                      className={`w-full py-2.5 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg ${
-                        isCash
-                          ? 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-emerald-950'
-                          : 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-glow-gold'
-                      }`}
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>
-                        {isCash
-                          ? `💵 現金 ${cashAmount.toLocaleString()}円を渡した！pt引き落とし (-${item.required_points.toLocaleString()} pt)`
-                          : `🎁 物品を渡した！ポイントを引き落とす (-${item.required_points.toLocaleString()} pt)`
-                        }
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* All Users Action Logs */}
-      <div className="glass-card p-6 rounded-3xl border border-indigo-500/30 space-y-4 shadow-2xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-indigo-400" />
-            <span>📝 全員のアクション履歴 (管理・削除)</span>
-          </h3>
-
-          {/* User Filter Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-bold">絞り込み:</span>
-            <select
-              value={selectedUserIdFilter}
-              onChange={(e) => setSelectedUserIdFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-indigo-400"
-            >
-              <option value="all">👥 全員を表示</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.avatar || '⚡'} {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {loadingLogs ? (
-          <div className="text-center py-4 text-xs text-slate-400">読み込み中...</div>
-        ) : (
-          (() => {
-            const filteredLogs = selectedUserIdFilter === 'all'
-              ? allLogs
-              : allLogs.filter((log) => log.user_id === selectedUserIdFilter);
-
-            if (filteredLogs.length === 0) {
-              return <div className="text-center py-4 text-xs text-slate-400">該当するアクション履歴はありません。</div>;
-            }
-
-            return (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[600px]">
-                  <thead>
-                    <tr className="border-b border-slate-700/50 text-[10px] text-slate-400">
-                      <th className="pb-2 font-medium">日時</th>
-                      <th className="pb-2 font-medium">ユーザー</th>
-                      <th className="pb-2 font-medium">カテゴリー / 内容</th>
-                      <th className="pb-2 font-medium text-right">獲得ポイント</th>
-                      <th className="pb-2 font-medium text-center">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs">
-                    {filteredLogs.slice(0, 100).map((log) => {
-                      const categoryLabels: { [k: string]: string } = {
-                        quiz: '🧠 クイズ',
-                        study: '📚 学習',
-                        input_book: '📖 読書',
-                        input_movie: '🎬 映画',
-                        input_manga: '💬 漫画',
-                        training: '🏋️‍♂️ 運動',
-                      };
-                      const catLabel = categoryLabels[log.category] || log.category;
-
-                      return (
-                        <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                          <td className="py-2.5 text-slate-400 font-mono text-[11px]">
-                            {new Date(log.created_at).toLocaleString('ja-JP', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </td>
-                          <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
-                          <td className="py-2.5">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                {catLabel}
-                              </span>
-                              <span className="text-slate-200 font-bold">{log.title_or_menu || '（タイトルなし）'}</span>
-                            </div>
-                            {log.review_text && (
-                              <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[300px]">
-                                {log.review_text}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-2.5 text-right">
-                            <span className={`font-mono font-black ${log.status === 'approved' ? 'text-amber-400' : 'text-slate-500 line-through'}`}>
-                              +{log.earned_points} pt
-                            </span>
-                          </td>
-                          <td className="py-2.5 text-center">
-                            <button
-                              onClick={() => handleDeleteLog(log.id)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex"
-                              title="この記録を削除 (ポイントは減算されます)"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {filteredLogs.length > 100 && (
-                  <div className="text-center pt-2 text-[10px] text-slate-500">※最新100件まで表示しています。</div>
-                )}
+            {parentPinSaveSuccess && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-300">
+                ✅ {parentPinSaveSuccess}
               </div>
-            );
-          })()
-        )}
-      </div>
+            )}
 
-      {/* Training Menu Master Maintenance Widget */}
-      <TrainingMenuManager />
+            <form onSubmit={handleSaveParentPin} className="space-y-3">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <input
+                  type="password"
+                  maxLength={4}
+                  placeholder="新しい4桁PIN (例: 5678)"
+                  value={parentPinInput}
+                  onChange={(e) => setParentPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className="w-full sm:w-64 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white font-mono tracking-widest focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs hover:opacity-90 transition-all shrink-0 shadow-glow-gold"
+                >
+                  PINを変更する
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
