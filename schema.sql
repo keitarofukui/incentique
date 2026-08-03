@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS users (
   current_100pt_streak_days INTEGER DEFAULT 0,
   last_300pt_bonus_date TEXT,
   last_500pt_bonus_date TEXT,
+  last_1000pt_bonus_date TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -95,6 +96,8 @@ CREATE TABLE IF NOT EXISTS action_logs (
   title_or_menu TEXT NOT NULL,
   review_text TEXT,
   earned_points INTEGER NOT NULL,
+  -- ガチャ倍率・ボーナスを含まない素点。1日ボリュームボーナスの判定はこちらを使う
+  base_points INTEGER,
   status TEXT DEFAULT 'pending',
   created_at DATE DEFAULT (CURRENT_DATE)
 );
@@ -106,8 +109,9 @@ INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
 ('input_manga', '漫画', 50, '漫画を読んで感想メモを提出'),
 ('training', 'トレーニング', 50, '筋トレ・HIIT・動画トレーニング成果を報告'),
 ('study_quiz', '暗記クイズ1問正解', 1, '4択クイズ1問正解につき1ポイント'),
-('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス'),
-('bonus_600pt', '🤯 1日600pt突破ボーナス', 300, '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス');
+('bonus_300pt',  '🎉 1日300pt突破ボーナス',  200, 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス'),
+('bonus_500pt',  '🔥 1日500pt突破ボーナス',  300, 'ボーナス・ガチャ倍率を除いた1日の素点が500ptを超えた時の単発ボーナス'),
+('bonus_1000pt', '🤯 1日1000pt突破ボーナス', 500, 'ボーナス・ガチャ倍率を除いた1日の素点が1000ptを超えた時の単発ボーナス');
 
 -- 指定のYouTube動画トレーニングメニュー初期登録 (各 50 pt)
 INSERT OR IGNORE INTO training_menus (id, menu_name, default_points, video_url) VALUES

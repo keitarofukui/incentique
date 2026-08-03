@@ -114,10 +114,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex-1">
             <div className="text-sm font-black text-indigo-300 flex items-center gap-1.5">
               <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">ボーナス制度</span>
-              <span>連続記録＆1日300/600pt突破ボーナス制度の詳細</span>
+              <span>連続記録＆1日300/500/1000pt突破ボーナス制度の詳細</span>
             </div>
             <p className="text-xs text-slate-200 mt-0.5 font-bold">
-              毎日続けてポイント大量GET！【300pt突破で+200pt / 600pt突破で+300pt】ルールは<span className="text-indigo-300 underline underline-offset-2">こちらをタップ</span>👆
+              毎日続けてポイント大量GET！【素点300ptで+200pt / 500ptで+300pt / 1000ptで+500pt】ルールは<span className="text-indigo-300 underline underline-offset-2">こちらをタップ</span>👆
             </p>
           </div>
           <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-400/30 group-hover:bg-indigo-500/40 transition-colors">

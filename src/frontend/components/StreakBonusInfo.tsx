@@ -140,24 +140,34 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 300pt/500pt 単発特大ボーナス */}
+      {/* 300pt/500pt/1000pt 単発特大ボーナス */}
       <div className="glass-card p-6 rounded-3xl border-2 border-fuchsia-500/40 bg-gradient-to-br from-fuchsia-900/30 via-purple-900/20 to-transparent space-y-4">
         <h4 className="text-lg font-black text-white flex items-center gap-2 border-b border-fuchsia-500/30 pb-3">
           <PartyPopper className="w-5 h-5 text-fuchsia-400" />
           🎉 1日 特大突破ボーナス
         </h4>
         <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-          1日の合計獲得ポイントが特定のラインを突破すると、連続記録に関係なく<strong className="text-fuchsia-300">その日限定の特大単発ボーナス</strong>が即座に付与されます！（それぞれ1日1回まで）
+          1日の獲得ポイントが特定のラインを突破すると、連続記録に関係なく<strong className="text-fuchsia-300">その日限定の特大単発ボーナス</strong>が即座に付与されます！（それぞれ1日1回まで）
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
             <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">300pt</span> 突破で</div>
             <div className="text-2xl font-black font-mono text-fuchsia-400">+ 200 pt</div>
           </div>
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
-            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">600pt</span> 突破で</div>
+            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">500pt</span> 突破で</div>
             <div className="text-2xl font-black font-mono text-fuchsia-400">+ 300 pt</div>
           </div>
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
+            <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">1000pt</span> 突破で</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 500 pt</div>
+          </div>
+        </div>
+
+        <div className="p-3 rounded-2xl bg-slate-950/80 border border-fuchsia-500/25 text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+          <strong className="text-fuchsia-300">判定に使うのは「素点」です。</strong>
+          ラッキーガチャの倍率（2倍・3倍・10倍）で増えた分と、突破ボーナス自体は
+          この合計に含めません。運ではなく、実際にやった量で決まります。
         </div>
       </div>
 

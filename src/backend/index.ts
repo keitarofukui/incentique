@@ -128,12 +128,22 @@ function getDaysDifference(date1: string, date2: string): number {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * 1日ボリュームボーナスの段。threshold は「ボーナス・ガチャ倍率を除いた素点」で判定する。
+ * 付与ポイントは point_rules（保護者ポータル）で変更でき、0 にすればその段を止められる。
+ */
+const VOLUME_BONUS_TIERS = [
+  { threshold: 300, ruleKey: 'bonus_300pt', defaultPoints: 200, column: 'last_300pt_bonus_date', label: '🎉1日300pt突破！特大ボーナス' },
+  { threshold: 500, ruleKey: 'bonus_500pt', defaultPoints: 300, column: 'last_500pt_bonus_date', label: '🔥1日500pt突破！超特大ボーナス' },
+  { threshold: 1000, ruleKey: 'bonus_1000pt', defaultPoints: 500, column: 'last_1000pt_bonus_date', label: '🤯1日1000pt突破！やりすぎ神ボーナス' },
+] as const;
+
 /** アクション記録後にストリークを更新し、節目に達していればボーナスを付与する */
 async function updateStreaks(db: any, userId: string): Promise<void> {
   const logicalToday = getLogicalDate();
 
   const user = await db.prepare(
-    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date FROM users WHERE id = ?'
+    'SELECT last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date FROM users WHERE id = ?'
   ).bind(userId).first();
 
   if (!user) return;
@@ -148,6 +158,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
   let newCurrent100ptStreak = user.current_100pt_streak_days || 0;
   let newLast300ptBonusDate = user.last_300pt_bonus_date;
   let newLast500ptBonusDate = user.last_500pt_bonus_date;
+  let newLast1000ptBonusDate = user.last_1000pt_bonus_date;
 
   let updatesRequired = false;
   let bonusPointsTotal = 0;
@@ -176,13 +187,26 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     }
   }
 
-  // --- 50pt / 100pt 以上ストリーク & 単発特大ボーナス判定 ---
-  if (newLast50ptDate !== logicalToday || newLast100ptDate !== logicalToday || newLast300ptBonusDate !== logicalToday || newLast500ptBonusDate !== logicalToday) {
-    // 今日の合計ポイントを算出 (ボーナス分を除外した純粋なアクティビティ獲得ポイント。UTCのcreated_atをJSTにして判定)
+  // --- 1日の獲得量にもとづく判定（50pt/100ptストリーク＋ボリュームボーナス）---
+  if (
+    newLast50ptDate !== logicalToday ||
+    newLast100ptDate !== logicalToday ||
+    newLast300ptBonusDate !== logicalToday ||
+    newLast500ptBonusDate !== logicalToday ||
+    newLast1000ptBonusDate !== logicalToday
+  ) {
+    // 判定に使うのは「素点」= ボーナスもガチャ倍率も含まない、行動そのものの価値。
+    //
+    // earned_points にはガチャ倍率（2倍/3倍/10倍）適用後の値が入っているため、
+    // それで判定すると 100pt の行動が 10倍を引いただけで 1000pt 扱いになり、
+    // 全段のボーナスが一撃で開いてしまう。さらに付与したボーナス自体が翌回の
+    // 判定に乗ると、ボーナスがボーナスを呼ぶ連鎖になる。
+    // そのため category='bonus' を除外したうえで base_points で合計する。
+    // （base_points 導入前の古いログは earned_points で代替）
     const todayPointsResult = await db.prepare(`
-      SELECT SUM(earned_points) as total 
-      FROM action_logs 
-      WHERE user_id = ? 
+      SELECT SUM(COALESCE(base_points, earned_points)) as total
+      FROM action_logs
+      WHERE user_id = ?
       AND category != 'bonus'
       AND date(datetime(created_at, '+5 hours')) = ?
     `).bind(userId, logicalToday).first();
@@ -198,21 +222,16 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
         newCurrent50ptStreak = 1;
       } else {
         const diff = getDaysDifference(user.last_50pt_date, logicalToday);
-        if (diff === 1) {
-          newCurrent50ptStreak += 1;
-        } else {
-          newCurrent50ptStreak = 1; // 途切れた
-        }
+        newCurrent50ptStreak = diff === 1 ? newCurrent50ptStreak + 1 : 1;
       }
 
       if (STREAK_MILESTONES.includes(newCurrent50ptStreak)) {
-        const bonus = newCurrent50ptStreak * 30;
-        bonusPointsTotal += bonus;
+        bonusPointsTotal += newCurrent50ptStreak * 30;
         bonusMessages.push(`【🔥超人！50pt以上${newCurrent50ptStreak}日連続！特大ボーナス】`);
       }
     }
 
-    // 100pt判定 (ストリーク)
+    // 100pt判定
     if (todayPoints >= 100 && newLast100ptDate !== logicalToday) {
       updatesRequired = true;
       newLast100ptDate = logicalToday;
@@ -221,54 +240,56 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
         newCurrent100ptStreak = 1;
       } else {
         const diff = getDaysDifference(user.last_100pt_date, logicalToday);
-        if (diff === 1) {
-          newCurrent100ptStreak += 1;
-        } else {
-          newCurrent100ptStreak = 1; // 途切れた
-        }
+        newCurrent100ptStreak = diff === 1 ? newCurrent100ptStreak + 1 : 1;
       }
 
       if (STREAK_MILESTONES.includes(newCurrent100ptStreak)) {
-        // 100pt超えは「日数 × 100pt」をボーナスとして設定
-        const bonus = newCurrent100ptStreak * 100;
-        bonusPointsTotal += bonus;
+        bonusPointsTotal += newCurrent100ptStreak * 100;
         bonusMessages.push(`【👑神！100pt以上${newCurrent100ptStreak}日連続！神ボーナス】`);
       }
     }
 
-    // ボーナス設定値を動的に取得（DBになければデフォルト値）
-    let bonus300Pts = 200;
-    let bonus600Pts = 300;
+    // --- 1日ボリュームボーナス（各段1日1回、保護者ポータルで増減可）---
+    const tierState: { [column: string]: string | null } = {
+      last_300pt_bonus_date: newLast300ptBonusDate,
+      last_500pt_bonus_date: newLast500ptBonusDate,
+      last_1000pt_bonus_date: newLast1000ptBonusDate,
+    };
+
+    let rulePoints: { [category: string]: number } = {};
     try {
-      const b300: any = await db.prepare("SELECT points FROM point_rules WHERE category = 'bonus_300pt'").first();
-      if (b300 && typeof b300.points === 'number') bonus300Pts = b300.points;
-      const b600: any = await db.prepare("SELECT points FROM point_rules WHERE category = 'bonus_600pt'").first();
-      if (b600 && typeof b600.points === 'number') bonus600Pts = b600.points;
+      const ruleRows = await db.prepare(
+        "SELECT category, points FROM point_rules WHERE category IN ('bonus_300pt','bonus_500pt','bonus_1000pt')"
+      ).all();
+      (ruleRows.results || []).forEach((r: any) => { rulePoints[r.category] = Number(r.points); });
     } catch (_) {}
 
-    // 300pt単発ボーナス判定
-    if (todayPoints >= 300 && newLast300ptBonusDate !== logicalToday) {
+    for (const tier of VOLUME_BONUS_TIERS) {
+      if (todayPoints < tier.threshold) continue;
+      if (tierState[tier.column] === logicalToday) continue;
+
+      const pts = Number.isFinite(rulePoints[tier.ruleKey]) ? rulePoints[tier.ruleKey] : tier.defaultPoints;
+      tierState[tier.column] = logicalToday;
       updatesRequired = true;
-      newLast300ptBonusDate = logicalToday;
-      bonusPointsTotal += bonus300Pts;
-      bonusMessages.push(`【🎉1日300pt突破！特大ボーナス＋${bonus300Pts}pt！】`);
+
+      // 0pt に設定して段を無効化できるようにする
+      if (pts > 0) {
+        bonusPointsTotal += pts;
+        bonusMessages.push(`【${tier.label}＋${pts}pt！】`);
+      }
     }
 
-    // 600pt単発ボーナス判定
-    if (todayPoints >= 600 && newLast500ptBonusDate !== logicalToday) {
-      updatesRequired = true;
-      newLast500ptBonusDate = logicalToday;
-      bonusPointsTotal += bonus600Pts;
-      bonusMessages.push(`【🤯1日600pt突破！やりすぎ神ボーナス＋${bonus600Pts}pt！】`);
-    }
+    newLast300ptBonusDate = tierState.last_300pt_bonus_date;
+    newLast500ptBonusDate = tierState.last_500pt_bonus_date;
+    newLast1000ptBonusDate = tierState.last_1000pt_bonus_date;
   }
 
   if (updatesRequired) {
     await db.prepare(`
       UPDATE users 
-      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_100pt_date = ?, current_100pt_streak_days = ?, last_300pt_bonus_date = ?, last_500pt_bonus_date = ? 
+      SET last_action_date = ?, current_streak_days = ?, last_50pt_date = ?, current_50pt_streak_days = ?, last_100pt_date = ?, current_100pt_streak_days = ?, last_300pt_bonus_date = ?, last_500pt_bonus_date = ?, last_1000pt_bonus_date = ?
       WHERE id = ?
-    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast100ptDate, newCurrent100ptStreak, newLast300ptBonusDate, newLast500ptBonusDate, userId).run();
+    `).bind(newLastActionDate, newCurrentStreak, newLast50ptDate, newCurrent50ptStreak, newLast100ptDate, newCurrent100ptStreak, newLast300ptBonusDate, newLast500ptBonusDate, newLast1000ptBonusDate, userId).run();
 
     if (bonusPointsTotal > 0) {
       // ポイント付与
@@ -279,7 +300,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
       const logId = 'log_bonus_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
       const title = bonusMessages.join(' ');
       await db.prepare(
-        'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
+        'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime(\'now\'))'
       ).bind(logId, userId, 'bonus', title, '連続記録によるボーナスポイントが付与されました！', bonusPointsTotal, 'approved').run();
     }
   }
@@ -364,10 +385,13 @@ app.get('/api/point-rules', async (c) => {
   try {
     try {
       await c.env.DB.prepare(
-        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス')"
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス')"
       ).run();
       await c.env.DB.prepare(
-        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_600pt', '🤯 1日600pt突破ボーナス', 300, '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス')"
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_500pt', '🔥 1日500pt突破ボーナス', 300, 'ボーナス・ガチャ倍率を除いた1日の素点が500ptを超えた時の単発ボーナス')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_1000pt', '🤯 1日1000pt突破ボーナス', 500, 'ボーナス・ガチャ倍率を除いた1日の素点が1000ptを超えた時の単発ボーナス')"
       ).run();
     } catch (_) {}
 
@@ -641,7 +665,7 @@ app.post('/api/quizzes/answer', async (c) => {
       const titlePrefix = multiplier > 1 ? `【クイズ正解】${bonusLabel} ` : `【クイズ正解】`;
 
       await c.env.DB.prepare(
-        'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
+        'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
       )
         .bind(
           logId,
@@ -650,6 +674,7 @@ app.post('/api/quizzes/answer', async (c) => {
           `${titlePrefix}${catLabel}`,
           `問題: ${question.question_text}`,
           pointsEarned,
+          basePoints,
           'approved'
         )
         .run();
@@ -935,7 +960,7 @@ app.post('/api/action-logs', async (c) => {
 
     // Auto-approve logs upon submission (self-reporting model)
     await c.env.DB.prepare(
-      'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
+      'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
     )
       .bind(
         id,
@@ -944,6 +969,7 @@ app.post('/api/action-logs', async (c) => {
         displayTitle,
         body.reviewText || '',
         finalEarnedPoints,
+        basePoints,
         'approved'
       )
       .run();
