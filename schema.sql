@@ -99,13 +99,15 @@ CREATE TABLE IF NOT EXISTS action_logs (
   created_at DATE DEFAULT (CURRENT_DATE)
 );
 
--- ポイントルール初期投入 (映画120pt, 読書300pt, 漫画50pt, トレーニング50pt, クイズ1pt)
+-- ポイントルール初期投入 (映画120pt, 読書300pt, 漫画50pt, トレーニング50pt, クイズ1pt, 300pt突破200pt, 600pt突破300pt)
 INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
 ('input_book', '読書インプット', 300, '本を1冊読んで感想レビューを提出'),
 ('input_movie', '映画インプット', 120, '映画やドキュメンタリーを観てレビューを提出'),
 ('input_manga', '漫画', 50, '漫画を読んで感想メモを提出'),
 ('training', 'トレーニング', 50, '筋トレ・HIIT・動画トレーニング成果を報告'),
-('study_quiz', '暗記クイズ1問正解', 1, '4択クイズ1問正解につき1ポイント');
+('study_quiz', '暗記クイズ1問正解', 1, '4択クイズ1問正解につき1ポイント'),
+('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス'),
+('bonus_600pt', '🤯 1日600pt突破ボーナス', 300, '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス');
 
 -- 指定のYouTube動画トレーニングメニュー初期登録 (各 50 pt)
 INSERT OR IGNORE INTO training_menus (id, menu_name, default_points, video_url) VALUES

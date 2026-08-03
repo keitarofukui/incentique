@@ -236,20 +236,30 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
       }
     }
 
+    // ボーナス設定値を動的に取得（DBになければデフォルト値）
+    let bonus300Pts = 200;
+    let bonus600Pts = 300;
+    try {
+      const b300: any = await db.prepare("SELECT points FROM point_rules WHERE category = 'bonus_300pt'").first();
+      if (b300 && typeof b300.points === 'number') bonus300Pts = b300.points;
+      const b600: any = await db.prepare("SELECT points FROM point_rules WHERE category = 'bonus_600pt'").first();
+      if (b600 && typeof b600.points === 'number') bonus600Pts = b600.points;
+    } catch (_) {}
+
     // 300pt単発ボーナス判定
     if (todayPoints >= 300 && newLast300ptBonusDate !== logicalToday) {
       updatesRequired = true;
       newLast300ptBonusDate = logicalToday;
-      bonusPointsTotal += 200;
-      bonusMessages.push(`【🎉1日300pt突破！特大ボーナス＋200pt！】`);
+      bonusPointsTotal += bonus300Pts;
+      bonusMessages.push(`【🎉1日300pt突破！特大ボーナス＋${bonus300Pts}pt！】`);
     }
 
     // 600pt単発ボーナス判定
     if (todayPoints >= 600 && newLast500ptBonusDate !== logicalToday) {
       updatesRequired = true;
       newLast500ptBonusDate = logicalToday;
-      bonusPointsTotal += 300;
-      bonusMessages.push(`【🤯1日600pt突破！やりすぎ神ボーナス＋300pt！】`);
+      bonusPointsTotal += bonus600Pts;
+      bonusMessages.push(`【🤯1日600pt突破！やりすぎ神ボーナス＋${bonus600Pts}pt！】`);
     }
   }
 
@@ -352,6 +362,14 @@ app.get('/api/rivals', async (c) => {
 // ==========================================
 app.get('/api/point-rules', async (c) => {
   try {
+    try {
+      await c.env.DB.prepare(`
+        INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
+        ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス'),
+        ('bonus_600pt', '🤯 1日600pt突破ボーナス', 300, '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス')
+      `).run();
+    } catch (_) {}
+
     const { results } = await c.env.DB.prepare('SELECT * FROM point_rules').all();
     return c.json({ success: true, rules: results });
   } catch (err: any) {

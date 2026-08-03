@@ -21,6 +21,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     { category: 'input_movie', title: '🎬 映画インプット', points: 120, description: '映画を観てレビューを提出（自己申告）' },
     { category: 'input_manga', title: '💬 漫画インプット', points: 50, description: '漫画を読んで感想メモを提出（自己申告）' },
     { category: 'study_quiz', title: '🧠 クイズ1問正解', points: 1, description: '4択クイズ正解時の獲得ポイント' },
+    { category: 'bonus_300pt', title: '🎉 1日300pt突破ボーナス', points: 200, description: '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス' },
+    { category: 'bonus_600pt', title: '🤯 1日600pt突破ボーナス', points: 300, description: '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス' },
   ]);
 
   const [editingPoints, setEditingPoints] = useState<{ [category: string]: number }>({});
