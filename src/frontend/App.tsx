@@ -381,6 +381,7 @@ export const App: React.FC = () => {
                 users={users}
                 wishItems={wishItems}
                 onRefresh={fetchData}
+                onNavigate={handleSetActiveTab}
               />
             )
           ) : (
@@ -470,6 +471,7 @@ export const App: React.FC = () => {
                   users={users}
                   wishItems={wishItems}
                   onRefresh={fetchData}
+                  onNavigate={handleSetActiveTab}
                 />
               )}
             </div>

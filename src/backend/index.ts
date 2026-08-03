@@ -363,11 +363,12 @@ app.get('/api/rivals', async (c) => {
 app.get('/api/point-rules', async (c) => {
   try {
     try {
-      await c.env.DB.prepare(`
-        INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
-        ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス'),
-        ('bonus_600pt', '🤯 1日600pt突破ボーナス', 300, '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス')
-      `).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_600pt', '🤯 1日600pt突破ボーナス', 300, '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス')"
+      ).run();
     } catch (_) {}
 
     const { results } = await c.env.DB.prepare('SELECT * FROM point_rules').all();

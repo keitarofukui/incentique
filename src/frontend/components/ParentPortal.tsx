@@ -7,12 +7,14 @@ interface ParentPortalProps {
   users: User[];
   wishItems: WishItem[];
   onRefresh: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
 export const ParentPortal: React.FC<ParentPortalProps> = ({
   users,
   wishItems,
   onRefresh,
+  onNavigate,
 }) => {
   const claimedWishes = wishItems.filter((item) => item.is_claimed && !item.is_approved);
 
@@ -116,16 +118,44 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
+  const DEFAULT_RULES: PointRule[] = [
+    { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
+    { category: 'input_movie', title: '🎬 映画インプット', points: 120, description: '映画を観てレビューを提出（自己申告）' },
+    { category: 'input_manga', title: '💬 漫画インプット', points: 50, description: '漫画を読んで感想メモを提出（自己申告）' },
+    { category: 'study_quiz', title: '🧠 クイズ1問正解', points: 1, description: '4択クイズ正解時の獲得ポイント' },
+    { category: 'bonus_300pt', title: '🎉 1日300pt突破ボーナス', points: 200, description: '1日の基礎獲得ポイントが300ptを超えた時の単発ボーナス' },
+    { category: 'bonus_600pt', title: '🤯 1日600pt突破ボーナス', points: 300, description: '1日の基礎獲得ポイントが600ptを超えた時の単発ボーナス' },
+  ];
+
   const fetchRules = async () => {
     try {
       const res = await fetch('/api/point-rules');
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.rules.length > 0) {
-          const filteredRules = data.rules.filter((r: PointRule) => r.category !== 'training');
-          setPointRules(filteredRules);
+        if (data.success && data.rules) {
+          const apiRulesMap = new Map<string, PointRule>();
+          data.rules.forEach((r: PointRule) => {
+            if (r.category !== 'training') {
+              apiRulesMap.set(r.category, r);
+            }
+          });
+
+          // DEFAULT_RULES に記載されたカテゴリでマージ
+          const mergedRules = DEFAULT_RULES.map((defRule) => {
+            const apiRule = apiRulesMap.get(defRule.category);
+            return apiRule ? { ...defRule, points: apiRule.points } : defRule;
+          });
+
+          // APIにのみ存在する新カテゴリも追加
+          apiRulesMap.forEach((rule, cat) => {
+            if (!mergedRules.some((r) => r.category === cat)) {
+              mergedRules.push(rule);
+            }
+          });
+
+          setPointRules(mergedRules);
           const initialMap: { [cat: string]: number } = {};
-          filteredRules.forEach((r: PointRule) => {
+          mergedRules.forEach((r: PointRule) => {
             initialMap[r.category] = r.points;
           });
           setEditingPoints(initialMap);
@@ -608,12 +638,21 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
         <div className="animate-fade-in">
           {/* Point Rules Management Section */}
           <div className="glass-card p-6 rounded-3xl border border-amber-500/30 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-amber-400" />
                 <h3 className="text-lg font-black text-white">⚙️ ポイント獲得ルールの設定・変更</h3>
               </div>
-              <span className="text-xs text-slate-400">各アクションで獲得できるポイント数を自由に変更可能</span>
+              <div className="flex items-center gap-3">
+                {onNavigate && (
+                  <button
+                    onClick={() => onNavigate('streak_bonus_info')}
+                    className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                  >
+                    <span>🔥 連続ボーナス制度の解説ページ</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {saveSuccess && (
@@ -625,19 +664,29 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pointRules.map((rule) => {
                 const currentEdit = editingPoints[rule.category] ?? rule.points;
+                const isBonus = rule.category.startsWith('bonus_');
 
                 return (
-                  <div key={rule.category} className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
+                  <div
+                    key={rule.category}
+                    className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${
+                      isBonus
+                        ? 'bg-purple-950/30 border-purple-500/40 shadow-sm'
+                        : 'bg-slate-900/80 border-slate-800'
+                    }`}
+                  >
                     <div className="space-y-1">
-                      <div className="font-bold text-sm text-white">{rule.title}</div>
+                      <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                        <span>{rule.title}</span>
+                      </div>
                       <p className="text-[11px] text-slate-400">{rule.description}</p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       <input
                         type="number"
-                        step={50}
-                        min={10}
+                        step={10}
+                        min={0}
                         value={currentEdit}
                         onChange={(e) => handlePointChange(rule.category, Number(e.target.value))}
                         className="w-24 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-amber-400 font-mono font-bold text-right focus:outline-none focus:border-amber-400"
