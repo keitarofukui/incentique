@@ -232,7 +232,12 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
-  const handleApproveWish = async (wishId: string) => {
+  const handleApproveWish = async (wishId: string, title: string, points: number) => {
+    // ポイントの引き落としは取り消せない操作なので、削除と同じく確認を挟む。
+    if (!window.confirm(
+      `「${title}」を渡したものとして承認しますか？\n\n${points.toLocaleString()} pt が引き落とされます。この操作は取り消せません。`
+    )) return;
+
     try {
       const res = await fetch(`/api/wish-items/${wishId}/approve`, { method: 'PUT' });
       const data = await res.json();
@@ -477,7 +482,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                           ※実生活で{isCash ? `お小遣い (${cashAmount.toLocaleString()}円)` : '商品'}を手渡した後にボタンを押してください。押すと <strong>{item.user_name || 'お子様'}</strong> の所持ポイントから <strong>-{item.required_points.toLocaleString()} pt</strong> が引き落とされます。
                         </p>
                         <button
-                          onClick={() => handleApproveWish(item.id)}
+                          onClick={() => handleApproveWish(item.id, item.title, item.required_points)}
                           className={`w-full py-2.5 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg ${
                             isCash
                               ? 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-emerald-950'

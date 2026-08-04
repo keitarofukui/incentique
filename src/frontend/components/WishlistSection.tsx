@@ -53,7 +53,12 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
     }
   };
 
-  const handleApproveWish = async (wishId: string) => {
+  const handleApproveWish = async (wishId: string, title: string, points: number) => {
+    // ポイントの引き落としは取り消せない操作なので、削除と同じく確認を挟む。
+    if (!window.confirm(
+      `「${title}」を渡したものとして承認しますか？\n\n${points.toLocaleString()} pt が引き落とされます。この操作は取り消せません。`
+    )) return;
+
     try {
       const res = await fetch(`/api/wish-items/${wishId}/approve`, { method: 'PUT' });
       const data = await res.json();
@@ -323,7 +328,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                       <div className="space-y-2">
                         {item.is_claimed ? (
                           <button
-                            onClick={() => handleApproveWish(item.id)}
+                            onClick={() => handleApproveWish(item.id, item.title, item.required_points)}
                             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
                           >
                             <CheckCircle2 className="w-4 h-4" />
