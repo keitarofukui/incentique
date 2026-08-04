@@ -24,6 +24,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   const [newTitle, setNewTitle] = useState<string>('');
   const [newPointsStr, setNewPointsStr] = useState<string>('');
   const [newImageUrl, setNewImageUrl] = useState<string>('');
+  const [newProductUrl, setNewProductUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   if (!currentUser && !isParentMode) return null;
@@ -114,6 +115,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
           userId: targetUserId,
           title: finalTitle,
           imageUrl: itemType === 'cash' ? undefined : (newImageUrl || undefined),
+          productUrl: itemType === 'cash' ? undefined : (newProductUrl.trim() || undefined),
           requiredPoints: newPoints,
           itemType: itemType,
         })
@@ -123,6 +125,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         setNewTitle('');
         setNewPointsStr('');
         setNewImageUrl('');
+        setNewProductUrl('');
         setItemType('goods');
         setShowAddModal(false);
         onRefresh();
@@ -476,19 +479,33 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </div>
               )}
 
-              {/* Image URL Input: Only shown for Goods */}
+              {/* Product URL Input & Image URL Input: Only shown for Goods */}
               {itemType === 'goods' && (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">商品画像URL (任意)</label>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
-                  />
-                  <p className="text-[10px] text-slate-400">※AmazonやWebサイトの商品画像直リンクを入力するとカードに表示されます。</p>
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-300">🛒 Amazon / 商品購入ページURL (任意)</label>
+                    <input
+                      type="url"
+                      placeholder="https://www.amazon.co.jp/dp/..."
+                      value={newProductUrl}
+                      onChange={(e) => setNewProductUrl(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                    <p className="text-[10px] text-slate-400">※Amazonなどの商品URLを入力すると、親の画面で直接購入ページが開けるボタンが付きます！</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-300">商品画像URL (任意)</label>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                    <p className="text-[10px] text-slate-400">※Webサイトの商品画像直リンクを入力するとカードに画像が表示されます。</p>
+                  </div>
+                </>
               )}
 
               <div className="pt-2 flex items-center justify-end gap-2">

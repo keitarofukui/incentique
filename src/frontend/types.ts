@@ -61,6 +61,7 @@ export interface WishItem {
   user_name?: string;
   title: string;
   image_url: string;
+  product_url?: string;
   required_points: number;
   item_type?: 'goods' | 'cash';
   is_approved: boolean;

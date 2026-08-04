@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 
 interface ParentPortalProps {
@@ -386,10 +386,23 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                   const isCash = item.item_type === 'cash';
                   const cashAmount = Math.floor(item.required_points * 0.7);
 
+                  // URL抽出ロジック（product_url, title, image_urlから抽出）
+                  let buyUrl: string | null = null;
+                  if (item.product_url && /^https?:\/\//.test(item.product_url.trim())) {
+                    buyUrl = item.product_url.trim();
+                  } else if (item.image_url && /^https?:\/\//.test(item.image_url.trim()) && !item.image_url.includes('unsplash.com')) {
+                    buyUrl = item.image_url.trim();
+                  } else if (item.title) {
+                    const match = item.title.match(/https?:\/\/[^\s]+/);
+                    if (match) buyUrl = match[0];
+                  }
+
+                  const hasValidImage = item.image_url && !item.image_url.includes('unsplash.com');
+
                   return (
-                    <div key={item.id} className={`glass-card p-5 rounded-2xl border ${isCash ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-amber-500/40'} space-y-3`}>
+                    <div key={item.id} className={`glass-card p-5 rounded-2xl border ${isCash ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-amber-500/40'} space-y-3 shadow-xl`}>
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="space-y-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
                               {item.user_name || 'お子様'}からのリクエスト
@@ -400,7 +413,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                               </span>
                             )}
                           </div>
-                          <h4 className="text-base font-bold text-white mt-1">{item.title}</h4>
+                          <h4 className="text-base font-bold text-white leading-snug">{item.title}</h4>
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-base font-black text-amber-400 font-mono block">
@@ -413,6 +426,44 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                           )}
                         </div>
                       </div>
+
+                      {/* Image Preview & Direct Purchase Link */}
+                      {!isCash && (
+                        <div className="space-y-2 pt-1">
+                          {hasValidImage && (
+                            <div className="relative h-32 rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+                              <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                              {buyUrl && (
+                                <a
+                                  href={buyUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="absolute inset-0 bg-slate-950/40 hover:bg-slate-950/20 transition-all flex items-center justify-center text-white font-bold text-xs gap-1.5 group"
+                                >
+                                  <span className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-amber-400/50 flex items-center gap-1.5 shadow-lg group-hover:scale-105 transition-transform">
+                                    <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>商品ページを見る</span>
+                                    <ExternalLink className="w-3 h-3 text-amber-400" />
+                                  </span>
+                                </a>
+                              )}
+                            </div>
+                          )}
+
+                          {buyUrl && (
+                            <a
+                              href={buyUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 font-extrabold text-xs transition-all flex items-center justify-center gap-2 shadow-glow-cyan"
+                            >
+                              <ShoppingCart className="w-4 h-4 text-cyan-400" />
+                              <span>🛒 Amazon / 購入ページを開く（直接購入）</span>
+                              <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                            </a>
+                          )}
+                        </div>
+                      )}
 
                       {isCash && (
                         <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between font-medium">

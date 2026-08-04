@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS wish_items (
   user_id TEXT NOT NULL,
   title TEXT NOT NULL,
   image_url TEXT,
+  product_url TEXT,
   required_points INTEGER NOT NULL,
   item_type TEXT DEFAULT 'goods',
   is_approved BOOLEAN DEFAULT FALSE,

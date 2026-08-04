@@ -1079,6 +1079,9 @@ app.get('/api/wish-items', async (c) => {
     try {
       await c.env.DB.prepare("ALTER TABLE wish_items ADD COLUMN item_type TEXT DEFAULT 'goods'").run();
     } catch (_) {}
+    try {
+      await c.env.DB.prepare("ALTER TABLE wish_items ADD COLUMN product_url TEXT").run();
+    } catch (_) {}
 
     const userId = c.req.query('user_id');
     let query = 'SELECT wish_items.*, users.name as user_name FROM wish_items JOIN users ON wish_items.user_id = users.id';
@@ -1103,11 +1106,15 @@ app.post('/api/wish-items', async (c) => {
     try {
       await c.env.DB.prepare("ALTER TABLE wish_items ADD COLUMN item_type TEXT DEFAULT 'goods'").run();
     } catch (_) {}
+    try {
+      await c.env.DB.prepare("ALTER TABLE wish_items ADD COLUMN product_url TEXT").run();
+    } catch (_) {}
 
     const body = await c.req.json<{
       userId: string;
       title: string;
       imageUrl?: string;
+      productUrl?: string;
       requiredPoints: number;
       itemType?: 'goods' | 'cash';
     }>();
@@ -1116,13 +1123,14 @@ app.post('/api/wish-items', async (c) => {
     const itemType = body.itemType || 'goods';
 
     await c.env.DB.prepare(
-      'INSERT INTO wish_items (id, user_id, title, image_url, required_points, item_type, is_approved, is_claimed) VALUES (?, ?, ?, ?, ?, ?, 0, 0)'
+      'INSERT INTO wish_items (id, user_id, title, image_url, product_url, required_points, item_type, is_approved, is_claimed) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)'
     )
       .bind(
         id,
         body.userId,
         body.title,
         body.imageUrl || (itemType === 'cash' ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop' : 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop'),
+        body.productUrl || null,
         body.requiredPoints,
         itemType
       )
