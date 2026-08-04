@@ -1203,8 +1203,11 @@ app.put('/api/wish-items/:id/claim', async (c) => {
         const targetEmail = emailRow.value.trim();
         console.log(`[Notification] Claim submitted by ${childName} for "${wish.title}". Target email: ${targetEmail}`);
 
-        if (c.env.RESEND_API_KEY) {
-          await fetch('https://api.resend.com/emails', {
+        if (!c.env.RESEND_API_KEY) {
+          // 鍵が無いと黙って送られないままになるので、はっきり残す
+          console.error('[Notification] RESEND_API_KEY is not configured — e-mail was NOT sent');
+        } else {
+          const mailRes = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1229,7 +1232,20 @@ app.put('/api/wish-items/:id/claim', async (c) => {
                 </div>
               `,
             }),
-          }).catch((err) => console.error('Email send error', err));
+          }).catch((err) => {
+            console.error('[Notification] send failed (network)', err);
+            return null;
+          });
+
+          // fetch は 4xx/5xx でも reject しないため、応答を見ないと失敗に気づけない
+          if (!mailRes) {
+            // ネットワーク例外は上で記録済み
+          } else if (mailRes.ok) {
+            console.log(`[Notification] sent to ${targetEmail}`);
+          } else {
+            const detail = await mailRes.text().catch(() => '');
+            console.error(`[Notification] send failed (${mailRes.status}) ${detail}`);
+          }
         }
       }
     } catch (notifErr) {
