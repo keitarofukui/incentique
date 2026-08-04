@@ -100,6 +100,30 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
       return;
     }
 
+    // 子どもが登録できるのは所持ポイント以内のものだけ（上のバリデーション）なので、
+    // 登録した時点で必ず申請可能。二段階に分ける意味が無く、押し忘れの原因になるため
+    // 確認したうえで登録と同時に申請まで済ませる。
+    // 保護者モードは所持ポイントを超える「貯金目標」も登録できるので従来どおり登録のみ。
+    const requestNow = !isParentMode;
+
+    if (requestNow) {
+      const lines = [
+        'この内容で交換をリクエストしますか？',
+        '',
+        `【${itemType === 'cash' ? '現金還元' : '欲しいもの'}】${finalTitle}`,
+        `必要ポイント: ${newPoints.toLocaleString()} pt`,
+      ];
+      if (itemType === 'cash') {
+        lines.push(`受け取る現金: ¥${Math.floor(newPoints * 0.7).toLocaleString()}（7掛け）`);
+      }
+      lines.push(
+        `残りポイント: ${availablePoints.toLocaleString()} → ${(availablePoints - newPoints).toLocaleString()} pt`,
+        '',
+        '※ポイントが引かれるのは、保護者が実際に手渡したあとです。'
+      );
+      if (!window.confirm(lines.join('\n'))) return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/wish-items', {
@@ -115,17 +139,38 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         })
       });
       const data = await res.json();
-      if (data.success) {
-        setNewTitle('');
-        setNewPointsStr('');
-        setNewImageUrl('');
-        setNewProductUrl('');
-        setItemType('goods');
-        setShowAddModal(false);
-        onRefresh();
+
+      if (!data.success || !data.id) {
+        alert(data.error || '登録に失敗しました。もう一度お試しください。');
+        return;
       }
+
+      if (requestNow) {
+        // 登録に続けて申請まで通す。ここで失敗しても項目は残るので、
+        // 一覧のリクエストボタンから出し直せる。
+        try {
+          const claimRes = await fetch(`/api/wish-items/${data.id}/claim`, { method: 'PUT' });
+          const claimData = await claimRes.json();
+          if (claimData.success) {
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+          } else {
+            alert('登録はできましたが、リクエストの送信に失敗しました。一覧の「親にリクエスト」から送ってください。');
+          }
+        } catch (_) {
+          alert('登録はできましたが、リクエストの送信に失敗しました。一覧の「親にリクエスト」から送ってください。');
+        }
+      }
+
+      setNewTitle('');
+      setNewPointsStr('');
+      setNewImageUrl('');
+      setNewProductUrl('');
+      setItemType('goods');
+      setShowAddModal(false);
+      onRefresh();
     } catch (err) {
       console.error('Add wish error', err);
+      alert('通信エラーが発生しました。もう一度お試しください。');
     } finally {
       setLoading(false);
     }
@@ -145,7 +190,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
             <span>交換所</span>
           </h2>
           <p className="text-xs text-slate-400">
-            貯めたポイントで欲しいご褒美物品やお小遣い（現金還元）をリクエスト登録しよう！
+            貯めたポイントで欲しいご褒美物品やお小遣い（現金還元）をリクエストしよう！登録すると、そのまま保護者へのリクエストになります。
           </p>
         </div>
 
@@ -535,7 +580,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                       : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
                   }`}
                 >
-                  追加する
+                  {isParentMode ? '追加する' : '交換をリクエストする'}
                 </button>
               </div>
             </form>
