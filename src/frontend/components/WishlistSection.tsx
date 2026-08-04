@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { User, WishItem } from '../types';
-import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart, Banknote, Coins } from 'lucide-react';
+import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart, Banknote, Coins, ExternalLink } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface WishlistSectionProps {
@@ -274,6 +274,22 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     <h3 className="text-lg font-bold text-white leading-snug">
                       {item.title}
                     </h3>
+
+                    {/* 購入ページへの導線。承認済みの品も一覧には残るので、
+                        保護者ポータルの承認待ちリストから消えた後もここから辿れる。 */}
+                    {item.product_url && (
+                      <a
+                        href={item.product_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/20 border border-orange-500/50 text-orange-200 text-xs font-black hover:bg-orange-500/30 transition-all"
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+                        <span>🛒 購入ページを開く</span>
+                        <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
+                      </a>
+                    )}
 
                     {isCash && (
                       <div className="p-2 bg-emerald-950/30 border border-emerald-500/20 rounded-xl text-xs text-emerald-300 font-medium flex items-center justify-between">
