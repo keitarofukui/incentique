@@ -83,6 +83,9 @@ CREATE TABLE IF NOT EXISTS wish_items (
   -- 実際に引き落としたポイントと承認日時（申請額と異なる場合があるため別に持つ）
   approved_points INTEGER,
   approved_at DATETIME,
+  -- 差し戻し時の保護者コメントと日時
+  parent_comment TEXT,
+  returned_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

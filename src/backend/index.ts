@@ -1178,7 +1178,8 @@ app.put('/api/wish-items/:id/claim', async (c) => {
       return c.json({ success: false, error: 'Points insufficient for this item' }, 400);
     }
 
-    await c.env.DB.prepare('UPDATE wish_items SET is_claimed = 1 WHERE id = ?').bind(id).run();
+    // 出し直しなので前回の差し戻しコメントは消す
+    await c.env.DB.prepare('UPDATE wish_items SET is_claimed = 1, parent_comment = NULL WHERE id = ?').bind(id).run();
 
     // Trigger notification
     try {
@@ -1309,6 +1310,47 @@ app.put('/api/parent/set-pin', async (c) => {
     ).bind(body.newPin).run();
 
     return c.json({ success: true, message: '保護者PINを変更しました' });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+/**
+ * 交換リクエストの差し戻し。
+ * 申請時点ではポイントを引いていないので返却処理は不要で、申請状態を解除して
+ * 保護者のコメントを残すだけでよい。子どもは一覧でコメントを読み、直してから
+ * 出し直せる。
+ */
+app.put('/api/wish-items/:id/return', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const wish: any = await c.env.DB.prepare('SELECT * FROM wish_items WHERE id = ?').bind(id).first();
+
+    if (!wish) {
+      return c.json({ success: false, error: 'Wish item not found' }, 404);
+    }
+    if (wish.is_approved) {
+      return c.json({ success: false, error: 'すでに承認済みのため差し戻せません' }, 400);
+    }
+    if (!wish.is_claimed) {
+      return c.json({ success: false, error: 'この項目はまだ申請されていません' }, 400);
+    }
+
+    let body: { comment?: string } = {};
+    try {
+      body = await c.req.json<{ comment?: string }>();
+    } catch (_) {}
+
+    const comment = (body.comment || '').trim().slice(0, 500);
+    if (!comment) {
+      return c.json({ success: false, error: '差し戻しの理由を入力してください' }, 400);
+    }
+
+    await c.env.DB.prepare(
+      "UPDATE wish_items SET is_claimed = 0, parent_comment = ?, returned_at = datetime('now') WHERE id = ?"
+    ).bind(comment, id).run();
+
+    return c.json({ success: true, id, comment });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
   }

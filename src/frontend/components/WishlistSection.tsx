@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { User, WishItem } from '../types';
 import { ApproveWishModal } from './ApproveWishModal';
-import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart, Banknote, Coins, ExternalLink } from 'lucide-react';
+import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart, Banknote, Coins, ExternalLink, Undo2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface WishlistSectionProps {
@@ -337,6 +337,22 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                       </div>
                     )}
 
+                    {/* 差し戻しコメント。理由が分からないと同じものを出し直すだけになる */}
+                    {!item.is_approved && !item.is_claimed && item.parent_comment && (
+                      <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-500/40 space-y-1">
+                        <div className="text-[10px] font-black text-rose-300 flex items-center gap-1">
+                          <Undo2 className="w-3 h-3" />
+                          <span>保護者から差し戻されました</span>
+                        </div>
+                        <p className="text-xs text-rose-100 font-bold leading-relaxed break-words">
+                          「{item.parent_comment}」
+                        </p>
+                        <p className="text-[10px] text-rose-300/70">
+                          内容を見直して、もう一度リクエストできます
+                        </p>
+                      </div>
+                    )}
+
                     {/* Progress Bar */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-400 font-mono">
@@ -501,15 +517,28 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
                   <label className="font-bold text-slate-300">交換ポイント (pt)</label>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
+                    </span>
+                    {!isParentMode && userCurrentPoints > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setNewPointsStr(String(userCurrentPoints))}
+                        className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black hover:bg-amber-500/30 transition-all"
+                      >
+                        全額
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <input
                   type="number"
                   placeholder="例: 1000"
-                  step={50}
-                  min={50}
+                  // step=50 だと所持ポイントが50の倍数でないとき（例: 3,006pt）
+                  // 全額を入力した瞬間にブラウザ標準の検証で弾かれてしまう
+                  step={1}
+                  min={1}
                   max={!isParentMode ? userCurrentPoints : undefined}
                   value={newPointsStr}
                   onChange={(e) => setNewPointsStr(e.target.value)}

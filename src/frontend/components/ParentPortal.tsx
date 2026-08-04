@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2 } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 import { ApproveWishModal } from './ApproveWishModal';
+import { ReturnWishModal } from './ReturnWishModal';
 
 interface ParentPortalProps {
   users: User[];
@@ -25,6 +26,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
   // 承認は引き落とし額を入力させるためモーダルで行う
   const [approvingItem, setApprovingItem] = useState<WishItem | null>(null);
+  const [returningItem, setReturningItem] = useState<WishItem | null>(null);
 
   const [pointRules, setPointRules] = useState<PointRule[]>([
     { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
@@ -490,6 +492,14 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                             }
                           </span>
                         </button>
+
+                        <button
+                          onClick={() => setReturningItem(item)}
+                          className="w-full py-2 rounded-xl bg-slate-900 border border-rose-500/40 text-rose-300 font-bold text-xs hover:bg-rose-500/10 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Undo2 className="w-3.5 h-3.5" />
+                          <span>↩️ コメントを付けて差し戻す</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -929,6 +939,15 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
         }
         onClose={() => setApprovingItem(null)}
         onApproved={onRefresh}
+      />
+
+      <ReturnWishModal
+        item={returningItem}
+        availablePoints={
+          returningItem ? (users.find((u) => u.id === returningItem.user_id)?.current_points ?? 0) : 0
+        }
+        onClose={() => setReturningItem(null)}
+        onReturned={onRefresh}
       />
 
     </div>

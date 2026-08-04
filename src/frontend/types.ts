@@ -70,6 +70,9 @@ export interface WishItem {
   approved_points?: number | null;
   /** 承認日時（UTC） */
   approved_at?: string | null;
+  /** 差し戻し時に保護者が残したコメント */
+  parent_comment?: string | null;
+  returned_at?: string | null;
   created_at: string;
 }
 
