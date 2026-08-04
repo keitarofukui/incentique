@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
 import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
+import { ApproveWishModal } from './ApproveWishModal';
 
 interface ParentPortalProps {
   users: User[];
@@ -17,6 +18,13 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   onNavigate,
 }) => {
   const claimedWishes = wishItems.filter((item) => item.is_claimed && !item.is_approved);
+  // 承認済みは申請リストから消えるので、履歴として別枠で残す（新しい順）
+  const approvedWishes = [...wishItems]
+    .filter((item) => item.is_approved)
+    .sort((a, b) => (b.approved_at || b.created_at || '').localeCompare(a.approved_at || a.created_at || ''));
+
+  // 承認は引き落とし額を入力させるためモーダルで行う
+  const [approvingItem, setApprovingItem] = useState<WishItem | null>(null);
 
   const [pointRules, setPointRules] = useState<PointRule[]>([
     { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
@@ -232,21 +240,6 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
-  const handleApproveWish = async (wishId: string, title: string, points: number) => {
-    // ポイントの引き落としは取り消せない操作なので、削除と同じく確認を挟む。
-    if (!window.confirm(
-      `「${title}」を渡したものとして承認しますか？\n\n${points.toLocaleString()} pt が引き落とされます。この操作は取り消せません。`
-    )) return;
-
-    try {
-      const res = await fetch(`/api/wish-items/${wishId}/approve`, { method: 'PUT' });
-      const data = await res.json();
-      if (data.success) onRefresh();
-      else alert(data.error || 'ポイントの引き落としに失敗しました');
-    } catch (err) {
-      alert('通信エラーが発生しました');
-    }
-  };
 
   const handleDeleteLog = async (logId: string) => {
     if (!window.confirm('この履歴を削除してもよろしいですか？\n※承認済みの場合は獲得したポイントも減算されます。')) {
@@ -482,7 +475,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                           ※実生活で{isCash ? `お小遣い (${cashAmount.toLocaleString()}円)` : '商品'}を手渡した後にボタンを押してください。押すと <strong>{item.user_name || 'お子様'}</strong> の所持ポイントから <strong>-{item.required_points.toLocaleString()} pt</strong> が引き落とされます。
                         </p>
                         <button
-                          onClick={() => handleApproveWish(item.id, item.title, item.required_points)}
+                          onClick={() => setApprovingItem(item)}
                           className={`w-full py-2.5 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg ${
                             isCash
                               ? 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-emerald-950'
@@ -687,7 +680,89 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           </div>
 
           {/* Training Menu Master Maintenance Widget */}
+          {/* 承認済みの交換履歴。申請リストからは消えるので、ここだけが記録になる */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <span>✅ 交換の承認履歴</span>
+              </h3>
+              <span className="text-xs text-slate-400">
+                引き落とし済み合計:{' '}
+                <strong className="text-amber-400 font-mono">
+                  {approvedWishes
+                    .reduce((sum, w) => sum + (w.approved_points ?? w.required_points), 0)
+                    .toLocaleString()} pt
+                </strong>
+              </span>
+            </div>
+
+            {approvedWishes.length === 0 ? (
+              <div className="glass-card p-6 rounded-2xl text-center text-xs text-slate-400">
+                まだ承認済みの交換はありません。
+              </div>
+            ) : (
+              <div className="glass-card rounded-2xl border border-slate-800 divide-y divide-slate-800/80">
+                {approvedWishes.map((item) => {
+                  const deducted = item.approved_points ?? item.required_points;
+                  const gap = deducted - item.required_points;
+                  return (
+                    <div key={item.id} className="p-4 flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full">
+                            {item.user_name || '—'}
+                          </span>
+                          <span className="text-sm font-bold text-white break-words">{item.title}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          {item.approved_at ? formatLogDateTime(item.approved_at, true) : '日時記録なし'}
+                          {gap !== 0 && (
+                            <span className={gap > 0 ? ' text-rose-300' : ' text-emerald-300'}>
+                              {' '}／ 申請 {item.required_points.toLocaleString()}pt から
+                              {gap > 0 ? `+${gap.toLocaleString()}` : gap.toLocaleString()}pt
+                            </span>
+                          )}
+                        </div>
+                        {item.product_url && (
+                          <a
+                            href={item.product_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-300 hover:text-orange-200 underline underline-offset-2"
+                          >
+                            🛒 購入ページ
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-black font-mono text-amber-400">
+                          -{deducted.toLocaleString()} pt
+                        </div>
+                        {item.item_type === 'cash' && (
+                          <div className="text-[10px] text-emerald-300 font-bold">
+                            ¥{Math.floor(deducted * 0.7).toLocaleString()} 還元
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <TrainingMenuManager />
+
+      <ApproveWishModal
+        item={approvingItem}
+        availablePoints={
+          approvingItem ? (users.find((u) => u.id === approvingItem.user_id)?.current_points ?? 0) : 0
+        }
+        onClose={() => setApprovingItem(null)}
+        onApproved={onRefresh}
+      />
         </div>
       )}
 

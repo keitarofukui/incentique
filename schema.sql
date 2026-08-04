@@ -80,6 +80,9 @@ CREATE TABLE IF NOT EXISTS wish_items (
   item_type TEXT DEFAULT 'goods',
   is_approved BOOLEAN DEFAULT FALSE,
   is_claimed BOOLEAN DEFAULT FALSE,
+  -- 実際に引き落としたポイントと承認日時（申請額と異なる場合があるため別に持つ）
+  approved_points INTEGER,
+  approved_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

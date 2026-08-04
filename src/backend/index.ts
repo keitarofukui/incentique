@@ -1323,17 +1323,44 @@ app.put('/api/wish-items/:id/approve', async (c) => {
       return c.json({ success: false, error: 'Wish item not found' }, 404);
     }
 
-    // Only mark the item exchanged if the deduction actually happened, otherwise
-    // an under-funded claim would be approved for free.
-    const deduction = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?')
-      .bind(wish.required_points, wish.user_id, wish.required_points)
-      .run();
-
-    if (!deduction.meta?.changes) {
-      return c.json({ success: false, error: 'ポイントが不足しているため引き落とせませんでした' }, 400);
+    if (wish.is_approved) {
+      return c.json({ success: false, error: 'この項目はすでに承認済みです' }, 400);
     }
 
-    await c.env.DB.prepare('UPDATE wish_items SET is_approved = 1, is_claimed = 1 WHERE id = ?').bind(id).run();
+    // 実際に引くポイントは保護者が指定できる（申請額と購入額がずれるため）。
+    // 指定が無ければ申請額をそのまま使う。
+    let body: { points?: number } = {};
+    try {
+      body = await c.req.json<{ points?: number }>();
+    } catch (_) {
+      // ボディ無しの呼び出しも許容する
+    }
+
+    const requested = Number(wish.required_points) || 0;
+    const raw = body.points === undefined || body.points === null ? requested : Number(body.points);
+
+    if (!Number.isFinite(raw) || raw < 0) {
+      return c.json({ success: false, error: '引き落としポイントは0以上の数値で指定してください' }, 400);
+    }
+    const deductPoints = Math.floor(raw);
+
+    // Only mark the item exchanged if the deduction actually happened, otherwise
+    // an under-funded claim would be approved for free.
+    // 0pt 指定（おまけ等）は引き落とし不要なので残高チェックを飛ばす。
+    if (deductPoints > 0) {
+      const deduction = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?')
+        .bind(deductPoints, wish.user_id, deductPoints)
+        .run();
+
+      if (!deduction.meta?.changes) {
+        return c.json({ success: false, error: 'ポイントが不足しているため引き落とせませんでした' }, 400);
+      }
+    }
+
+    // 実際に引いた額と日時を残す。残高の突き合わせと承認履歴の両方でこれを使う。
+    await c.env.DB.prepare(
+      "UPDATE wish_items SET is_approved = 1, is_claimed = 1, approved_points = ?, approved_at = datetime('now') WHERE id = ?"
+    ).bind(deductPoints, id).run();
 
     const updatedUser: any = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
       .bind(wish.user_id)
@@ -1342,6 +1369,7 @@ app.put('/api/wish-items/:id/approve', async (c) => {
     return c.json({
       success: true,
       message: 'Item exchange approved!',
+      deductedPoints: deductPoints,
       newTotalPoints: updatedUser ? updatedUser.current_points : 0
     });
   } catch (err: any) {

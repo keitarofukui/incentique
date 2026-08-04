@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { User, WishItem } from '../types';
+import { ApproveWishModal } from './ApproveWishModal';
 import { Gift, Plus, CheckCircle2, Clock, Sparkles, AlertCircle, ShoppingCart, Banknote, Coins, ExternalLink } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -20,6 +21,8 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   onRefresh,
 }) => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  // 承認は引き落とし額を入力させるためモーダルで行う
+  const [approvingItem, setApprovingItem] = useState<WishItem | null>(null);
   const [itemType, setItemType] = useState<'goods' | 'cash'>('goods');
   const [newTitle, setNewTitle] = useState<string>('');
   const [newPointsStr, setNewPointsStr] = useState<string>('');
@@ -53,20 +56,6 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
     }
   };
 
-  const handleApproveWish = async (wishId: string, title: string, points: number) => {
-    // ポイントの引き落としは取り消せない操作なので、削除と同じく確認を挟む。
-    if (!window.confirm(
-      `「${title}」を渡したものとして承認しますか？\n\n${points.toLocaleString()} pt が引き落とされます。この操作は取り消せません。`
-    )) return;
-
-    try {
-      const res = await fetch(`/api/wish-items/${wishId}/approve`, { method: 'PUT' });
-      const data = await res.json();
-      if (data.success) onRefresh();
-    } catch (err) {
-      console.error('Approve wish error', err);
-    }
-  };
 
   const handleDeleteWish = async (wishId: string) => {
     if (!window.confirm('このリクエスト項目を削除しますか？')) return;
@@ -328,7 +317,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                       <div className="space-y-2">
                         {item.is_claimed ? (
                           <button
-                            onClick={() => handleApproveWish(item.id, item.title, item.required_points)}
+                            onClick={() => setApprovingItem(item)}
                             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
                           >
                             <CheckCircle2 className="w-4 h-4" />
@@ -554,6 +543,18 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         </div>,
         document.body
       )}
+
+      <ApproveWishModal
+        item={approvingItem}
+        availablePoints={
+          approvingItem
+            ? (users.find((u) => u.id === approvingItem.user_id)?.current_points
+               ?? (currentUser?.id === approvingItem.user_id ? currentUser.current_points : 0))
+            : 0
+        }
+        onClose={() => setApprovingItem(null)}
+        onApproved={onRefresh}
+      />
 
     </div>
   );

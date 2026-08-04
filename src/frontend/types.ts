@@ -66,6 +66,10 @@ export interface WishItem {
   item_type?: 'goods' | 'cash';
   is_approved: boolean;
   is_claimed: boolean;
+  /** 実際に引き落としたポイント（申請額と異なる場合がある） */
+  approved_points?: number | null;
+  /** 承認日時（UTC） */
+  approved_at?: string | null;
   created_at: string;
 }
 
