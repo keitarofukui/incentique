@@ -638,48 +638,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
               })()
             )}
           </div>
-        </div>
-      )}
 
-      {/* Tab 2: Users & Training Management */}
-      {activeSubTab === 'users_training' && (
-        <div className="space-y-8 animate-fade-in">
-          {/* User Overview */}
-          <div className="space-y-3">
-            <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-              <span>👥 登録アカウント一覧（削除・管理）</span>
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {users.map((user) => (
-                <div key={user.id} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold text-white flex items-center gap-2">
-                      <span>{user.avatar || '⚡'}</span>
-                      <span>{user.name}</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">
-                        {user.grade_level === 'high_3' ? '高校レベル' : user.grade_level === 'junior_1' ? '中学レベル' : '一般・その他'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteUser(user.id, user.name, user.current_points)}
-                        className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
-                        title="ユーザーアカウントを削除"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-amber-400 font-mono">
-                    {user.current_points.toLocaleString()} <span className="text-xs text-slate-400">pt</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Training Menu Master Maintenance Widget */}
           {/* 承認済みの交換履歴。申請リストからは消えるので、ここだけが記録になる */}
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -752,17 +711,49 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
 
+      {/* Tab 2: Users & Training Management */}
+      {activeSubTab === 'users_training' && (
+        <div className="space-y-8 animate-fade-in">
+          {/* User Overview */}
+          <div className="space-y-3">
+            <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <span>👥 登録アカウント一覧（削除・管理）</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {users.map((user) => (
+                <div key={user.id} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-extrabold text-white flex items-center gap-2">
+                      <span>{user.avatar || '⚡'}</span>
+                      <span>{user.name}</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">
+                        {user.grade_level === 'high_3' ? '高校レベル' : user.grade_level === 'junior_1' ? '中学レベル' : '一般・その他'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(user.id, user.name, user.current_points)}
+                        className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+                        title="ユーザーアカウントを削除"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">
+                    {user.current_points.toLocaleString()} <span className="text-xs text-slate-400">pt</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Training Menu Master Maintenance Widget */}
           <TrainingMenuManager />
-
-      <ApproveWishModal
-        item={approvingItem}
-        availablePoints={
-          approvingItem ? (users.find((u) => u.id === approvingItem.user_id)?.current_points ?? 0) : 0
-        }
-        onClose={() => setApprovingItem(null)}
-        onApproved={onRefresh}
-      />
         </div>
       )}
 
@@ -928,6 +919,17 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           </div>
         </div>
       )}
+
+      {/* タブ条件の外に置く: 承認ボタンはタブ1、この描画がタブ2の中にあると
+          ボタンを押しても何も起きない（実際にその状態だった） */}
+      <ApproveWishModal
+        item={approvingItem}
+        availablePoints={
+          approvingItem ? (users.find((u) => u.id === approvingItem.user_id)?.current_points ?? 0) : 0
+        }
+        onClose={() => setApprovingItem(null)}
+        onApproved={onRefresh}
+      />
 
     </div>
   );
