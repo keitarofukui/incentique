@@ -14,6 +14,7 @@ import { RivalBoard } from './components/RivalBoard';
 import { ReflectionView } from './components/ReflectionView';
 import { LuckyGachaModal, GachaResult } from './components/LuckyGachaModal';
 import { ParentPinAuthModal } from './components/ParentPinAuthModal';
+import { UpdateAvailableBanner } from './components/UpdateAvailableBanner';
 import { StreakBonusInfo } from './components/StreakBonusInfo';
 
 export const App: React.FC = () => {
@@ -341,6 +342,7 @@ export const App: React.FC = () => {
           onClose={() => setIsParentPinModalOpen(false)}
           onSuccess={handleParentPinSuccess}
         />
+        <UpdateAvailableBanner />
       </>
     );
   }
@@ -493,6 +495,8 @@ export const App: React.FC = () => {
           onClose={() => setIsParentPinModalOpen(false)}
           onSuccess={handleParentPinSuccess}
         />
+
+        <UpdateAvailableBanner />
       </div>
 
       <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 pb-20 md:pb-6">
