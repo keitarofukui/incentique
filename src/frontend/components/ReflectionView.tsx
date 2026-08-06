@@ -324,12 +324,15 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
                   <span className="text-base font-black text-amber-400 font-mono">
                     +{log.earned_points} pt
                   </span>
+                  {/* アイコンだけだと二重登録に気づいても消し方が分からないので、
+                      文字を添えて押せると分かるようにしておく */}
                   <button
                     onClick={() => onDeleteLog(log.id)}
-                    className="p-1.5 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    title="誤登録を取り消し・削除"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-700 text-slate-400 text-[11px] font-bold hover:text-red-300 hover:border-red-500/50 hover:bg-red-500/10 transition-colors flex items-center gap-1 shrink-0"
+                    title="誤登録を取り消して削除します（獲得ポイントも減算されます）"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>取り消し</span>
                   </button>
                 </div>
               </div>
