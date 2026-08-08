@@ -67,7 +67,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* 50pt超えストリーク */}
+        {/* 100pt超えストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-rose-500/30 bg-gradient-to-b from-rose-900/40 to-transparent space-y-5 relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-rose-500 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-rose rotate-12">
             Super Bonus!
@@ -77,13 +77,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <TrendingUp className="w-6 h-6 text-rose-300" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">💥 50pt超え 連続ボーナス</h3>
+              <h3 className="text-xl font-black text-white">💥 100pt超え 連続ボーナス</h3>
               <p className="text-xs text-rose-300 font-bold">本気で頑張る人への特大ボーナス！</p>
             </div>
           </div>
           
           <p className="text-sm text-slate-300 leading-relaxed">
-            1日の合計獲得ポイントが<strong className="text-rose-300">50pt以上</strong>に達した日が連続すると、デイリーボーナスとは<strong className="text-rose-300 underline">別枠で</strong>さらに強力な超ボーナスが発動します！
+            1日の合計獲得ポイントが<strong className="text-rose-300">100pt以上</strong>（素点）に達した日が連続すると、デイリーボーナスとは<strong className="text-rose-300 underline">別枠で</strong>さらに強力な超ボーナスが発動します！
           </p>
           
           <div className="bg-slate-900/60 rounded-2xl p-4 border border-rose-500/20 space-y-3">
@@ -103,7 +103,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* 100pt超えストリーク */}
+        {/* 250pt超えストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-900/40 to-transparent space-y-5 md:col-span-2 relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-gold rotate-12">
             Legendary!
@@ -113,13 +113,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <Star className="w-6 h-6 text-amber-300 fill-amber-300" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">👑 100pt超え 神ボーナス</h3>
+              <h3 className="text-xl font-black text-white">👑 250pt超え 神ボーナス</h3>
               <p className="text-xs text-amber-300 font-bold">限界を超えた勇者への最強ボーナス！</p>
             </div>
           </div>
           
           <p className="text-sm text-slate-300 leading-relaxed">
-            1日の合計獲得ポイントが<strong className="text-amber-300">100pt以上</strong>に達した日が連続すると、デイリー・50ptボーナスに加えて<strong className="text-amber-300 underline">さらに究極の神ボーナス</strong>が発動します！
+            1日の合計獲得ポイントが<strong className="text-amber-300">250pt以上</strong>（素点）に達した日が連続すると、究極の神ボーナスが発動します！
           </p>
           
           <div className="bg-slate-900/60 rounded-2xl p-4 border border-amber-500/20 space-y-3">
@@ -184,11 +184,11 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
           <div className="flex gap-2">
             <span className="text-amber-400 font-bold shrink-0">2.</span>
-            <p>ボーナスの節目となる日数は <strong className="font-mono text-indigo-300 bg-indigo-500/10 px-1 rounded">3, 5, 10, 20, 30, 50, 100, 150, 200, 250, 300, 365</strong> 日です。節目に到達した瞬間に自動でポイントが付与されます。</p>
+            <p>ボーナスの節目となる日数は <strong className="font-mono text-indigo-300 bg-indigo-500/10 px-1 rounded">2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365</strong> 日です。習慣化のため最初の一週間は毎日ボーナスがもらえます！</p>
           </div>
           <div className="flex gap-2">
             <span className="text-amber-400 font-bold shrink-0">3.</span>
-            <p>「🔥デイリー」「💥50pt超え」「👑100pt超え」の条件を全て満たした節目の日は、<strong>3種類のボーナスをトリプルで獲得</strong>できます！</p>
+            <p>1日に高い目標（100pt / 250pt）を達成すると、すでにもらったボーナスとの<strong>差額がステップアップボーナスとして追加付与</strong>されます！（ポイントが減少することはありません）</p>
           </div>
         </div>
       </div>

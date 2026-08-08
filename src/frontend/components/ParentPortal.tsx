@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2 } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 import { ApproveWishModal } from './ApproveWishModal';
 import { ReturnWishModal } from './ReturnWishModal';
@@ -39,6 +39,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   ]);
 
   const [editingPoints, setEditingPoints] = useState<{ [category: string]: number }>({});
+  const [editingDescriptions, setEditingDescriptions] = useState<{ [category: string]: string }>({});
   const [saveSuccess, setSaveSuccess] = useState<string>('');
 
   const [parentPinInput, setParentPinInput] = useState<string>('');
@@ -167,14 +168,45 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
           setPointRules(mergedRules);
           const initialMap: { [cat: string]: number } = {};
+          const initialDescMap: { [cat: string]: string } = {};
           mergedRules.forEach((r: PointRule) => {
             initialMap[r.category] = r.points;
+            if (r.description) {
+              initialDescMap[r.category] = r.description;
+            }
           });
           setEditingPoints(initialMap);
+          setEditingDescriptions(initialDescMap);
         }
       }
     } catch (err) {
       console.warn('Point rules fetch fallback to local state');
+    }
+  };
+
+  const handleDescriptionChange = (category: string, newDesc: string) => {
+    setEditingDescriptions((prev) => ({ ...prev, [category]: newDesc }));
+  };
+
+  const handleSaveRule = async (category: string, overrideDesc?: string) => {
+    const pts = editingPoints[category];
+    const desc = overrideDesc ?? editingDescriptions[category];
+
+    try {
+      const res = await fetch('/api/point-rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, points: pts ?? 0, description: desc })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSaveSuccess(`ルールを更新・保存しました！`);
+        setTimeout(() => setSaveSuccess(''), 3000);
+        fetchRules();
+      }
+    } catch (err) {
+      setSaveSuccess(`ルールを更新しました（ローカル反映）`);
+      setTimeout(() => setSaveSuccess(''), 3000);
     }
   };
 
@@ -220,27 +252,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     setEditingPoints((prev) => ({ ...prev, [category]: newPoints }));
   };
 
-  const handleSaveRule = async (category: string) => {
-    const pts = editingPoints[category];
-    if (pts === undefined) return;
 
-    try {
-      const res = await fetch('/api/point-rules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, points: pts })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSaveSuccess(`「${category}」のポイントを ${pts}pt に更新しました！`);
-        setTimeout(() => setSaveSuccess(''), 3000);
-        fetchRules();
-      }
-    } catch (err) {
-      setSaveSuccess(`「${category}」のポイントを更新しました（ローカル反映）`);
-      setTimeout(() => setSaveSuccess(''), 3000);
-    }
-  };
 
 
   const handleDeleteLog = async (logId: string) => {
@@ -769,23 +781,166 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
       {/* Tab 3: Point Rules */}
       {activeSubTab === 'point_rules' && (
-        <div className="animate-fade-in">
-          {/* Point Rules Management Section */}
+        <div className="space-y-6 animate-fade-in">
+          {/* Streak Bonus Customization Section */}
+          <div className="glass-card p-6 rounded-3xl border-2 border-purple-500/40 bg-gradient-to-br from-purple-950/40 via-slate-900/80 to-transparent space-y-5 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-rose-400" />
+                <h3 className="text-lg font-black text-white">🔥 連続ボーナス制度のカスタマイズ（マイルストーン・到達閾値）</h3>
+              </div>
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('streak_bonus_info')}
+                  className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
+                >
+                  <span>解説ページを見る</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              連続記録の節目（マイルストーン日数）や、中級・神連続ボーナスの獲得に必要な「1日の素点（目標pt）」と「獲得ポイントの係数（日数 × 係数）」をカスタマイズできます。
+            </p>
+
+            <div className="space-y-4">
+              {/* マイルストーン日数フォーム */}
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-purple-500/30 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-purple-300 flex items-center gap-1">
+                    <span>📅 連続ボーナス節目日数 (カンマ区切り)</span>
+                  </label>
+                  <button
+                    onClick={() => handleSaveRule('streak_milestones', editingDescriptions['streak_milestones'] || '2,3,4,5,6,7,10,14,21,30,50,100,150,200,250,300,365')}
+                    className="px-3 py-1 rounded-xl bg-purple-500/30 hover:bg-purple-500/50 border border-purple-400/50 text-purple-200 text-xs font-bold transition-all flex items-center gap-1"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>保存</span>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={editingDescriptions['streak_milestones'] ?? '2,3,4,5,6,7,10,14,21,30,50,100,150,200,250,300,365'}
+                  onChange={(e) => handleDescriptionChange('streak_milestones', e.target.value)}
+                  placeholder="2,3,4,5,6,7,10,14,21,30,50,100,150,200,250,300,365"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-purple-400"
+                />
+                <p className="text-[11px] text-slate-400">
+                  ※ 半角カンマ（,）で区切った日数のタイミングでボーナスが発生します。（例: 習慣化のため 2,3,4,5,6,7日 は毎日、以降 10,14,21,30... 等）
+                </p>
+              </div>
+
+              {/* 閾値・倍率グリッド */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. デイリー連続係数 */}
+                <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
+                  <div className="text-xs font-black text-indigo-300">🔥 ① デイリー連続</div>
+                  <div className="text-[11px] text-slate-400">1アクション以上の日常記録</div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-slate-300 font-bold shrink-0">係数: 日数 ×</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingPoints['streak_daily_multiplier'] ?? 10}
+                      onChange={(e) => handlePointChange('streak_daily_multiplier', Number(e.target.value))}
+                      className="w-20 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1 text-xs text-amber-400 font-mono font-bold text-right"
+                    />
+                    <span className="text-xs font-bold text-slate-400">pt</span>
+                    <button
+                      onClick={() => handleSaveRule('streak_daily_multiplier')}
+                      className="p-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 transition-all ml-auto"
+                      title="保存"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. 中級連続 */}
+                <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 space-y-2">
+                  <div className="text-xs font-black text-rose-300">💥 ② 中級連続</div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-300 font-bold">
+                    <span>達成閾値: 1日</span>
+                    <input
+                      type="number"
+                      step={10}
+                      min={0}
+                      value={editingPoints['streak_mid_threshold'] ?? 100}
+                      onChange={(e) => handlePointChange('streak_mid_threshold', Number(e.target.value))}
+                      className="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-amber-400 font-mono font-bold text-right"
+                    />
+                    <span>pt</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-slate-300 font-bold shrink-0">係数: 日数 ×</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingPoints['streak_mid_multiplier'] ?? 30}
+                      onChange={(e) => handlePointChange('streak_mid_multiplier', Number(e.target.value))}
+                      className="w-20 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1 text-xs text-amber-400 font-mono font-bold text-right"
+                    />
+                    <span className="text-xs font-bold text-slate-400">pt</span>
+                    <button
+                      onClick={async () => {
+                        await handleSaveRule('streak_mid_threshold');
+                        await handleSaveRule('streak_mid_multiplier');
+                      }}
+                      className="p-1.5 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 transition-all ml-auto"
+                      title="保存"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. 神連続 */}
+                <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 space-y-2">
+                  <div className="text-xs font-black text-amber-300">👑 ③ 神連続</div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-300 font-bold">
+                    <span>達成閾値: 1日</span>
+                    <input
+                      type="number"
+                      step={10}
+                      min={0}
+                      value={editingPoints['streak_god_threshold'] ?? 250}
+                      onChange={(e) => handlePointChange('streak_god_threshold', Number(e.target.value))}
+                      className="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-amber-400 font-mono font-bold text-right"
+                    />
+                    <span>pt</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-slate-300 font-bold shrink-0">係数: 日数 ×</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingPoints['streak_god_multiplier'] ?? 100}
+                      onChange={(e) => handlePointChange('streak_god_multiplier', Number(e.target.value))}
+                      className="w-20 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1 text-xs text-amber-400 font-mono font-bold text-right"
+                    />
+                    <span className="text-xs font-bold text-slate-400">pt</span>
+                    <button
+                      onClick={async () => {
+                        await handleSaveRule('streak_god_threshold');
+                        await handleSaveRule('streak_god_multiplier');
+                      }}
+                      className="p-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-all ml-auto"
+                      title="保存"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* General Point Rules Section */}
           <div className="glass-card p-6 rounded-3xl border border-amber-500/30 space-y-4 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-amber-400" />
-                <h3 className="text-lg font-black text-white">⚙️ ポイント獲得ルールの設定・変更</h3>
-              </div>
-              <div className="flex items-center gap-3">
-                {onNavigate && (
-                  <button
-                    onClick={() => onNavigate('streak_bonus_info')}
-                    className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5"
-                  >
-                    <span>🔥 連続ボーナス制度の解説ページ</span>
-                  </button>
-                )}
+                <h3 className="text-lg font-black text-white">⚙️ その他のポイント・突破ボーナスルール</h3>
               </div>
             </div>
 
@@ -796,7 +951,9 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pointRules.map((rule) => {
+              {pointRules
+                .filter((r) => !r.category.startsWith('streak_'))
+                .map((rule) => {
                 const currentEdit = editingPoints[rule.category] ?? rule.points;
                 const isBonus = rule.category.startsWith('bonus_');
 

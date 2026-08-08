@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Sparkles, X } from 'lucide-react';
 
@@ -22,6 +22,11 @@ export const LuckyGachaModal: React.FC<LuckyGachaModalProps> = ({ result, onClos
 
   const [spinning, setSpinning] = useState<boolean>(true);
   const [displayedMult, setDisplayedMult] = useState<number>(1);
+
+  const savedOnClose = useRef(onClose);
+  useEffect(() => {
+    savedOnClose.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!result) return;
@@ -54,12 +59,12 @@ export const LuckyGachaModal: React.FC<LuckyGachaModalProps> = ({ result, onClos
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        savedOnClose.current();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, []);
 
   const isJackpot = result.multiplier === 10;
   const isSuper = result.multiplier === 3;
@@ -73,6 +78,9 @@ export const LuckyGachaModal: React.FC<LuckyGachaModalProps> = ({ result, onClos
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in zoom-in duration-300 overflow-y-auto"
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="ガチャ結果"
         onClick={(e) => e.stopPropagation()}
         className={`relative w-full max-w-sm sm:max-w-md rounded-3xl p-5 sm:p-6 border-2 shadow-2xl space-y-4 sm:space-y-5 text-center my-auto max-h-[85vh] overflow-y-auto ${
           isJackpot

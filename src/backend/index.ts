@@ -167,11 +167,24 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
 
   if (!user) return;
 
-  // 序盤を厚くしてある。実績上、二人とも3〜4日連続は繰り返し作れているのに
-  // 5日には一度も届いていない。旧テーブル（3,5,10,20,…）では4日目に報酬が無く、
-  // 到達している範囲のすぐ先に必ずご褒美が無い状態だった。
-  // 変更する場合はフロントの STREAK_MILESTONES（RivalPulse.tsx）も揃えること。
-  const STREAK_MILESTONES = STREAK_MILESTONE_DAYS;
+  // DBから動的な連続ボーナスルールを取得
+  let ruleMap: { [key: string]: any } = {};
+  try {
+    const rulesRes = await db.prepare("SELECT category, points, description FROM point_rules WHERE category LIKE 'streak_%'").all();
+    (rulesRes.results || []).forEach((r: any) => { ruleMap[r.category] = r; });
+  } catch (_) {}
+
+  const streakMilestoneStr = ruleMap.streak_milestones?.description || '2,3,4,5,6,7,10,14,21,30,50,100,150,200,250,300,365';
+  const STREAK_MILESTONES: number[] = streakMilestoneStr
+    .split(',')
+    .map((s: string) => parseInt(s.trim(), 10))
+    .filter((n: number) => !isNaN(n));
+
+  const dailyMultiplier = Number.isFinite(ruleMap.streak_daily_multiplier?.points) ? Number(ruleMap.streak_daily_multiplier.points) : 10;
+  const midThreshold = Number.isFinite(ruleMap.streak_mid_threshold?.points) ? Number(ruleMap.streak_mid_threshold.points) : 100;
+  const midMultiplier = Number.isFinite(ruleMap.streak_mid_multiplier?.points) ? Number(ruleMap.streak_mid_multiplier.points) : 30;
+  const godThreshold = Number.isFinite(ruleMap.streak_god_threshold?.points) ? Number(ruleMap.streak_god_threshold.points) : 250;
+  const godMultiplier = Number.isFinite(ruleMap.streak_god_multiplier?.points) ? Number(ruleMap.streak_god_multiplier.points) : 100;
 
   let newLastActionDate = user.last_action_date;
   let newCurrentStreak = user.current_streak_days || 0;
@@ -205,13 +218,11 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     }
 
     if (STREAK_MILESTONES.includes(newCurrentStreak)) {
-      const bonus = newCurrentStreak * 10;
-      bonusPointsTotal += bonus;
-      bonusMessages.push(`【🔥${newCurrentStreak}日連続達成！ボーナス】`);
+      // 日数は更新。ボーナスポイントは後段のステップアップロジックで一括差額判定される
     }
   }
 
-  // --- 1日の獲得量にもとづく判定（50pt/100ptストリーク＋ボリュームボーナス）---
+  // --- 1日の獲得量にもとづく判定（中級/神ストリーク＋ボリュームボーナス）---
   if (
     newLast50ptDate !== logicalToday ||
     newLast100ptDate !== logicalToday ||
@@ -220,14 +231,6 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     newLast1000ptBonusDate !== logicalToday ||
     newLastAllCategoryDate !== logicalToday
   ) {
-    // 判定に使うのは「素点」= ボーナスもガチャ倍率も含まない、行動そのものの価値。
-    //
-    // earned_points にはガチャ倍率（2倍/3倍/10倍）適用後の値が入っているため、
-    // それで判定すると 100pt の行動が 10倍を引いただけで 1000pt 扱いになり、
-    // 全段のボーナスが一撃で開いてしまう。さらに付与したボーナス自体が翌回の
-    // 判定に乗ると、ボーナスがボーナスを呼ぶ連鎖になる。
-    // そのため category='bonus' を除外したうえで base_points で合計する。
-    // （base_points 導入前の古いログは earned_points で代替）
     const categoryFlags = ALL_CATEGORY_GROUPS
       .map((g) => `MAX(CASE WHEN ${g.match} THEN 1 ELSE 0 END) AS has_${g.key}`)
       .join(',\n             ');
@@ -243,8 +246,8 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
 
     const todayPoints = todayPointsResult?.total || 0;
 
-    // 50pt判定
-    if (todayPoints >= 50 && newLast50ptDate !== logicalToday) {
+    // 中級ストリーク判定 (閾値: midThreshold)
+    if (todayPoints >= midThreshold && newLast50ptDate !== logicalToday) {
       updatesRequired = true;
       newLast50ptDate = logicalToday;
 
@@ -254,15 +257,10 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
         const diff = getDaysDifference(user.last_50pt_date, logicalToday);
         newCurrent50ptStreak = diff === 1 ? newCurrent50ptStreak + 1 : 1;
       }
-
-      if (STREAK_MILESTONES.includes(newCurrent50ptStreak)) {
-        bonusPointsTotal += newCurrent50ptStreak * 30;
-        bonusMessages.push(`【🔥超人！50pt以上${newCurrent50ptStreak}日連続！特大ボーナス】`);
-      }
     }
 
-    // 100pt判定
-    if (todayPoints >= 100 && newLast100ptDate !== logicalToday) {
+    // 神ストリーク判定 (閾値: godThreshold)
+    if (todayPoints >= godThreshold && newLast100ptDate !== logicalToday) {
       updatesRequired = true;
       newLast100ptDate = logicalToday;
 
@@ -272,10 +270,48 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
         const diff = getDaysDifference(user.last_100pt_date, logicalToday);
         newCurrent100ptStreak = diff === 1 ? newCurrent100ptStreak + 1 : 1;
       }
+    }
 
-      if (STREAK_MILESTONES.includes(newCurrent100ptStreak)) {
-        bonusPointsTotal += newCurrent100ptStreak * 100;
-        bonusMessages.push(`【👑神！100pt以上${newCurrent100ptStreak}日連続！神ボーナス】`);
+    // --- ストリークボーナス目標額の算出（動的倍率適用）---
+    let targetMaxStreakBonus = 0;
+    let streakMessages: string[] = [];
+
+    // 通常ストリーク満額
+    if (STREAK_MILESTONES.includes(newCurrentStreak) && dailyMultiplier > 0) {
+      const b = newCurrentStreak * dailyMultiplier;
+      if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
+      streakMessages.push(`🔥${newCurrentStreak}日連続`);
+    }
+    // 中級ストリーク満額
+    if (STREAK_MILESTONES.includes(newCurrent50ptStreak) && midMultiplier > 0) {
+      const b = newCurrent50ptStreak * midMultiplier;
+      if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
+      streakMessages.push(`💥${midThreshold}pt以上${newCurrent50ptStreak}日連続`);
+    }
+    // 神ストリーク満額
+    if (STREAK_MILESTONES.includes(newCurrent100ptStreak) && godMultiplier > 0) {
+      const b = newCurrent100ptStreak * godMultiplier;
+      if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
+      streakMessages.push(`👑${godThreshold}pt以上${newCurrent100ptStreak}日連続`);
+    }
+
+    // --- 差額給付（ステップアップ）計算 ---
+    if (targetMaxStreakBonus > 0) {
+      const paidResult = await db.prepare(`
+        SELECT SUM(earned_points) as total_paid
+        FROM action_logs
+        WHERE user_id = ?
+        AND category = 'bonus'
+        AND title_or_menu LIKE '%【ストリークボーナス】%'
+        AND date(datetime(created_at, '+5 hours')) = ?
+      `).bind(userId, logicalToday).first();
+
+      const paidToday = paidResult?.total_paid || 0;
+      const stepUpBonus = Math.max(0, targetMaxStreakBonus - paidToday);
+
+      if (stepUpBonus > 0) {
+        bonusPointsTotal += stepUpBonus;
+        bonusMessages.push(`【ストリークボーナス】${streakMessages.join('・')} 達成！ステップアップ＋${stepUpBonus}pt`);
       }
     }
 
@@ -443,6 +479,26 @@ app.get('/api/point-rules', async (c) => {
       await c.env.DB.prepare(
         "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_all_category', '🎯 全カテゴリ制覇ボーナス', 100, '1日でクイズ・インプット・運動・食事の4カテゴリすべてを記録した時の単発ボーナス（0で無効化）')"
       ).run();
+      
+      // 連続ボーナス用 動的ルールキー
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('streak_milestones', '🔥 連続達成マイルストーン日数', 0, '2,3,4,5,6,7,10,14,21,30,50,100,150,200,250,300,365')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('streak_daily_multiplier', '🔥 デイリー連続ボーナス係数', 10, 'デイリー連続達成時の1日あたり獲得ポイント (日数 × 係数)')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('streak_mid_threshold', '💥 中級連続ボーナス素点閾値', 100, '中級連続ボーナス判定に必要な1日の素点 (pt)')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('streak_mid_multiplier', '💥 中級連続ボーナス係数', 30, '中級連続達成時の1日あたり獲得ポイント (日数 × 係数)')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('streak_god_threshold', '👑 神連続ボーナス素点閾値', 250, '神連続ボーナス判定に必要な1日の素点 (pt)')"
+      ).run();
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('streak_god_multiplier', '👑 神連続ボーナス係数', 100, '神連続達成時の1日あたり獲得ポイント (日数 × 係数)')"
+      ).run();
     } catch (_) {}
 
     const { results } = await c.env.DB.prepare('SELECT * FROM point_rules').all();
@@ -456,14 +512,23 @@ app.put('/api/point-rules', async (c) => {
   try {
     const body = await c.req.json<{
       category: string;
-      points: number;
+      points?: number;
+      description?: string;
     }>();
 
-    await c.env.DB.prepare(
-      'UPDATE point_rules SET points = ?, updated_at = CURRENT_TIMESTAMP WHERE category = ?'
-    )
-      .bind(body.points, body.category)
-      .run();
+    if (body.description !== undefined) {
+      await c.env.DB.prepare(
+        'UPDATE point_rules SET points = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE category = ?'
+      )
+        .bind(body.points ?? 0, body.description, body.category)
+        .run();
+    } else {
+      await c.env.DB.prepare(
+        'UPDATE point_rules SET points = ?, updated_at = CURRENT_TIMESTAMP WHERE category = ?'
+      )
+        .bind(body.points ?? 0, body.category)
+        .run();
+    }
 
     const { results } = await c.env.DB.prepare('SELECT * FROM point_rules').all();
     return c.json({ success: true, rules: results });
