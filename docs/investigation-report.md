@@ -1,17 +1,25 @@
-# 調査報告レポート: メインカードタイトルの「ダッシュボード」への変更提案
+# 調査報告レポート: 重複している「全カテゴリ制覇カード」の削除調査
 
 ## 1. 調査目的 & 概要
-ユーザーからの提案「タイトルはダッシュボードでよくないですか？」に基づき、[PersonalStreakCard.tsx](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/PersonalStreakCard.tsx) のタイトルを `📊 ダッシュボード`（または `🔥 きみのダッシュボード`）へシンプル化・最適化する変更方針を評価。
+ユーザーからのご指摘「全カテゴリ状況はダッシュボードに入っているので、その下のカードは不要じゃないですか？また重複している」に基づき、[Dashboard.tsx](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/Dashboard.tsx) および [PersonalStreakCard.tsx](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/PersonalStreakCard.tsx) 内の重複カード配置を調査・解消する。
 
 ---
 
-## 2. 変更の妥当性評価
-- **非常に優秀な提案です**。
-- 長く複雑だった「🔥 きみの連続記録 & 本日達成目標」から、カード全体の役割（本日成果サマリー、連続記録、ストリーク達成度、ミッション進捗がまとまった統合ハブ）を正確に表現する `📊 ダッシュボード` へ変更することで、UIの可読性と洗練度が飛躍的に向上します。
+## 2. 事実（ファクト）
+1. **[PersonalStreakCard.tsx Line 356-404](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/PersonalStreakCard.tsx#L356-L404)**:
+   - 「📊 ダッシュボード」カードの内部に「👑 本日の全カテゴリ制覇進捗」領域（4カテゴリの完了チェックとボーナス案内）がすでに組み込まれている。
+2. **[Dashboard.tsx Line 93-97](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/Dashboard.tsx#L93-L97)**:
+   - `PersonalStreakCard` の直下に `<AllCategoryCard>` が配置されているため、まったく同じ「全カテゴリ制覇」の情報が上下2箇所に完全に重複表示されていた。
 
 ---
 
-## 3. 推奨アクション
-- [x] **Step 1 (設計)**: タイトルを `📊 ダッシュボード` へ変更する設計策定。
-- [x] **Step 2 (製造・テスト)**: `PersonalStreakCard.tsx` のタイトル更新、ビルド検証。
+## 3. 解消方針
+- **`Dashboard.tsx` から `<AllCategoryCard>` を完全に削除・除去する**。
+- `PersonalStreakCard.tsx` 内の一本化された「全カテゴリ制覇進捗」のみとし、不要な重複カードを排除してホーム画面をすっきり整理・最適化する。
+
+---
+
+## 4. 推奨アクション
+- [x] **Step 1 (設計)**: `Dashboard.tsx` から `<AllCategoryCard>` を削除し、「📊 ダッシュボード」カード内の一本化構造へ設計。
+- [x] **Step 2 (製造・テスト)**: コード更新、ビルド検証。
 - [x] **Step 3 (デプロイ)**: 本番デプロイ (`npm run deploy`) および Git コミット・プッシュ。
