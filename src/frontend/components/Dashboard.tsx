@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { User, ActionLog, UserGoal } from '../types';
-import { CheckCircle2, Clock, XCircle, Banknote, X } from 'lucide-react';
+import { Clock, Banknote, X } from 'lucide-react';
 import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
 import { RivalPulse } from './RivalPulse';
 import { PersonalStreakCard } from './PersonalStreakCard';
-import { formatLogDateTime, todayLocalDateStr } from '../dateUtils';
+import { todayLocalDateStr } from '../dateUtils';
 
 interface DashboardProps {
   currentUser: User | null;
@@ -45,7 +45,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const isCashBackBannerActive = todayLocalDateStr() <= '2026-07-31';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
 
       {/* Cash Back Announcement Banner (Top Most Header Banner, Active until July 31) */}
       {showCashBanner && isCashBackBannerActive && (
@@ -84,22 +84,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* TOP MOST HERO CARD: 自分専用の連続記録＆本日目標カード */}
+      {/* 1. BLOCK 1 (TOP HERO CARD): 自分専用の連続記録 & 全カテゴリ制覇統合カード */}
       <PersonalStreakCard
         currentUser={currentUser}
         actionLogs={actionLogs}
         onNavigate={onNavigate}
       />
 
-      {/* Goal & Pace Planner */}
-      <GoalPlannerWidget
-        currentUser={currentUser}
-        currentGoal={currentGoal}
-        onGoalUpdated={onGoalUpdated}
-        onNavigate={onNavigate}
-      />
-
-      {/* Today's head-to-head, streaks and weekly crowns */}
+      {/* 2. BLOCK 2: 今週のライバル対抗戦 (対戦・週間王冠) */}
       <RivalPulse
         users={users}
         currentUser={currentUser}
@@ -107,10 +99,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onNavigate={onNavigate}
       />
 
-      {/* 7-Day Point Earning Chart Visualization */}
+      {/* 3. BLOCK 3: 7日 / 30日 / 90日 3期間対応動的アニメーション推移グラフ */}
       <DailyChart actionLogs={actionLogs} userId={currentUser.id} />
 
-      {/* Recent Activity Timeline */}
+      {/* 4. BLOCK 4: 主な活動成果タイムライン */}
       <div className="glass-card p-6 rounded-2xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-3">
@@ -141,37 +133,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {userMajorLogs.slice(0, 5).map((log) => (
               <div
                 key={log.id}
-                className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex items-start justify-between gap-4"
+                className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-3 text-xs"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-200">{log.title_or_menu}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {formatLogDateTime(log.created_at)}
-                    </span>
+                <div className="space-y-1 min-w-0">
+                  <div className="font-bold text-white truncate flex items-center gap-2">
+                    <span className="text-slate-400 text-[11px]">{log.category}</span>
+                    <span>{log.title_or_menu}</span>
                   </div>
                   {log.review_text && (
-                    <p className="text-xs text-slate-400 line-clamp-1 italic">
-                      "{log.review_text}"
-                    </p>
+                    <p className="text-slate-300 text-[11px] line-clamp-1">{log.review_text}</p>
                   )}
                 </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm font-black text-amber-400 font-mono">
-                    +{log.earned_points} pt
-                  </span>
-
-                  {log.status !== 'rejected' && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> 獲得完了
-                    </span>
-                  )}
-                  {log.status === 'rejected' && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/30">
-                      <XCircle className="w-3.5 h-3.5" /> 差戻し
-                    </span>
-                  )}
+                <div className="text-right shrink-0">
+                  <span className="font-mono font-black text-amber-400 text-sm">+{log.earned_points} pt</span>
                 </div>
               </div>
             ))}
@@ -179,6 +153,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
 
+      {/* FOOTER SECTION: Goal & Pace Planner (個人目標調整ウィジェット) */}
+      <div className="pt-4 border-t border-slate-800/80">
+        <GoalPlannerWidget
+          currentUser={currentUser}
+          currentGoal={currentGoal}
+          onGoalUpdated={onGoalUpdated}
+          onNavigate={onNavigate}
+        />
+      </div>
     </div>
   );
 };

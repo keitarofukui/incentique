@@ -49,27 +49,50 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
 
   const todayStr = todayLogicalDateStr();
 
-  // 本日の獲得素点・記録件数を集計
-  const { todayBase, todayCount } = useMemo(() => {
+  // 本日の獲得素点・記録件数・カテゴリ達成を判定
+  const { todayBase, todayCount, categoryStatus } = useMemo(() => {
     let baseSum = 0;
     let count = 0;
+    const catMap: { [key: string]: boolean } = {
+      quiz: false,
+      training: false,
+      eat_rice: false,
+      input: false,
+    };
 
     actionLogs.forEach((log) => {
       if (log.user_id !== currentUser.id || log.status === 'rejected') return;
       const day = logLogicalDateStr(log.created_at);
       if (day !== todayStr) return;
 
-      if (log.category !== 'bonus') {
+      const cat = log.category || '';
+      if (cat !== 'bonus') {
         const base = Number(log.base_points ?? log.earned_points) || 0;
         baseSum += base;
         count += 1;
+
+        if (cat === 'quiz' || cat === 'study') catMap.quiz = true;
+        if (cat === 'training') catMap.training = true;
+        if (cat === 'eat_rice' || cat === 'eat_meat') catMap.eat_rice = true;
+        if (cat.startsWith('input_')) catMap.input = true;
       }
     });
 
-    return { todayBase: baseSum, todayCount: count };
+    return { todayBase: baseSum, todayCount: count, categoryStatus: catMap };
   }, [actionLogs, currentUser.id, todayStr]);
 
   const doneToday = todayCount > 0;
+
+  const categories = [
+    { key: 'quiz', label: 'クイズ/勉強', icon: '🧠', done: categoryStatus.quiz },
+    { key: 'training', label: '運動', icon: '💪', done: categoryStatus.training },
+    { key: 'eat_rice', label: '食事/水分', icon: '🍚', done: categoryStatus.eat_rice },
+    { key: 'input', label: 'インプット', icon: '📖', done: categoryStatus.input },
+  ];
+
+  const completedCategoriesCount = categories.filter((c) => c.done).length;
+  const allCategoryAwarded = completedCategoriesCount === 4;
+  const missingCategories = categories.filter((c) => !c.done);
 
   // DB確定の連続日数（過的な設定変更に影響されない実績値）
   const streakDaily = currentUser.current_streak_days || 0;
@@ -272,6 +295,56 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           )}
         </div>
       )}
+
+      {/* 全カテゴリ制覇ウィジェット（4カテゴリの達成チェック） */}
+      <div className={`p-3.5 rounded-2xl border space-y-2.5 transition-all ${
+        allCategoryAwarded ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-slate-900/80 border-slate-800'
+      }`}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base">👑</span>
+            <span className="text-xs font-black text-white">本日の全カテゴリ制覇進捗</span>
+          </div>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+            allCategoryAwarded
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+          }`}>
+            {allCategoryAwarded ? '🏆 本日制覇完了！' : `達成: ${completedCategoriesCount} / 4 カテゴリ`}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {categories.map((c) => (
+            <div
+              key={c.key}
+              className={`p-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+                c.done
+                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-200'
+                  : 'bg-slate-950/60 border-slate-800 text-slate-400'
+              }`}
+            >
+              <span className="text-sm">{c.icon}</span>
+              <span className="truncate">{c.label}</span>
+              <span className="ml-auto text-xs">{c.done ? '✅' : '⚪'}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-[11px] text-slate-300 leading-relaxed">
+          {allCategoryAwarded ? (
+            <span className="text-emerald-300 font-bold">✨ すばらしい！本日全4カテゴリを達成し、制覇ボーナスを獲得しました！</span>
+          ) : (
+            <>
+              残りを埋めると全制覇ボーナス！ あと{' '}
+              <strong className="text-amber-300">
+                {missingCategories.map((c) => `【${c.label}】`).join('・')}
+              </strong>{' '}
+              を記録しよう！
+            </>
+          )}
+        </p>
+      </div>
     </div>
   );
 };

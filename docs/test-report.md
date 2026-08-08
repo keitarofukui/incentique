@@ -1,7 +1,7 @@
 # テスト & QA検証レポート
 
 ## 1. 検証対象機能
-**連続日数カラムの API SELECT クエリ拡張 & 全ユーザー連続日数データ疎通修正**
+**ホーム画面抜本再編（4段構成）＆ 7日/30日/90日 動的伸縮アニメーション付き推移グラフ**
 
 ---
 
@@ -23,15 +23,16 @@ transforming...
 rendering chunks...
 computing gzip size...
 dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-DVBNUq6O.css   65.10 kB │ gzip:  10.81 kB
-dist/assets/index-DBYnc3xG.js   416.95 kB │ gzip: 108.80 kB
-✓ built in 1.44s
+dist/assets/index-BH__w1ZP.css   64.58 kB │ gzip:  10.74 kB
+dist/assets/index-Cy490vh4.js   411.39 kB │ gzip: 108.58 kB
+✓ built in 1.42s
 ```
 
 ---
 
 ## 3. UI・動作検証（Browser/DevTools）
-- **データ疎通性**: **PASS** (`GET /api/users` から `current_streak_days` 等を取得し「りょうたろう」および全ユーザーの正しい連続日数が画面に反映されることを確認)
+- **画面レイアウト**: **PASS** (1. メインダッシュボードカード ➔ 2. ライバル ➔ 3. 3期間アニメーショングラフ ➔ 4. 活動成果 の理想的な4段構成を確認)
+- **グラフアニメーション**: **PASS** (7日 / 30日 / 90日 タブ切り替え時のバーの高さ・数値の滑らかなスライド伸縮アニメーション動作を確認)
 - **コンソールエラーの有無**: なし (エラーなし)
 
 ---

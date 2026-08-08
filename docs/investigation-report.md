@@ -1,35 +1,32 @@
-# 調査報告レポート: 「りょうたろうが全部0日になった」原因特定調査
+# 調査報告レポート: ホーム画面における「連続記録カードが2つ存在する」原因と解決策
 
 ## 1. 調査目的 & 概要
-「りょうたろう」（ユーザー）の連続日数がすべて0日と表示されてしまう現象の原因を、バックエンドAPIエンドポイントおよびフロントエンドのデータ取得処理から調査・特定する。
+ホーム画面（ダッシュボード）において、連続記録に関するカードが2つ表示されている理由をコード構造から調査し、画面整理のための改善案を提示する。
 
 ---
 
 ## 2. 調査結果・ファクト（事実）
 
-### 原因: **バックエンド API (`GET /api/users` & `GET /api/rivals`) の SQL SELECT クエリで `current_streak_days` カラムを取得していなかったため**
+### 結論: **新設した最上部カード (`PersonalStreakCard`) と、下のライバル比較カード (`RivalPulse`) の内部にある連続記録ブロックが重複しているため**
 
-#### 詳細分析:
-- バックエンドの `src/backend/index.ts` における `GET /api/users` および `GET /api/rivals` エンドポイントの SQL クエリ：
-  ```sql
-  -- 現状のクエリ (Line 430 & Line 455)
-  SELECT id, name, grade_level, avatar, current_points FROM users
-  ```
-- **不具合発生のメカニズム**:
-  1. APIレスポンスに DB内の `current_streak_days`, `current_50pt_streak_days`, `current_100pt_streak_days` カラムが含まれていませんでした。
-  2. その結果、フロントエンドの `currentUser` や `users` オブジェクトの `current_streak_days` プロパティが常に `undefined` になっていました。
-  3. UI側で `currentUser.current_streak_days || 0` と評価されたため、DB内に連続データが存在する場合でも全ユーザー画面で「0日連続」と表示されていました。
+#### 詳細理由:
+1. **1つ目のカード (最上部: `PersonalStreakCard.tsx`)**:
+   - 先ほど「他人より自分にフォーカスしたい」という要望に基づき、ホーム画面の一番上に新しく独立して配置した「自分専用の連続記録＆本日目標 HERO カード」です。
+2. **2つ目のカード (下部: `RivalPulse.tsx` 内の連続記録ブロック)**:
+   - ライバル比較コンポーネント (`RivalPulse.tsx`) の内部（L440〜L600付近）に、元々存在していた旧「🔥 連続記録」および「🎯 3段階ストリーク進行状況」ブロックが残存しています。
+3. **影響**:
+   - その結果、ダッシュボード上にほぼ同等のデザインの連続記録カードが2個表示され、ユーザーに二重表示・冗長な印象を与えています。
 
 ---
 
-## 3. 解決策
+## 3. 推奨解決策（スッキリした画面レイアウトへの整理）
 
-1. **バックエンド API クエリの修正 (`src/backend/index.ts`)**:
-   - `GET /api/users`, `GET /api/users/:id`, `GET /api/rivals` の SELECT 文に `current_streak_days`, `current_50pt_streak_days`, `current_100pt_streak_days`, `last_action_date`, `last_50pt_date`, `last_100pt_date` を追加。
-2. **連続日数の即時更新・保守ロジック (`updateStreaks`)**:
-   - アクションログに基づき、最新の論理日付との差分で切れ目を判定して最新数値を返すロジックを確定。
+- **最上部 (`PersonalStreakCard`)**:
+  - 自分フォーカスのメインカードとして**そのまま一番上で維持**。
+- **下部のライバル比較 (`RivalPulse`)**:
+  - `RivalPulse` 本来の目的である「今日のライバル比較」「カテゴリ制覇状況」「週間王冠」に特化させ、`RivalPulse.tsx` 内部の重複している連続記録ブロック（L440〜L600付近）を削除・削除整理します。
 
 ---
 
 ## 4. 今後の推奨アクション
-本不具合を解消するため、設計Agent (`/architect` または `設計:`) にて API の SELECT クエリ修正およびデータ疎通の設計を作成することを推奨いたします。
+重複ブロックを解消し画面をスッキリ整理するため、設計Agent (`/architect` または `設計:`) にて `RivalPulse` からの重複連続ブロック削除の設計を作成することを推奨いたします。
