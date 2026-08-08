@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Flame, Star, Zap, TrendingUp, Calendar, CheckCircle2, ArrowRight, PartyPopper } from 'lucide-react';
 
 interface Props {
@@ -6,6 +6,37 @@ interface Props {
 }
 
 export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
+  const [rulePoints, setRulePoints] = useState<{ [cat: string]: number }>({});
+  const [milestoneStr, setMilestoneStr] = useState<string>('2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365');
+
+  useEffect(() => {
+    fetch('/api/point-rules')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.rules) {
+          const map: { [cat: string]: number } = {};
+          data.rules.forEach((r: any) => {
+            map[r.category] = r.points;
+            if (r.category === 'streak_milestones' && r.description) {
+              setMilestoneStr(r.description);
+            }
+          });
+          setRulePoints(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const dailyMultiplier = Number.isFinite(rulePoints.streak_daily_multiplier) ? rulePoints.streak_daily_multiplier : 10;
+  const midThreshold = Number.isFinite(rulePoints.streak_mid_threshold) ? rulePoints.streak_mid_threshold : 100;
+  const midMultiplier = Number.isFinite(rulePoints.streak_mid_multiplier) ? rulePoints.streak_mid_multiplier : 30;
+  const godThreshold = Number.isFinite(rulePoints.streak_god_threshold) ? rulePoints.streak_god_threshold : 250;
+  const godMultiplier = Number.isFinite(rulePoints.streak_god_multiplier) ? rulePoints.streak_god_multiplier : 100;
+
+  const bonus300pt = Number.isFinite(rulePoints.bonus_300pt) ? rulePoints.bonus_300pt : 200;
+  const bonus500pt = Number.isFinite(rulePoints.bonus_500pt) ? rulePoints.bonus_500pt : 300;
+  const bonus1000pt = Number.isFinite(rulePoints.bonus_1000pt) ? rulePoints.bonus_1000pt : 500;
+
   return (
     <div className="space-y-6 sm:space-y-8 pb-12 animate-fade-in pt-4 px-2">
       
@@ -55,19 +86,19 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
             <div className="flex items-center justify-center gap-3 text-2xl font-black font-mono">
               <span className="text-white">日数</span>
               <span className="text-indigo-400">×</span>
-              <span className="text-amber-400">10 pt</span>
+              <span className="text-amber-400">{dailyMultiplier} pt</span>
             </div>
             
             <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-700/50">
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+30 pt</span></li>
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+100 pt</span></li>
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+500 pt</span></li>
-              <li className="flex justify-between items-center text-indigo-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+1,000 pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+{3 * dailyMultiplier} pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+{10 * dailyMultiplier} pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+{50 * dailyMultiplier} pt</span></li>
+              <li className="flex justify-between items-center text-indigo-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-indigo-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+{(100 * dailyMultiplier).toLocaleString()} pt</span></li>
             </ul>
           </div>
         </div>
 
-        {/* 100pt超えストリーク */}
+        {/* 中級ストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-rose-500/30 bg-gradient-to-b from-rose-900/40 to-transparent space-y-5 relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-rose-500 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-rose rotate-12">
             Super Bonus!
@@ -77,13 +108,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <TrendingUp className="w-6 h-6 text-rose-300" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">💥 100pt超え 連続ボーナス</h3>
+              <h3 className="text-xl font-black text-white">💥 {midThreshold}pt超え 連続ボーナス</h3>
               <p className="text-xs text-rose-300 font-bold">本気で頑張る人への特大ボーナス！</p>
             </div>
           </div>
           
           <p className="text-sm text-slate-300 leading-relaxed">
-            1日の合計獲得ポイントが<strong className="text-rose-300">100pt以上</strong>（素点）に達した日が連続すると、デイリーボーナスとは<strong className="text-rose-300 underline">別枠で</strong>さらに強力な超ボーナスが発動します！
+            1日の合計獲得ポイントが<strong className="text-rose-300">{midThreshold}pt以上</strong>（素点）に達した日が連続すると、デイリーボーナスとは<strong className="text-rose-300 underline">別枠で</strong>さらに強力な超ボーナスが発動します！
           </p>
           
           <div className="bg-slate-900/60 rounded-2xl p-4 border border-rose-500/20 space-y-3">
@@ -91,19 +122,19 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
             <div className="flex items-center justify-center gap-3 text-2xl font-black font-mono">
               <span className="text-white">日数</span>
               <span className="text-rose-400">×</span>
-              <span className="text-amber-400">30 pt</span>
+              <span className="text-amber-400">{midMultiplier} pt</span>
             </div>
             
             <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-700/50">
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+90 pt</span></li>
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+300 pt</span></li>
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+1,500 pt</span></li>
-              <li className="flex justify-between items-center text-rose-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+3,000 pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+{3 * midMultiplier} pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+{10 * midMultiplier} pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+{ (50 * midMultiplier).toLocaleString() } pt</span></li>
+              <li className="flex justify-between items-center text-rose-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-rose-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+{ (100 * midMultiplier).toLocaleString() } pt</span></li>
             </ul>
           </div>
         </div>
 
-        {/* 250pt超えストリーク */}
+        {/* 神ストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-900/40 to-transparent space-y-5 md:col-span-2 relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-gold rotate-12">
             Legendary!
@@ -113,13 +144,13 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
               <Star className="w-6 h-6 text-amber-300 fill-amber-300" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">👑 250pt超え 神ボーナス</h3>
+              <h3 className="text-xl font-black text-white">👑 {godThreshold}pt超え 神ボーナス</h3>
               <p className="text-xs text-amber-300 font-bold">限界を超えた勇者への最強ボーナス！</p>
             </div>
           </div>
           
           <p className="text-sm text-slate-300 leading-relaxed">
-            1日の合計獲得ポイントが<strong className="text-amber-300">250pt以上</strong>（素点）に達した日が連続すると、究極の神ボーナスが発動します！
+            1日の合計獲得ポイントが<strong className="text-amber-300">{godThreshold}pt以上</strong>（素点）に達した日が連続すると、究極の神ボーナスが発動します！
           </p>
           
           <div className="bg-slate-900/60 rounded-2xl p-4 border border-amber-500/20 space-y-3">
@@ -127,14 +158,14 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
             <div className="flex items-center justify-center gap-3 text-2xl font-black font-mono">
               <span className="text-white">日数</span>
               <span className="text-amber-400">×</span>
-              <span className="text-amber-400">100 pt</span>
+              <span className="text-amber-400">{godMultiplier} pt</span>
             </div>
             
             <ul className="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-700/50">
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+300 pt</span></li>
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+1,000 pt</span></li>
-              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+5,000 pt</span></li>
-              <li className="flex justify-between items-center text-amber-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+10,000 pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>3日連続</span> <span className="font-mono font-bold text-amber-400">+{3 * godMultiplier} pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>10日連続</span> <span className="font-mono font-bold text-amber-400">+{ (10 * godMultiplier).toLocaleString() } pt</span></li>
+              <li className="flex justify-between items-center"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>50日連続</span> <span className="font-mono font-bold text-amber-400">+{ (50 * godMultiplier).toLocaleString() } pt</span></li>
+              <li className="flex justify-between items-center text-amber-300"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400"/>100日連続</span> <span className="font-mono font-bold text-amber-400">+{ (100 * godMultiplier).toLocaleString() } pt</span></li>
             </ul>
           </div>
         </div>
@@ -152,15 +183,15 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
             <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">300pt</span> 突破で</div>
-            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 200 pt</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ {bonus300pt} pt</div>
           </div>
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
             <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">500pt</span> 突破で</div>
-            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 300 pt</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ {bonus500pt} pt</div>
           </div>
           <div className="bg-slate-900/70 p-4 rounded-2xl border border-fuchsia-500/20 text-center space-y-1">
             <div className="text-xs text-slate-400 font-bold">1日 <span className="text-fuchsia-400 text-sm">1000pt</span> 突破で</div>
-            <div className="text-2xl font-black font-mono text-fuchsia-400">+ 500 pt</div>
+            <div className="text-2xl font-black font-mono text-fuchsia-400">+ {bonus1000pt} pt</div>
           </div>
         </div>
 
@@ -184,11 +215,11 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
           <div className="flex gap-2">
             <span className="text-amber-400 font-bold shrink-0">2.</span>
-            <p>ボーナスの節目となる日数は <strong className="font-mono text-indigo-300 bg-indigo-500/10 px-1 rounded">2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365</strong> 日です。習慣化のため最初の一週間は毎日ボーナスがもらえます！</p>
+            <p>ボーナスの節目となる日数は <strong className="font-mono text-indigo-300 bg-indigo-500/10 px-1 rounded">{milestoneStr}</strong> 日です。習慣化のため最初の一週間は毎日ボーナスがもらえます！</p>
           </div>
           <div className="flex gap-2">
             <span className="text-amber-400 font-bold shrink-0">3.</span>
-            <p>1日に高い目標（100pt / 250pt）を達成すると、すでにもらったボーナスとの<strong>差額がステップアップボーナスとして追加付与</strong>されます！（ポイントが減少することはありません）</p>
+            <p>1日に高い目標（{midThreshold}pt / {godThreshold}pt）を達成すると、すでにもらったボーナスとの<strong>差額がステップアップボーナスとして追加付与</strong>されます！（ポイントが減少することはありません）</p>
           </div>
         </div>
       </div>

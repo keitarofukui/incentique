@@ -58,13 +58,13 @@ interface Row {
  * 連続記録の節目。バックエンドの STREAK_MILESTONE_DAYS と揃えること。
  * 序盤が厚いのは、子どもたちが到達している3〜4日のすぐ先に必ず報酬を置くため。
  */
-const STREAK_MILESTONES = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365];
+const DEFAULT_STREAK_MILESTONES = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365];
 
 /** 行動ストリークの節目ボーナス = 日数 × これ（バックエンドと同じ係数） */
-const STREAK_BONUS_PER_DAY = 10;
+const DEFAULT_STREAK_BONUS_PER_DAY = 10;
 
-const nextMilestoneAfter = (days: number): number | undefined =>
-  STREAK_MILESTONES.find((m) => m > days);
+const nextMilestoneAfter = (days: number, milestones: number[] = DEFAULT_STREAK_MILESTONES): number | undefined =>
+  milestones.find((m) => m > days);
 
 /**
  * 全カテゴリ制覇の判定グループ。バックエンドの ALL_CATEGORY_GROUPS と揃えること。
@@ -124,6 +124,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
   onNavigate,
 }) => {
   const [rulePoints, setRulePoints] = useState<{ [cat: string]: number }>(DEFAULT_RULE_POINTS);
+  const [ruleDescriptions, setRuleDescriptions] = useState<{ [cat: string]: string }>({});
 
   useEffect(() => {
     fetch('/api/point-rules')
@@ -131,12 +132,27 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
       .then((data) => {
         if (data.success && data.rules) {
           const map: { [cat: string]: number } = {};
-          data.rules.forEach((r: any) => { map[r.category] = r.points; });
+          const descMap: { [cat: string]: string } = {};
+          data.rules.forEach((r: any) => {
+            map[r.category] = r.points;
+            if (r.description) descMap[r.category] = r.description;
+          });
           setRulePoints((prev) => ({ ...prev, ...map }));
+          setRuleDescriptions((prev) => ({ ...prev, ...descMap }));
         }
       })
       .catch(() => {});
   }, []);
+
+  const dynamicMilestones = useMemo(() => {
+    const str = ruleDescriptions.streak_milestones || '2,3,4,5,6,7,10,14,21,30,50,100,150,200,250,300,365';
+    const parsed = str.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n) && n > 0);
+    return parsed.length > 0 ? parsed : DEFAULT_STREAK_MILESTONES;
+  }, [ruleDescriptions.streak_milestones]);
+
+  const dailyMultiplier = Number.isFinite(rulePoints.streak_daily_multiplier) ? rulePoints.streak_daily_multiplier : DEFAULT_STREAK_BONUS_PER_DAY;
+  const midThreshold = Number.isFinite(rulePoints.streak_mid_threshold) ? rulePoints.streak_mid_threshold : 100;
+  const godThreshold = Number.isFinite(rulePoints.streak_god_threshold) ? rulePoints.streak_god_threshold : 250;
 
   // 連続記録もボリュームボーナスも朝4時区切りで判定されるため、この画面も同じ境界に揃える
   const todayStr = todayLogicalDateStr();
@@ -216,8 +232,8 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
 
         return {
           user,
-          streak50: streakOf(daysAtLeast(50)),
-          streak100: streakOf(daysAtLeast(100)),
+          streak50: streakOf(daysAtLeast(midThreshold)),
+          streak100: streakOf(daysAtLeast(godThreshold)),
           todayBase: entry.todayBase,
           // Whatever isn't base is uplift: gacha multiplier + milestone payouts
           todayBonus: Math.max(0, entry.todayPoints - entry.todayBase),
@@ -229,7 +245,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
         };
       })
       .sort((a, b) => b.todayPoints - a.todayPoints || b.streak - a.streak);
-  }, [users, actionLogs, todayStr]);
+  }, [users, actionLogs, todayStr, midThreshold, godThreshold]);
 
   if (rows.length === 0) return null;
 
@@ -246,10 +262,10 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
   // 消える日数の両方を出す。「途切れます」だけでは失う量が伝わらない。
   const doneToday = !!me && me.todayCount > 0;
   const streakIfRecorded = me ? (doneToday ? me.streak : me.streak + 1) : 0;
-  const reachedMilestone = me && !doneToday && STREAK_MILESTONES.includes(streakIfRecorded)
+  const reachedMilestone = me && !doneToday && dynamicMilestones.includes(streakIfRecorded)
     ? streakIfRecorded
     : undefined;
-  const upcomingMilestone = nextMilestoneAfter(streakIfRecorded);
+  const upcomingMilestone = nextMilestoneAfter(streakIfRecorded, dynamicMilestones);
   const rival = me ? rows.find((r) => r.user.id !== me.user.id && r.user.id !== currentUser.id) : undefined;
 
   // 全カテゴリ制覇：残っているカテゴリを名指しできると「あと1つ」が具体的な行動になる
@@ -456,17 +472,17 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
             })}
           </div>
 
-          {/* 50pt/100pt ストリークは係数が大きい（×30 / ×100）ので、動いている時だけ出す */}
+          {/* 中級/神ストリークは係数が大きいので、動いている時だけ出す */}
           {me && (me.streak50 > 0 || me.streak100 > 0) && (
             <div className="flex items-center gap-3 pt-1.5 border-t border-slate-800/80 text-[11px]">
               {me.streak50 > 0 && (
                 <span className="font-bold text-rose-300">
-                  💥 50pt超え <span className="font-mono">{me.streak50}</span>日連続
+                  💥 {midThreshold}pt超え <span className="font-mono">{me.streak50}</span>日連続
                 </span>
               )}
               {me.streak100 > 0 && (
                 <span className="font-bold text-amber-300">
-                  👑 100pt超え <span className="font-mono">{me.streak100}</span>日連続
+                  👑 {godThreshold}pt超え <span className="font-mono">{me.streak100}</span>日連続
                 </span>
               )}
             </div>
@@ -479,9 +495,9 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
                 <span className="text-slate-200">
                   → <strong className="text-white">{streakIfRecorded}日連続</strong>
                   {reachedMilestone
-                    ? <> 達成！ <strong className="text-emerald-300 font-mono">+{(reachedMilestone * STREAK_BONUS_PER_DAY).toLocaleString()}pt</strong></>
+                    ? <> 達成！ <strong className="text-emerald-300 font-mono">+{(reachedMilestone * dailyMultiplier).toLocaleString()}pt</strong></>
                     : upcomingMilestone
-                      ? <span className="text-slate-400">（次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * STREAK_BONUS_PER_DAY).toLocaleString()}pt）</span>
+                      ? <span className="text-slate-400">（次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * dailyMultiplier).toLocaleString()}pt）</span>
                       : null}
                 </span>
               </div>
@@ -508,7 +524,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
               ✅ 今日はもう確保済み。
               {upcomingMilestone && (
                 <span className="text-slate-300 font-normal">
-                  {' '}次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * STREAK_BONUS_PER_DAY).toLocaleString()}pt
+                  {' '}次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * dailyMultiplier).toLocaleString()}pt
                 </span>
               )}
             </div>
