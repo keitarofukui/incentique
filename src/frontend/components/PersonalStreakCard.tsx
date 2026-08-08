@@ -45,13 +45,16 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
 
   const dailyMultiplier = Number.isFinite(rulePoints.streak_daily_multiplier) ? rulePoints.streak_daily_multiplier : 10;
   const midThreshold = Number.isFinite(rulePoints.streak_mid_threshold) ? rulePoints.streak_mid_threshold : 100;
+  const midMultiplier = Number.isFinite(rulePoints.streak_mid_multiplier) ? rulePoints.streak_mid_multiplier : 30;
   const godThreshold = Number.isFinite(rulePoints.streak_god_threshold) ? rulePoints.streak_god_threshold : 250;
+  const godMultiplier = Number.isFinite(rulePoints.streak_god_multiplier) ? rulePoints.streak_god_multiplier : 100;
 
   const todayStr = todayLogicalDateStr();
 
-  // 本日の獲得素点・記録件数・カテゴリ達成を判定
-  const { todayBase, todayCount, categoryStatus } = useMemo(() => {
+  // 本日の獲得素点・ボーナス・記録件数・カテゴリ達成を判定
+  const { todayBase, todayBonus, todayTotal, todayCount, categoryStatus } = useMemo(() => {
     let baseSum = 0;
+    let bonusSum = 0;
     let count = 0;
     const catMap: { [key: string]: boolean } = {
       quiz: false,
@@ -65,10 +68,15 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       const day = logLogicalDateStr(log.created_at);
       if (day !== todayStr) return;
 
+      const earned = Number(log.earned_points || 0);
       const cat = log.category || '';
-      if (cat !== 'bonus') {
+
+      if (cat === 'bonus') {
+        bonusSum += earned;
+      } else {
         const base = Number(log.base_points ?? log.earned_points) || 0;
         baseSum += base;
+        bonusSum += Math.max(0, earned - base);
         count += 1;
 
         if (cat === 'quiz' || cat === 'study') catMap.quiz = true;
@@ -78,7 +86,13 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       }
     });
 
-    return { todayBase: baseSum, todayCount: count, categoryStatus: catMap };
+    return {
+      todayBase: baseSum,
+      todayBonus: bonusSum,
+      todayTotal: baseSum + bonusSum,
+      todayCount: count,
+      categoryStatus: catMap,
+    };
   }, [actionLogs, currentUser.id, todayStr]);
 
   const doneToday = todayCount > 0;
@@ -100,6 +114,13 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
   const streakGod = currentUser.current_100pt_streak_days || 0;
 
   const streakIfRecorded = doneToday ? streakDaily : streakDaily + 1;
+  const streakMidIfRecorded = todayBase >= midThreshold ? streakMid : streakMid + 1;
+  const streakGodIfRecorded = todayBase >= godThreshold ? streakGod : streakGod + 1;
+
+  const dailyBonusPayout = streakIfRecorded * dailyMultiplier;
+  const midBonusPayout = streakMidIfRecorded * midMultiplier;
+  const godBonusPayout = streakGodIfRecorded * godMultiplier;
+
   const reachedMilestone = !doneToday && dynamicMilestones.includes(streakIfRecorded) ? streakIfRecorded : undefined;
   const upcomingMilestone = dynamicMilestones.find((m) => m > streakIfRecorded);
 
@@ -108,15 +129,37 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       {/* Background glow decoration */}
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-orange-500/15 blur-3xl pointer-events-none" />
 
+      {/* 👑 TOP STATUS BAR: 本日の成果サマリー (素点 / ボーナス / 本日合計pt) */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">📊</span>
+          <span className="text-xs font-black text-slate-300">本日の獲得成果サマリー</span>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
+          <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+            <span className="text-[9px] font-semibold text-slate-400 block">⚡ 実力素点</span>
+            <span className="text-xs font-mono font-black text-cyan-300">+{todayBase.toLocaleString()} pt</span>
+          </div>
+          <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+            <span className="text-[9px] font-semibold text-slate-400 block">🎁 ボーナス等</span>
+            <span className="text-xs font-mono font-black text-purple-300">+{todayBonus.toLocaleString()} pt</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-center shadow-md">
+            <span className="text-[9px] font-bold text-amber-300 block">🏆 本日獲得合計</span>
+            <span className="text-sm font-mono font-black text-amber-300">+{todayTotal.toLocaleString()} pt</span>
+          </div>
+        </div>
+      </div>
+
       {/* Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500/20 to-rose-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0 shadow-lg">
-            <Flame className="w-7 h-7 text-orange-400 animate-pulse" />
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/20 to-rose-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0 shadow-lg">
+            <Flame className="w-6 h-6 text-orange-400 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-black text-white tracking-tight">🔥 きみの連続記録 & 今日の目標</h2>
+              <h2 className="text-lg font-black text-white tracking-tight">🔥 きみの連続記録 & 本日達成目標</h2>
               <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
                 doneToday
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-glow-emerald'
@@ -125,9 +168,6 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
                 {doneToday ? '✅ 今日は記録済み' : '❌ 今日は未記録'}
               </span>
             </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              毎日コツコツ続けてご褒美ボーナスをゲットしよう！
-            </p>
           </div>
         </div>
 
@@ -142,10 +182,10 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         </div>
       </div>
 
-      {/* 3段階ストリーク常時表示カード */}
+      {/* 3段階ストリーク常時表示カード (今日達成で +◯pt 獲得表示つき) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* ① デイリー連続 */}
-        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 transition-all ${
+        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 transition-all ${
           doneToday ? 'bg-indigo-950/50 border-indigo-500/40 shadow-md' : 'bg-slate-900/80 border-slate-800'
         }`}>
           <div className="flex items-center justify-between gap-1">
@@ -159,22 +199,29 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               {streakDaily}日連続
             </span>
           </div>
-          <div className="text-xs">
-            {doneToday ? (
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>本日クリア！</span>
-              </span>
-            ) : (
-              <span className="text-amber-300 font-bold">
-                今日あと <span className="font-mono text-white font-black">1pt</span>
-              </span>
-            )}
+          <div className="space-y-1">
+            <div className="text-xs">
+              {doneToday ? (
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>本日クリア！</span>
+                </span>
+              ) : (
+                <span className="text-amber-300 font-bold">
+                  今日あと <span className="font-mono text-white font-black">1pt</span>
+                </span>
+              )}
+            </div>
+            {/* 今日達成したら何ptもらえるか */}
+            <div className="p-1.5 rounded-lg bg-indigo-950/80 border border-indigo-500/30 text-[10px] font-bold text-indigo-200 flex items-center justify-between">
+              <span>獲得ボーナス:</span>
+              <span className="font-mono font-black text-amber-300">+{dailyBonusPayout} pt</span>
+            </div>
           </div>
         </div>
 
         {/* ② 中級連続 */}
-        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 transition-all ${
+        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 transition-all ${
           todayBase >= midThreshold ? 'bg-rose-950/50 border-rose-500/40 shadow-md' : 'bg-slate-900/80 border-slate-800'
         }`}>
           <div className="flex items-center justify-between gap-1">
@@ -209,11 +256,16 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
                 />
               </div>
             )}
+            {/* 今日達成したら何ptもらえるか */}
+            <div className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-500/30 text-[10px] font-bold text-rose-200 flex items-center justify-between">
+              <span>達成時ボーナス:</span>
+              <span className="font-mono font-black text-amber-300">+{midBonusPayout} pt</span>
+            </div>
           </div>
         </div>
 
         {/* ③ 神連続 */}
-        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 transition-all ${
+        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 transition-all ${
           todayBase >= godThreshold ? 'bg-amber-950/50 border-amber-500/40 shadow-md' : 'bg-slate-900/80 border-slate-800'
         }`}>
           <div className="flex items-center justify-between gap-1">
@@ -248,6 +300,11 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
                 />
               </div>
             )}
+            {/* 今日達成したら何ptもらえるか */}
+            <div className="p-1.5 rounded-lg bg-amber-950/80 border border-amber-500/30 text-[10px] font-bold text-amber-200 flex items-center justify-between">
+              <span>達成時ボーナス:</span>
+              <span className="font-mono font-black text-amber-300">+{godBonusPayout} pt</span>
+            </div>
           </div>
         </div>
       </div>

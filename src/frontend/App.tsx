@@ -11,6 +11,7 @@ import { EatRiceModal } from './components/EatRiceModal';
 import { ParentPortal } from './components/ParentPortal';
 import { UserRegisterModal } from './components/UserRegisterModal';
 import { RivalBoard } from './components/RivalBoard';
+import { RivalPulse } from './components/RivalPulse';
 import { ReflectionView } from './components/ReflectionView';
 import { LuckyGachaModal, GachaResult } from './components/LuckyGachaModal';
 import { ParentPinAuthModal } from './components/ParentPinAuthModal';
@@ -404,11 +405,21 @@ export const App: React.FC = () => {
               )}
 
               {activeTab === 'rivals' && (
-                <RivalBoard
-                  users={users}
-                  currentUser={currentUser}
-                  actionLogs={actionLogs}
-                />
+                <div className="space-y-6 animate-fade-in">
+                  <RivalBoard
+                    users={users}
+                    currentUser={currentUser}
+                    actionLogs={actionLogs}
+                  />
+                  {currentUser && (
+                    <RivalPulse
+                      users={users}
+                      currentUser={currentUser}
+                      actionLogs={actionLogs}
+                      onNavigate={handleSetActiveTab}
+                    />
+                  )}
+                </div>
               )}
 
               {activeTab === 'quiz' && (

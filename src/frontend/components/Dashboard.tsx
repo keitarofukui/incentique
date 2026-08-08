@@ -91,15 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onNavigate={onNavigate}
       />
 
-      {/* 2. BLOCK 2: 今週のライバル対抗戦 (対戦・週間王冠) */}
-      <RivalPulse
-        users={users}
-        currentUser={currentUser}
-        actionLogs={actionLogs}
-        onNavigate={onNavigate}
-      />
-
-      {/* 3. BLOCK 3: 7日 / 30日 / 90日 3期間対応動的アニメーション推移グラフ */}
+      {/* 2. BLOCK 2: 7日 / 30日 / 90日 3期間対応ニュルっと動く積み上げ面グラデーショングラフ */}
       <DailyChart actionLogs={actionLogs} userId={currentUser.id} />
 
       {/* 4. BLOCK 4: 主な活動成果タイムライン */}
