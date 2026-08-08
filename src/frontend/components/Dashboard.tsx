@@ -5,6 +5,7 @@ import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
 import { RivalPulse } from './RivalPulse';
 import { PersonalStreakCard } from './PersonalStreakCard';
+import { AllCategoryCard } from './AllCategoryCard';
 import { todayLocalDateStr } from '../dateUtils';
 
 interface DashboardProps {
@@ -84,8 +85,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* 1. BLOCK 1 (TOP HERO CARD): 自分専用の連続記録 & 全カテゴリ制覇統合カード */}
+      {/* 1. BLOCK 1 (TOP HERO CARD): 自分専用の連続記録 */}
       <PersonalStreakCard
+        currentUser={currentUser}
+        actionLogs={actionLogs}
+        onNavigate={onNavigate}
+      />
+
+      {/* 1.5 BLOCK 1.5: 自分専用の全カテゴリ制覇カード */}
+      <AllCategoryCard
         currentUser={currentUser}
         actionLogs={actionLogs}
         onNavigate={onNavigate}

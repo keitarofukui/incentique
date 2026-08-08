@@ -1,41 +1,43 @@
-# テスト & QA検証レポート
+# テスト & 実環境検証報告書 (Test Report)
 
-## 1. 検証対象機能
-**ホーム画面抜本再編（4段構成）＆ 7日/30日/90日 動的伸縮アニメーション付き推移グラフ**
+## 1. 概要
+- **検証日**: 2026-08-09
+- **検証者**: テストAgent (Tester / QA Agent)
+- **対象機能**:
+  1. ライバルタブ混入カード（個人素点/ボーナス内訳・全カテゴリ制覇）の非表示 & ホーム画面への最適移設検証
+  2. 獲得ポイント推移グラフのカテゴリ別積み上げ可視化（Stacked Area Chart）検証
 
 ---
 
-## 2. 自動テスト実行結果
-- **実行コマンド**: `npm run typecheck && npm run build`
-- **結果**: **PASS**
-- **詳細ログ**:
-```bash
-> quest-habit-app@1.0.0 typecheck
-> tsc --noEmit
+## 2. テストケース & 実装検証結果
 
+| テストID | 検証項目 | 期待結果 | テスト結果 |
+| :--- | :--- | :--- | :---: |
+| **TC-001** | ライバルタブの表示確認 | `RivalPulse.tsx` に他者比較以外の個人データカードが表示されないこと | **PASS** |
+| **TC-002** | ホーム画面の「全カテゴリ制覇」表示 | `Dashboard.tsx` 上部に `AllCategoryCard` が正しく表示されること | **PASS** |
+| **TC-003** | カテゴリ別積み上げ計算 | クイズ・インプット・運動・食事/他の4層がStacked Yに正しく座標変換されること | **PASS** |
+| **TC-004** | SVG描画 ＆ ツールチップ | 積み上げグラデーション面およびホバー時のカテゴリ内訳ポップアップが正常描画されること | **PASS** |
+| **TC-005** | Viteプロダクションビルド | エラーゼロで正常ビルド完了（`vite build`） | **PASS** |
 
+---
+
+## 3. ビルド検証ログ
+```text
 > quest-habit-app@1.0.0 build
 > vite build
 
 vite v6.4.3 building for production...
 transforming...
-✓ 1603 modules transformed.
+✓ 1604 modules transformed.
 rendering chunks...
-computing gzip size...
 dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-BH__w1ZP.css   64.58 kB │ gzip:  10.74 kB
-dist/assets/index-Cy490vh4.js   411.39 kB │ gzip: 108.58 kB
-✓ built in 1.42s
+dist/assets/index-Co5kTfFM.css   65.19 kB │ gzip:  10.80 kB
+dist/assets/index-DIDr3GHX.js   418.63 kB │ gzip: 110.59 kB
+✓ built in 1.40s
 ```
 
 ---
 
-## 3. UI・動作検証（Browser/DevTools）
-- **画面レイアウト**: **PASS** (1. メインダッシュボードカード ➔ 2. ライバル ➔ 3. 3期間アニメーショングラフ ➔ 4. 活動成果 の理想的な4段構成を確認)
-- **グラフアニメーション**: **PASS** (7日 / 30日 / 90日 タブ切り替え時のバーの高さ・数値の滑らかなスライド伸縮アニメーション動作を確認)
-- **コンソールエラーの有無**: なし (エラーなし)
-
----
-
-## 4. 判定
-- **Status**: **READY_FOR_AUDIT (監査へ進む)**
+## 4. 判定・結論
+**総合テスト結果: PASS (すべて正常)**
+すべてのテストケースがパスし、エラーなしでビルドおよび機能表示が検証されました。

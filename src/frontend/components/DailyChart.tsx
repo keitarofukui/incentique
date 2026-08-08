@@ -19,9 +19,17 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
     );
   }, [actionLogs, userId]);
 
-  // Generate N days dates array [YYYY-MM-DD]
+  // Generate N days dates array [YYYY-MM-DD] with category breakdown
   const days = useMemo(() => {
-    const arr: { dateStr: string; label: string; quiz: number; input: number; training: number; total: number }[] = [];
+    const arr: {
+      dateStr: string;
+      label: string;
+      quiz: number;
+      input: number;
+      training: number;
+      other: number;
+      total: number;
+    }[] = [];
     const now = new Date();
 
     for (let i = chartPeriod - 1; i >= 0; i--) {
@@ -29,7 +37,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
       d.setDate(d.getDate() - i);
       const dateStr = toLocalDateStr(d);
       const label = `${d.getMonth() + 1}/${d.getDate()}`;
-      arr.push({ dateStr, label, quiz: 0, input: 0, training: 0, total: 0 });
+      arr.push({ dateStr, label, quiz: 0, input: 0, training: 0, other: 0, total: 0 });
     }
 
     userLogs.forEach((log) => {
@@ -38,14 +46,15 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
 
       if (dayObj) {
         const pts = Number(log.earned_points || 0);
-        if (log.category === 'quiz' || log.category === 'study') {
+        const cat = log.category || '';
+        if (cat === 'quiz' || cat === 'study') {
           dayObj.quiz += pts;
-        } else if (log.category.startsWith('input_')) {
+        } else if (cat.startsWith('input_')) {
           dayObj.input += pts;
-        } else if (log.category === 'training') {
+        } else if (cat === 'training') {
           dayObj.training += pts;
         } else {
-          dayObj.quiz += pts;
+          dayObj.other += pts;
         }
         dayObj.total += pts;
       }
@@ -70,48 +79,95 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
     }
   }
 
-  // Smooth Area Chart SVG Path Generator
-  const chartHeight = 160;
+  // Smooth Stacked Area Chart SVG Path Generator
+  const chartHeight = 170;
   const chartWidth = 800;
+  const topPadding = 15;
+  const bottomPadding = 10;
+  const usableHeight = chartHeight - topPadding - bottomPadding;
 
-  const points = useMemo(() => {
+  // Calculate stacked Y coordinates for each day
+  // Layer 0: quiz (bottom layer)
+  // Layer 1: input
+  // Layer 2: training
+  // Layer 3: other (top layer)
+  const stackedPoints = useMemo(() => {
     if (days.length === 0) return [];
     const stepX = chartWidth / Math.max(days.length - 1, 1);
+
     return days.map((d, index) => {
       const x = index * stepX;
-      const y = chartHeight - (d.total / maxPoints) * (chartHeight - 20) - 10;
-      return { x, y, data: d };
+      
+      // Calculate heights in pixels relative to bottom of chart area
+      const hQuiz = (d.quiz / maxPoints) * usableHeight;
+      const hInput = (d.input / maxPoints) * usableHeight;
+      const hTraining = (d.training / maxPoints) * usableHeight;
+      const hOther = (d.other / maxPoints) * usableHeight;
+
+      const yBase = chartHeight - bottomPadding;
+      const yQuiz = yBase - hQuiz;
+      const yInput = yQuiz - hInput;
+      const yTraining = yInput - hTraining;
+      const yOther = yTraining - hOther; // Top-most Y for total
+
+      return {
+        x,
+        yBase,
+        yQuiz,
+        yInput,
+        yTraining,
+        yOther,
+        data: d,
+      };
     });
-  }, [days, maxPoints]);
+  }, [days, maxPoints, usableHeight]);
 
-  // Cubic Bezier curve path string generator
-  const areaPathD = useMemo(() => {
-    if (points.length < 2) return '';
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      const cpX = (p0.x + p1.x) / 2;
-      d += ` C ${cpX} ${p0.y}, ${cpX} ${p1.y}, ${p1.x} ${p1.y}`;
-    }
-    // Close area to bottom
-    const lastX = points[points.length - 1].x;
-    const firstX = points[0].x;
-    d += ` L ${lastX} ${chartHeight} L ${firstX} ${chartHeight} Z`;
-    return d;
-  }, [points]);
-
-  const linePathD = useMemo(() => {
-    if (points.length < 2) return '';
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
+  // Helper function to build smooth Bezier curve for an array of (x, y) coordinates
+  const buildBezierPath = (pts: { x: number; y: number }[]) => {
+    if (pts.length === 0) return '';
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
       const cpX = (p0.x + p1.x) / 2;
       d += ` C ${cpX} ${p0.y}, ${cpX} ${p1.y}, ${p1.x} ${p1.y}`;
     }
     return d;
-  }, [points]);
+  };
+
+  // Build SVG path for a stacked area layer defined by upper Y and lower Y values
+  const buildStackedAreaD = (
+    upperKey: 'yQuiz' | 'yInput' | 'yTraining' | 'yOther',
+    lowerKey: 'yBase' | 'yQuiz' | 'yInput' | 'yTraining'
+  ) => {
+    if (stackedPoints.length < 2) return '';
+
+    const upperPts = stackedPoints.map((p) => ({ x: p.x, y: p[upperKey] }));
+    const lowerPts = stackedPoints.map((p) => ({ x: p.x, y: p[lowerKey] })).reverse();
+
+    const forwardPath = buildBezierPath(upperPts);
+    let reversePath = '';
+    for (let i = 0; i < lowerPts.length - 1; i++) {
+      const p0 = lowerPts[i];
+      const p1 = lowerPts[i + 1];
+      const cpX = (p0.x + p1.x) / 2;
+      reversePath += ` C ${cpX} ${p0.y}, ${cpX} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+
+    return `${forwardPath} L ${lowerPts[0].x} ${lowerPts[0].y}${reversePath} Z`;
+  };
+
+  const pathQuiz = useMemo(() => buildStackedAreaD('yQuiz', 'yBase'), [stackedPoints]);
+  const pathInput = useMemo(() => buildStackedAreaD('yInput', 'yQuiz'), [stackedPoints]);
+  const pathTraining = useMemo(() => buildStackedAreaD('yTraining', 'yInput'), [stackedPoints]);
+  const pathOther = useMemo(() => buildStackedAreaD('yOther', 'yTraining'), [stackedPoints]);
+
+  // Overall top line path
+  const lineTopPath = useMemo(() => {
+    if (stackedPoints.length < 2) return '';
+    return buildBezierPath(stackedPoints.map((p) => ({ x: p.x, y: p.yOther })));
+  }, [stackedPoints]);
 
   return (
     <div className="glass-card p-6 rounded-3xl border border-cyan-500/30 space-y-6 shadow-2xl relative overflow-hidden transition-all duration-500">
@@ -134,7 +190,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">期間を切り替えるとグラフが滑らかに動く！努力の軌跡を分析しよう</p>
+            <p className="text-xs text-slate-400">カテゴリ毎の積み上げで「どの分野をどれだけ頑張ったか」がひと目でわかる！</p>
           </div>
         </div>
 
@@ -176,26 +232,62 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
         </div>
       </div>
 
-      {/* ニュルっと動くネオングラデーション積み上げ面グラフ (Smoothed Animated Area Chart) */}
+      {/* Category Legend Bar */}
+      <div className="flex items-center justify-end gap-3 text-xs font-bold text-slate-300 flex-wrap pt-1">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-cyan-400 inline-block shadow-glow-cyan" />
+          <span>🧠 クイズ</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-indigo-400 inline-block" />
+          <span>📚 インプット</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-orange-400 inline-block" />
+          <span>🏋️ 運動</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />
+          <span>🍚 食事/他</span>
+        </div>
+      </div>
+
+      {/* ニュルっと動くカテゴリ別積み上げネオングラデーション面グラフ (Smoothed Stacked Area Chart) */}
       <div className="pt-2 relative">
-        <div className="h-44 w-full relative">
+        <div className="h-48 w-full relative">
           <svg
             viewBox={`0 0 ${chartWidth} ${chartHeight}`}
             className="w-full h-full overflow-visible transition-all duration-500 ease-out"
             preserveAspectRatio="none"
           >
             <defs>
-              {/* Animated Area Gradient */}
-              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.45" />
-                <stop offset="60%" stopColor="#3b82f6" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#0f172a" stopOpacity="0.0" />
+              {/* Quiz Gradient (Cyan) */}
+              <linearGradient id="gradQuiz" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.4" />
               </linearGradient>
+              {/* Input Gradient (Indigo/Purple) */}
+              <linearGradient id="gradInput" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity="0.4" />
+              </linearGradient>
+              {/* Training Gradient (Orange) */}
+              <linearGradient id="gradTraining" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fb923c" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#ea580c" stopOpacity="0.4" />
+              </linearGradient>
+              {/* Other Gradient (Emerald) */}
+              <linearGradient id="gradOther" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#059669" stopOpacity="0.4" />
+              </linearGradient>
+
               {/* Glowing Line Gradient */}
-              <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#22d3ee" />
-                <stop offset="50%" stopColor="#38bdf8" />
-                <stop offset="100%" stopColor="#818cf8" />
+              <linearGradient id="lineTopGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="33%" stopColor="#c084fc" />
+                <stop offset="66%" stopColor="#fb923c" />
+                <stop offset="100%" stopColor="#34d399" />
               </linearGradient>
             </defs>
 
@@ -213,32 +305,53 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
               />
             ))}
 
-            {/* Smooth Fill Area (Animated D path) */}
+            {/* Layer 0: Quiz Stacked Area */}
             <path
-              d={areaPathD}
-              fill="url(#areaGradient)"
-              className="transition-all duration-500 ease-out"
+              d={pathQuiz}
+              fill="url(#gradQuiz)"
+              className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
             />
 
-            {/* Smooth Glowing Line Path */}
+            {/* Layer 1: Input Stacked Area */}
             <path
-              d={linePathD}
+              d={pathInput}
+              fill="url(#gradInput)"
+              className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
+            />
+
+            {/* Layer 2: Training Stacked Area */}
+            <path
+              d={pathTraining}
+              fill="url(#gradTraining)"
+              className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
+            />
+
+            {/* Layer 3: Other Stacked Area */}
+            <path
+              d={pathOther}
+              fill="url(#gradOther)"
+              className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
+            />
+
+            {/* Top Outline Glowing Line */}
+            <path
+              d={lineTopPath}
               fill="none"
-              stroke="url(#lineGradient)"
-              strokeWidth="3.5"
+              stroke="url(#lineTopGrad)"
+              strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="transition-all duration-500 ease-out drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
+              className="transition-all duration-500 ease-out drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]"
             />
 
             {/* Interactive Data Points Circle */}
-            {points.map((pt, idx) => (
+            {stackedPoints.map((pt, idx) => (
               <g key={pt.data.dateStr} className="cursor-pointer group">
                 <circle
                   cx={pt.x}
-                  cy={pt.y}
+                  cy={pt.yOther}
                   r={hoverIndex === idx ? '6' : '3.5'}
-                  fill={pt.data.total > 0 ? '#38bdf8' : '#334155'}
+                  fill={pt.data.total > 0 ? '#ffffff' : '#334155'}
                   stroke="#0f172a"
                   strokeWidth="2"
                   className="transition-all duration-300"
@@ -249,16 +362,49 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
             ))}
           </svg>
 
-          {/* Hover Tooltip Overlay */}
-          {hoverIndex !== null && points[hoverIndex] && (
+          {/* Detailed Hover Tooltip Overlay with Category Breakdown */}
+          {hoverIndex !== null && stackedPoints[hoverIndex] && (
             <div
-              className="absolute -top-10 bg-slate-950/90 border border-cyan-500/60 text-white text-[10px] font-mono px-2.5 py-1 rounded-xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200"
+              className="absolute -top-16 bg-slate-950/95 border border-cyan-500/60 text-white text-[10px] font-mono p-2.5 rounded-2xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200 min-w-[140px]"
               style={{
-                left: `${(points[hoverIndex].x / chartWidth) * 100}%`,
+                left: `${Math.max(10, Math.min(90, (stackedPoints[hoverIndex].x / chartWidth) * 100))}%`,
               }}
             >
-              <div className="font-bold text-cyan-300">{points[hoverIndex].data.dateStr}</div>
-              <div className="font-black text-amber-400">+{points[hoverIndex].data.total} pt</div>
+              <div className="font-bold text-cyan-300 text-xs border-b border-slate-800 pb-1 mb-1 text-center">
+                📅 {stackedPoints[hoverIndex].data.dateStr}
+              </div>
+
+              <div className="space-y-0.5">
+                {stackedPoints[hoverIndex].data.quiz > 0 && (
+                  <div className="flex justify-between items-center text-cyan-300">
+                    <span>🧠 クイズ:</span>
+                    <span className="font-bold">+{stackedPoints[hoverIndex].data.quiz} pt</span>
+                  </div>
+                )}
+                {stackedPoints[hoverIndex].data.input > 0 && (
+                  <div className="flex justify-between items-center text-indigo-300">
+                    <span>📚 インプット:</span>
+                    <span className="font-bold">+{stackedPoints[hoverIndex].data.input} pt</span>
+                  </div>
+                )}
+                {stackedPoints[hoverIndex].data.training > 0 && (
+                  <div className="flex justify-between items-center text-orange-300">
+                    <span>🏋️ 運動:</span>
+                    <span className="font-bold">+{stackedPoints[hoverIndex].data.training} pt</span>
+                  </div>
+                )}
+                {stackedPoints[hoverIndex].data.other > 0 && (
+                  <div className="flex justify-between items-center text-emerald-300">
+                    <span>🍚 食事/他:</span>
+                    <span className="font-bold">+{stackedPoints[hoverIndex].data.other} pt</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-slate-800 pt-1 mt-1 font-black text-amber-400 flex justify-between items-center text-xs">
+                <span>合計:</span>
+                <span>+{stackedPoints[hoverIndex].data.total} pt</span>
+              </div>
             </div>
           )}
         </div>
