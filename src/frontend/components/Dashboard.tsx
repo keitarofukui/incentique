@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, XCircle, Banknote, X } from 'lucide-react';
 import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
 import { RivalPulse } from './RivalPulse';
+import { PersonalStreakCard } from './PersonalStreakCard';
 import { formatLogDateTime, todayLocalDateStr } from '../dateUtils';
 
 interface DashboardProps {
@@ -83,9 +84,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* Today's head-to-head, streaks and weekly crowns */}
-      <RivalPulse
-        users={users}
+      {/* TOP MOST HERO CARD: 自分専用の連続記録＆本日目標カード */}
+      <PersonalStreakCard
         currentUser={currentUser}
         actionLogs={actionLogs}
         onNavigate={onNavigate}
@@ -96,6 +96,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         currentUser={currentUser}
         currentGoal={currentGoal}
         onGoalUpdated={onGoalUpdated}
+        onNavigate={onNavigate}
+      />
+
+      {/* Today's head-to-head, streaks and weekly crowns */}
+      <RivalPulse
+        users={users}
+        currentUser={currentUser}
+        actionLogs={actionLogs}
         onNavigate={onNavigate}
       />
 

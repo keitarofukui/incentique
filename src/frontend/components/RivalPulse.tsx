@@ -227,20 +227,21 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
     return users
       .map((user) => {
         const entry = acc.get(user.id)!;
-        const daysAtLeast = (min: number) =>
-          new Set(Array.from(entry.dayBase.entries()).filter(([, v]) => v >= min).map(([d]) => d));
+        const streakDaily = user.current_streak_days || 0;
+        const streakMid = user.current_50pt_streak_days || 0;
+        const streakGod = user.current_100pt_streak_days || 0;
 
         return {
           user,
-          streak50: streakOf(daysAtLeast(midThreshold)),
-          streak100: streakOf(daysAtLeast(godThreshold)),
+          streak50: streakMid,
+          streak100: streakGod,
           todayBase: entry.todayBase,
           // Whatever isn't base is uplift: gacha multiplier + milestone payouts
           todayBonus: Math.max(0, entry.todayPoints - entry.todayBase),
           todayPoints: entry.todayPoints,
           todayCount: entry.todayCount,
           todayCategories: entry.todayCategories,
-          streak: streakOf(entry.days),
+          streak: streakDaily,
           week: entry.week,
         };
       })
