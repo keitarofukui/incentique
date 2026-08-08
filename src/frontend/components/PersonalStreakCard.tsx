@@ -159,7 +159,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-black text-white tracking-tight">🔥 きみの連続記録 & 本日達成目標</h2>
+              <h2 className="text-lg font-black text-white tracking-tight">📊 ダッシュボード</h2>
               <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
                 doneToday
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-glow-emerald'
