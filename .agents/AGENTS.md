@@ -38,6 +38,7 @@ IDEの仕様上、チャット入力欄の `/` はシステム内蔵コマンド
 | `テスト:` / `テスト` / `検証` | `/test` | `~/antigravity-agents/prompts/05_tester.md` | `docs/test-report.md` を作成 |
 | `監査:` / `監査` / `レビュー` | `/audit` | `~/antigravity-agents/prompts/06_auditor.md` | `docs/audit-report.md` を作成 |
 | `全自動:` / `お任せ` / `全お任せ:` | `/auto` / `/full` | `~/antigravity-agents/prompts/07_full_pipeline.md` | 調査〜設計〜製造〜テスト〜監査・本番適用を一気に自動完遂 |
+| `学習:` / `育成:` / `学習` | `/learn` / `/train` | `~/antigravity-agents/prompts/08_learner.md` | 不具合からなぜなぜ分析を実行し、各プロンプトを自律更新・成長 |
 
 ---
 

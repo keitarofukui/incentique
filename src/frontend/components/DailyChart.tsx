@@ -87,10 +87,10 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
   const usableHeight = chartHeight - topPadding - bottomPadding;
 
   // Calculate stacked Y coordinates for each day
-  // Layer 0: quiz (bottom layer)
-  // Layer 1: input
-  // Layer 2: training
-  // Layer 3: other (top layer)
+  // Layer 0: quiz (cyan)
+  // Layer 1: input (purple)
+  // Layer 2: training (emerald)
+  // Layer 3: other (amber)
   const stackedPoints = useMemo(() => {
     if (days.length === 0) return [];
     const stepX = chartWidth / Math.max(days.length - 1, 1);
@@ -98,7 +98,6 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
     return days.map((d, index) => {
       const x = index * stepX;
       
-      // Calculate heights in pixels relative to bottom of chart area
       const hQuiz = (d.quiz / maxPoints) * usableHeight;
       const hInput = (d.input / maxPoints) * usableHeight;
       const hTraining = (d.training / maxPoints) * usableHeight;
@@ -190,7 +189,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">カテゴリ毎の積み上げで「どの分野をどれだけ頑張ったか」がひと目でわかる！</p>
+            <p className="text-xs text-slate-400">各メニューの色と連動！カテゴリ毎の頑張りがひと目で分かる積み上げグラフ</p>
           </div>
         </div>
 
@@ -232,27 +231,27 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
         </div>
       </div>
 
-      {/* Category Legend Bar */}
+      {/* Menu-Synchronized Category Legend Bar */}
       <div className="flex items-center justify-end gap-3 text-xs font-bold text-slate-300 flex-wrap pt-1">
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-cyan-400 inline-block shadow-glow-cyan" />
-          <span>🧠 クイズ</span>
+        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-1 rounded-xl border border-cyan-500/30">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block shadow-glow-cyan" />
+          <span className="text-cyan-300">🧠 クイズ</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-indigo-400 inline-block" />
-          <span>📚 インプット</span>
+        <div className="flex items-center gap-1.5 bg-purple-950/40 px-2.5 py-1 rounded-xl border border-purple-500/30">
+          <span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block shadow-glow-purple" />
+          <span className="text-purple-300">📚 インプット</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-orange-400 inline-block" />
-          <span>🏋️ 運動</span>
+        <div className="flex items-center gap-1.5 bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow-glow-emerald" />
+          <span className="text-emerald-300">🏋️ 運動</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />
-          <span>🍚 食事/他</span>
+        <div className="flex items-center gap-1.5 bg-amber-950/40 px-2.5 py-1 rounded-xl border border-amber-500/30">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-glow-gold" />
+          <span className="text-amber-300">🍚 食事/他</span>
         </div>
       </div>
 
-      {/* ニュルっと動くカテゴリ別積み上げネオングラデーション面グラフ (Smoothed Stacked Area Chart) */}
+      {/* Menu-Matched Stacked Animated Area Chart */}
       <div className="pt-2 relative">
         <div className="h-48 w-full relative">
           <svg
@@ -261,33 +260,33 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
             preserveAspectRatio="none"
           >
             <defs>
-              {/* Quiz Gradient (Cyan) */}
+              {/* Quiz Gradient (Cyan - Header Menu matched) */}
               <linearGradient id="gradQuiz" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.4" />
+                <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.45" />
               </linearGradient>
-              {/* Input Gradient (Indigo/Purple) */}
+              {/* Input Gradient (Purple - Header Menu matched) */}
               <linearGradient id="gradInput" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity="0.4" />
+                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.45" />
               </linearGradient>
-              {/* Training Gradient (Orange) */}
+              {/* Training Gradient (Emerald - Header Menu matched) */}
               <linearGradient id="gradTraining" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#fb923c" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#ea580c" stopOpacity="0.4" />
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#059669" stopOpacity="0.45" />
               </linearGradient>
-              {/* Other Gradient (Emerald) */}
+              {/* Other Gradient (Amber - Header Menu matched) */}
               <linearGradient id="gradOther" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34d399" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#059669" stopOpacity="0.4" />
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#d97706" stopOpacity="0.45" />
               </linearGradient>
 
               {/* Glowing Line Gradient */}
               <linearGradient id="lineTopGrad" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#38bdf8" />
                 <stop offset="33%" stopColor="#c084fc" />
-                <stop offset="66%" stopColor="#fb923c" />
-                <stop offset="100%" stopColor="#34d399" />
+                <stop offset="66%" stopColor="#34d399" />
+                <stop offset="100%" stopColor="#fbbf24" />
               </linearGradient>
             </defs>
 
@@ -305,28 +304,28 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
               />
             ))}
 
-            {/* Layer 0: Quiz Stacked Area */}
+            {/* Layer 0: Quiz Stacked Area (Cyan) */}
             <path
               d={pathQuiz}
               fill="url(#gradQuiz)"
               className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
             />
 
-            {/* Layer 1: Input Stacked Area */}
+            {/* Layer 1: Input Stacked Area (Purple) */}
             <path
               d={pathInput}
               fill="url(#gradInput)"
               className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
             />
 
-            {/* Layer 2: Training Stacked Area */}
+            {/* Layer 2: Training Stacked Area (Emerald) */}
             <path
               d={pathTraining}
               fill="url(#gradTraining)"
               className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
             />
 
-            {/* Layer 3: Other Stacked Area */}
+            {/* Layer 3: Other Stacked Area (Amber) */}
             <path
               d={pathOther}
               fill="url(#gradOther)"
@@ -362,7 +361,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
             ))}
           </svg>
 
-          {/* Detailed Hover Tooltip Overlay with Category Breakdown */}
+          {/* Menu-Matched Hover Tooltip Overlay */}
           {hoverIndex !== null && stackedPoints[hoverIndex] && (
             <div
               className="absolute -top-16 bg-slate-950/95 border border-cyan-500/60 text-white text-[10px] font-mono p-2.5 rounded-2xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200 min-w-[140px]"
@@ -382,19 +381,19 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
                   </div>
                 )}
                 {stackedPoints[hoverIndex].data.input > 0 && (
-                  <div className="flex justify-between items-center text-indigo-300">
+                  <div className="flex justify-between items-center text-purple-300">
                     <span>📚 インプット:</span>
                     <span className="font-bold">+{stackedPoints[hoverIndex].data.input} pt</span>
                   </div>
                 )}
                 {stackedPoints[hoverIndex].data.training > 0 && (
-                  <div className="flex justify-between items-center text-orange-300">
+                  <div className="flex justify-between items-center text-emerald-300">
                     <span>🏋️ 運動:</span>
                     <span className="font-bold">+{stackedPoints[hoverIndex].data.training} pt</span>
                   </div>
                 )}
                 {stackedPoints[hoverIndex].data.other > 0 && (
-                  <div className="flex justify-between items-center text-emerald-300">
+                  <div className="flex justify-between items-center text-amber-300">
                     <span>🍚 食事/他:</span>
                     <span className="font-bold">+{stackedPoints[hoverIndex].data.other} pt</span>
                   </div>

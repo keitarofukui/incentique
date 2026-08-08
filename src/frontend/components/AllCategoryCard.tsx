@@ -10,10 +10,54 @@ interface AllCategoryCardProps {
 }
 
 const CATEGORY_GROUPS = [
-  { key: 'quiz' as const, label: 'クイズ', icon: '🧠', tab: 'quiz', match: (c: string) => c === 'quiz' || c === 'study' },
-  { key: 'input' as const, label: 'インプット', icon: '📚', tab: 'input_book', match: (c: string) => c.startsWith('input_') },
-  { key: 'training' as const, label: '運動', icon: '🏋️', tab: 'training', match: (c: string) => c === 'training' },
-  { key: 'meal' as const, label: '食事', icon: '🍚', tab: 'eat_rice', match: (c: string) => c === 'eat_rice' || c === 'eat_meat' },
+  {
+    key: 'quiz' as const,
+    label: 'クイズ',
+    icon: '🧠',
+    tab: 'quiz',
+    colorStyle: {
+      done: 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300 shadow-glow-cyan',
+      pending: 'bg-slate-950/80 border-slate-800 hover:border-cyan-400',
+      activeText: 'text-cyan-300',
+    },
+    match: (c: string) => c === 'quiz' || c === 'study',
+  },
+  {
+    key: 'input' as const,
+    label: 'インプット',
+    icon: '📚',
+    tab: 'input_book',
+    colorStyle: {
+      done: 'bg-purple-500/15 border-purple-500/50 text-purple-300 shadow-glow-purple',
+      pending: 'bg-slate-950/80 border-slate-800 hover:border-purple-400',
+      activeText: 'text-purple-300',
+    },
+    match: (c: string) => c.startsWith('input_'),
+  },
+  {
+    key: 'training' as const,
+    label: '運動',
+    icon: '🏋️',
+    tab: 'training',
+    colorStyle: {
+      done: 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-glow-emerald',
+      pending: 'bg-slate-950/80 border-slate-800 hover:border-emerald-400',
+      activeText: 'text-emerald-300',
+    },
+    match: (c: string) => c === 'training',
+  },
+  {
+    key: 'meal' as const,
+    label: '食事',
+    icon: '🍚',
+    tab: 'eat_rice',
+    colorStyle: {
+      done: 'bg-amber-500/15 border-amber-500/50 text-amber-300 shadow-glow-gold',
+      pending: 'bg-slate-950/80 border-slate-800 hover:border-amber-400',
+      activeText: 'text-amber-300',
+    },
+    match: (c: string) => c === 'eat_rice' || c === 'eat_meat',
+  },
 ];
 
 const ALL_CATEGORY_DEFAULT_POINTS = 100;
@@ -77,7 +121,7 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
             <h4 className="text-sm font-black text-white flex items-center gap-1.5">
               🎯 全カテゴリ制覇ボーナス
             </h4>
-            <p className="text-[11px] text-slate-400">4つのカテゴリを今日1回ずつ達成してボーナスゲット！</p>
+            <p className="text-[11px] text-slate-400">メニューと連動した4カテゴリを今日1回ずつ達成してボーナスゲット！</p>
           </div>
         </div>
         <span className="text-xs font-mono font-black text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 rounded-xl">
@@ -96,17 +140,17 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
               disabled={done}
               className={`p-2 rounded-2xl border text-center transition-all ${
                 done
-                  ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-glow-emerald cursor-default'
-                  : 'bg-slate-950/80 border-slate-800 hover:border-indigo-400 hover:scale-102 cursor-pointer'
+                  ? `${g.colorStyle.done} cursor-default`
+                  : `${g.colorStyle.pending} cursor-pointer`
               }`}
             >
               <div className="text-xl leading-none">{g.icon}</div>
-              <div className={`text-xs font-bold mt-1 ${done ? 'text-emerald-300' : 'text-slate-200'}`}>
+              <div className={`text-xs font-bold mt-1 ${done ? g.colorStyle.activeText : 'text-slate-200'}`}>
                 {g.label}
               </div>
               <div className="mt-1 flex items-center justify-center">
                 {done ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4" />
                 ) : (
                   <span className="text-[10px] text-slate-500 font-bold px-1.5 py-0.5 rounded-full bg-slate-900">未</span>
                 )}
