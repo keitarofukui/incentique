@@ -378,6 +378,10 @@ export const App: React.FC = () => {
                 wishItems={wishItems}
                 onRefresh={fetchData}
               />
+            ) : activeTab === 'streak_bonus_info' ? (
+              <StreakBonusInfo
+                onNavigate={handleSetActiveTab}
+              />
             ) : (
               <ParentPortal
                 users={users}

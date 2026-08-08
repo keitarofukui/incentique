@@ -37,6 +37,7 @@ IDEの仕様上、チャット入力欄の `/` はシステム内蔵コマンド
 | `コードレビュー:` / `コードレビュー` | `/code-review` | `~/antigravity-agents/prompts/04_code_reviewer.md` | `docs/code-review.md` を作成 |
 | `テスト:` / `テスト` / `検証` | `/test` | `~/antigravity-agents/prompts/05_tester.md` | `docs/test-report.md` を作成 |
 | `監査:` / `監査` / `レビュー` | `/audit` | `~/antigravity-agents/prompts/06_auditor.md` | `docs/audit-report.md` を作成 |
+| `全自動:` / `お任せ` / `全お任せ:` | `/auto` / `/full` | `~/antigravity-agents/prompts/07_full_pipeline.md` | 調査〜設計〜製造〜テスト〜監査・本番適用を一気に自動完遂 |
 
 ---
 
@@ -63,4 +64,4 @@ IDEの仕様上、チャット入力欄の `/` はシステム内蔵コマンド
 | **3. 製造Agent (Developer)** | `docs/design-spec.md` を参照 | 設計書に厳格に従った最小単位のコード実装およびチェックボックス更新 |
 | **4. コードレビューAgent (Code Reviewer)** | `docs/code-review.md` | コードの可読性・共通化・保守性・リファクタリング提案 |
 | **5. テストAgent (Tester/QA)** | `docs/test-report.md` | ユニット/E2Eテスト、Browser(DevTools)表示確認、テスト結果ログ出力 |
-| **6. 監査Agent (Auditor)** | `docs/audit-report.md` | セキュリティ・パフォーマンス・設計差分監査、PASS / REJECT 判定 |
+| **6. 監査Agent (Auditor)** | `docs/audit-report.md` | セキュリティ・パフォーマンス・設計差分監査、PASS判定時は本番デプロイ&Git Pushを自動実行 |
