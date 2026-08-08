@@ -1,7 +1,7 @@
 # テスト & QA検証レポート
 
 ## 1. 検証対象機能
-**保護者モードにおける「解説ページを見る」ボタンの遷移不具合修正**
+**3段階連続ボーナス常時可視化 & 今日あと何pt（素点）達成必要かリアルタイム表示UI**
 
 ---
 
@@ -23,16 +23,16 @@ transforming...
 rendering chunks...
 computing gzip size...
 dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-CST7ahja.css   64.37 kB │ gzip:  10.72 kB
-dist/assets/index-BJ0Y0rMS.js   404.06 kB │ gzip: 107.15 kB
-✓ built in 1.40s
+dist/assets/index-CLdA6Tdl.css   64.36 kB │ gzip:  10.72 kB
+dist/assets/index-Bs-7yRpn.js   407.96 kB │ gzip: 107.64 kB
+✓ built in 1.42s
 ```
 
 ---
 
 ## 3. UI・動作検証（Browser/DevTools）
-- **画面表示**: **PASS** (`App.tsx` での保護者モード中の `streak_bonus_info` 表示パス確認)
-- **イベント操作（クリック等）**: **PASS** (ボタンクリックによる `activeTab` 変更後のコンポーネント切替を確認)
+- **画面表示**: **PASS** (3段階カードの0日目常時表示および残りpt/進捗バーの計算整合性を確認)
+- **イベント操作（クリック等）**: **PASS** (リアルタイムデータ計算パスを確認)
 - **コンソールエラーの有無**: なし (エラーなし)
 
 ---

@@ -472,19 +472,118 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
             })}
           </div>
 
-          {/* 中級/神ストリークは係数が大きいので、動いている時だけ出す */}
-          {me && (me.streak50 > 0 || me.streak100 > 0) && (
-            <div className="flex items-center gap-3 pt-1.5 border-t border-slate-800/80 text-[11px]">
-              {me.streak50 > 0 && (
-                <span className="font-bold text-rose-300">
-                  💥 {midThreshold}pt超え <span className="font-mono">{me.streak50}</span>日連続
-                </span>
-              )}
-              {me.streak100 > 0 && (
-                <span className="font-bold text-amber-300">
-                  👑 {godThreshold}pt超え <span className="font-mono">{me.streak100}</span>日連続
-                </span>
-              )}
+          {/* 3段階連続ボーナス常時可視化 & 今日あと何pt（素点）必要かリアルタイム表示 */}
+          {me && (
+            <div className="pt-2 border-t border-slate-800/80 space-y-2">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>🎯 3段階ストリーク進行状況</span>
+                <span className="text-[9px] text-slate-500 font-normal">素点ベースで判定</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* ① デイリー連続 */}
+                <div className={`p-2.5 rounded-xl border flex flex-col justify-between space-y-1.5 transition-all ${
+                  doneToday ? 'bg-indigo-950/40 border-indigo-500/40' : 'bg-slate-900/60 border-slate-800'
+                }`}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-black text-indigo-300 flex items-center gap-1">
+                      <span>🔥 デイリー</span>
+                      <span className="text-[9px] font-normal text-slate-400">(1pt+)</span>
+                    </span>
+                    <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded-md ${
+                      me.streak > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {me.streak}日連続
+                    </span>
+                  </div>
+                  <div className="text-[10px]">
+                    {doneToday ? (
+                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                        <span>✅ 本日達成！</span>
+                      </span>
+                    ) : (
+                      <span className="text-amber-300 font-bold">
+                        今日あと <span className="font-mono text-white font-black">1pt</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ② 中級連続 */}
+                <div className={`p-2.5 rounded-xl border flex flex-col justify-between space-y-1.5 transition-all ${
+                  me.todayBase >= midThreshold ? 'bg-rose-950/40 border-rose-500/40' : 'bg-slate-900/60 border-slate-800'
+                }`}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-black text-rose-300 flex items-center gap-1">
+                      <span>💥 中級</span>
+                      <span className="text-[9px] font-normal text-slate-400">({midThreshold}pt+)</span>
+                    </span>
+                    <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded-md ${
+                      me.streak50 > 0 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {me.streak50}日連続
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px]">
+                      {me.todayBase >= midThreshold ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <span>✅ 本日達成！</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">
+                          素点あと <span className="font-mono text-rose-300 font-black">{(midThreshold - me.todayBase).toLocaleString()}pt</span>
+                        </span>
+                      )}
+                    </div>
+                    {me.todayBase < midThreshold && (
+                      <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, (me.todayBase / midThreshold) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ③ 神連続 */}
+                <div className={`p-2.5 rounded-xl border flex flex-col justify-between space-y-1.5 transition-all ${
+                  me.todayBase >= godThreshold ? 'bg-amber-950/40 border-amber-500/40' : 'bg-slate-900/60 border-slate-800'
+                }`}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-black text-amber-300 flex items-center gap-1">
+                      <span>👑 神</span>
+                      <span className="text-[9px] font-normal text-slate-400">({godThreshold}pt+)</span>
+                    </span>
+                    <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded-md ${
+                      me.streak100 > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {me.streak100}日連続
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px]">
+                      {me.todayBase >= godThreshold ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <span>✅ 本日達成！</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">
+                          素点あと <span className="font-mono text-amber-300 font-black">{(godThreshold - me.todayBase).toLocaleString()}pt</span>
+                        </span>
+                      )}
+                    </div>
+                    {me.todayBase < godThreshold && (
+                      <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, (me.todayBase / godThreshold) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

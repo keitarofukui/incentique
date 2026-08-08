@@ -1,43 +1,50 @@
-# 機能設計仕様書: 保護者モードにおける解説ページ (`streak_bonus_info`) への遷移修正
+# 機能設計仕様書: 3段階連続ボーナス常時可視化 & 今日あと何pt（素点）で達成かリアルタイム案内UI
 
 ## 1. 概要・目的
-保護者モード中 (`isParentMode === true`) に、保護者ポータルの「ポイント獲得ルール」から「解説ページを見る」ボタンをクリックした際、`StreakBonusInfo` コンポーネントへ正しく画面遷移できるように `App.tsx` のレンダリング分岐を修正する。
+3段階の連続ボーナス（①デイリー、②中級100pt、③神250pt）について、0日（未達成）の状態でも常に画面上で存在と連続日数を認識できるように常時可視化するとともに、**「今日の素点で、中級・神ボーナス達成まであと何ポイント必要か」をリアルタイムで分かりやすくナビゲートするUI**を実装する。
 
 ---
 
-## 2. 変更仕様 (`src/frontend/App.tsx`)
+## 2. 機能要件 & UI設計 (`src/frontend/components/RivalPulse.tsx`)
 
-### レンダリング条件分岐の修正
-保護者モード時のコンポーネント切り替えロジックに `'streak_bonus_info'` タブを追加：
+### 2.1 3段階ストリークの常時表示カード化
+`RivalPulse.tsx` の🔥連続記録セクション内に、3つのストリーク状態（①デイリー / ②中級 / ③神）をグリッド配置し、**0日目であっても常に進行状況が表示されるUIカード**を新設する。
 
-```tsx
-{isParentMode ? (
-  activeTab === 'wishlist' ? (
-    <WishlistSection
-      currentUser={currentUser}
-      isParentMode={isParentMode}
-      users={users}
-      wishItems={wishItems}
-      onRefresh={fetchData}
-    />
-  ) : activeTab === 'streak_bonus_info' ? (
-    <StreakBonusInfo
-      onNavigate={handleSetActiveTab}
-    />
-  ) : (
-    <ParentPortal
-      users={users}
-      wishItems={wishItems}
-      onRefresh={fetchData}
-      onNavigate={handleSetActiveTab}
-    />
-  )
-) : ( ...
-```
+#### 表示内容（各段共通）:
+1. **段階タイトル & 設定閾値**:
+   - ① デイリー連続: `🔥 デイリー (1pt+)`
+   - ② 中級連続: `💥 中級 (${midThreshold}pt超え)` （※保護者ポータル設定値に動的連動）
+   - ③ 神連続: `👑 神 (${godThreshold}pt超え)` （※保護者ポータル設定値に動的連動）
+2. **現在の連続日数バッジ**:
+   - 1日以上継続中: 強調カラーバッジ（例: `3日連続`）
+   - 0日目: グレーアウト/半透明バッジ（例: `0日連続`）
+3. **今日の素点進行バー & 残りptリアルタイムナビ**:
+   - 当日素点 `todayBase` と各閾値を比較：
+     - **未達成時 (`todayBase < threshold`)**:
+       - 「今日の達成まで素点**あと ${threshold - todayBase} pt**」をリアルタイム表示。
+       - プログレスバー（進捗率 `%`）を表示。
+     - **本日達成済み (`todayBase >= threshold`)**:
+       - `✅ 本日達成！`（連続日数の確定通知）を表示。
 
 ---
 
-## 3. 実装タスクチェックリスト
+## 3. 計算・データロジック
 
-- [x] **タスク1: `App.tsx` の保護者モードレンダリング分岐に `activeTab === 'streak_bonus_info'` を追加**
-- [x] **タスク2: ビルド・型チェック (`npm run typecheck && npm run build`) による動作確認**
+- **比較用基準素点**: `me.todayBase` (ガチャ倍率・ボーナス付与分を除いた当日の獲得実力素点)
+- **動的閾値**:
+  - `midThreshold = rulePoints.streak_mid_threshold ?? 100`
+  - `godThreshold = rulePoints.streak_god_threshold ?? 250`
+- **残りpt計算式**:
+  - 中級残りpt: `Math.max(0, midThreshold - me.todayBase)`
+  - 神残りpt: `Math.max(0, godThreshold - me.todayBase)`
+
+---
+
+## 4. 実装タスクチェックリスト
+
+- [x] **タスク1: `RivalPulse.tsx` における3段階ストリーク常時可視化カードUIのコンポーネント化**
+  - 0日目でも非表示にせず、①デイリー / ②中級 / ③神 の3段階を固定表示するグリッドレイアウトの実装
+- [x] **タスク2: 本日素点 (`todayBase`) に基づく「あと何ptで達成か」のリアルタイム動的進行バー・テキストの実装**
+  - `midThreshold` および `godThreshold` までの残りpt計算と、進捗率プログレスバーおよび「✅ 本日達成！」バッジの条件分岐
+- [x] **タスク3: ビルド・型チェック・動作確認**
+  - `npm run typecheck && npm run build` による型チェックおよび各種ポイント加算時のリアルタイム表示更新テスト
