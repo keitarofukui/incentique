@@ -399,7 +399,9 @@ app.get('/api/users', async (c) => {
     // Never select pin_code — the login screen is public and 1-click, so no
     // client needs it. (Per-child PIN login was removed; only the parent PIN
     // in app_settings is still used, via /api/parent/verify-pin.)
-    const { results } = await c.env.DB.prepare('SELECT id, name, grade_level, avatar, current_points, created_at, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date, last_all_category_date FROM users ORDER BY created_at ASC').all();
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, name, grade_level, avatar, current_points, created_at, last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date, last_all_category_date FROM users ORDER BY created_at ASC'
+    ).all();
     return c.json({ success: true, users: results });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
@@ -427,7 +429,9 @@ app.post('/api/users', async (c) => {
       .bind(id, body.name.trim(), body.gradeLevel || 'high_3', avatar)
       .run();
 
-    const newUser: any = await c.env.DB.prepare('SELECT id, name, grade_level, avatar, current_points FROM users WHERE id = ?').bind(id).first();
+    const newUser: any = await c.env.DB.prepare(
+      'SELECT id, name, grade_level, avatar, current_points, last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days FROM users WHERE id = ?'
+    ).bind(id).first();
 
     return c.json({ success: true, user: newUser });
   } catch (err: any) {
@@ -452,7 +456,7 @@ app.delete('/api/users/:id', async (c) => {
 app.get('/api/rivals', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
-      'SELECT id, name, grade_level, avatar, current_points FROM users ORDER BY current_points DESC'
+      'SELECT id, name, grade_level, avatar, current_points, last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days FROM users ORDER BY current_points DESC'
     ).all();
 
     return c.json({ success: true, rivals: results });

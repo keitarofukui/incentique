@@ -1,74 +1,46 @@
-# 機能設計仕様書: ホーム画面「自分フォーカス」最上部連続カード配置 & 設定変更に影響されない過去実績保持ストリーク計算
+# 機能設計仕様書: ユーザー連続日数カラムの API SELECT クエリ追加 & データ疎通修正
 
 ## 1. 概要・目的
-子どもたちが「他人の進捗」よりも**「自分自身の成長と今日の目標」**に集中できるよう、ホーム画面（ダッシュボード）の最上部に自分専用の連続記録ヒーローカードを配置する。さらに、保護者が管理画面で閾値を変更した場合でも、**過去にコツコツ積み上げた実際の連続記録（DB確定値）が過去へ遡って消滅・変分しない「実績保持計算ロジック」**へ刷新する。
+バックエンド API (`GET /api/users`, `GET /api/rivals`) の SQL SELECT クエリで `current_streak_days` 等の連続日数カラムが選択対象から漏れていたため、「りょうたろう」をはじめとする全ユーザーの連続日数が画面上で `0日` と表示されてしまう不具合を修正する。
 
 ---
 
-## 2. 機能要件 & コンポーネント構造
+## 2. 変更仕様 (`src/backend/index.ts`)
 
-### 2.1 新コンポーネント: 自分専用連続ヒーローカード (`src/frontend/components/PersonalStreakCard.tsx`)
-ホーム画面の一番目立つ最上部に配置される自分専用のカード。ライバルや他人のデータを含まず、自分自身の記録のみを表示。
+### バックエンド API エンドポイントの SQL クエリ修正
+以下の 3 つのエンドポイントの SQL クエリを拡張し、DBに蓄積された連続日数・判定日付カラムを返却するように修正：
 
-#### UIデザイン・構成要素:
-1. **メインヘッダー**:
-   - `🔥 きみの連続記録`
-   - 今日のアクション達成状況バッジ（`✅ 今日は記録済み` / `❌ 今日はまだ未記録`）
-2. **3段階ストリークの常時カード表示**:
-   - **① デイリー連続**: `user.current_streak_days` （今日未記録で継続中なら `+1日` をプレビュー）
-   - **② 中級連続**: `user.current_50pt_streak_days` （中級設定閾値 `midThreshold` に対する素点進捗バー ＆ 「あと◯pt」）
-   - **③ 神連続**: `user.current_100pt_streak_days` （神設定閾値 `godThreshold` に対する素点進捗バー ＆ 「あと◯pt」）
-3. **今日の行動による予測 & モチベーションメッセージ**:
-   - 未記録時: `今日記録すれば → ◯日連続！（次の節目 △日まであと◇日 → +☆☆pt）`
-   - 未記録時リスク: `今日しなければ → 0日に戻る（積み上げた◯日が消滅）`
-   - クイズで今日を確保する1タップボタン
-
----
-
-### 2.2 ホーム画面レイアウトの再編 (`src/frontend/components/Dashboard.tsx`)
-ダッシュボードの表示順序を「自分フォーカス」に再編：
-
-```tsx
-<div className="space-y-6">
-  {/* 最上部 1. 自分専用の連続記録＆本日目標カード (NEW) */}
-  <PersonalStreakCard ... />
-
-  {/* 2. 目標 & ペースプランナー */}
-  <GoalPlannerWidget ... />
-
-  {/* 3. ライバル比較・対戦ボード (位置変更) */}
-  <RivalPulse ... />
-
-  {/* 4. 直近7日間グラフ */}
-  <DailyChart ... />
-
-  {/* 5. 最近のアクティビティ */}
-  ...
-</div>
-```
-
----
-
-### 2.3 実績を破壊しない連続日数計算ロジック
-保護者が設定画面で閾値 (`midThreshold` / `godThreshold`) を変えても、過去の連続記録が遡って消えないロジック：
-
-1. **表示用の連続日数ソース**:
-   - `RivalPulse` でのログ遡り再計算 (`daysAtLeast(midThreshold)`) を廃止。
-   - DBに日々正しく蓄積・確定保存されている **`user.current_streak_days`**, **`user.current_50pt_streak_days`**, **`user.current_100pt_streak_days`** を基準値とする。
-2. **当日の判定による動的表示プレビュー**:
-   - **今日すでにその閾値を達成済みの場合**: DBの値（例: `3日連続`）を表示。
-   - **今日まだ未達成だが過去から継続中の場合**: 「今日達成すると `DB値 + 1` 日連続！」とプレビュー表示。
-   - これにより、過去に旧設定値で積み上げた実績日数を過去に遡って破棄することなく、現在の難易度に応じた正確な日数が表示されます。
+1. **`GET /api/users`**:
+   ```sql
+   SELECT id, name, grade_level, avatar, current_points,
+          last_action_date, current_streak_days,
+          last_50pt_date, current_50pt_streak_days,
+          last_100pt_date, current_100pt_streak_days
+   FROM users
+   ORDER BY created_at ASC
+   ```
+2. **`GET /api/users/:id`**:
+   ```sql
+   SELECT id, name, grade_level, avatar, current_points,
+          last_action_date, current_streak_days,
+          last_50pt_date, current_50pt_streak_days,
+          last_100pt_date, current_100pt_streak_days
+   FROM users WHERE id = ?
+   ```
+3. **`GET /api/rivals`**:
+   ```sql
+   SELECT id, name, grade_level, avatar, current_points,
+          last_action_date, current_streak_days,
+          last_50pt_date, current_50pt_streak_days,
+          last_100pt_date, current_100pt_streak_days
+   FROM users
+   ORDER BY current_points DESC
+   ```
 
 ---
 
 ## 3. 実装タスクチェックリスト
 
-- [x] **タスク1: 自分専用連続ヒーローカード `PersonalStreakCard.tsx` の新規作成**
-  - DB確定連続日数 (`user.current_...`) の参照と、3段階（①デイリー/②中級/③神）の常時可視化・素点プログレスバーの実装
-- [x] **タスク2: `Dashboard.tsx` のレイアウト再編（最上部への `PersonalStreakCard` 配置）**
-  - ホーム画面先頭への自分専用カード配置と `RivalPulse` の配置移動
-- [x] **タスク3: `RivalPulse.tsx` における遡り再計算の削除とDB確定連続数への共通化**
-  - 設定変更時に過去の連続日数が変動しない正確な計算ロジックへの統一
-- [x] **タスク4: ビルド・型チェック・動作確認**
-  - `npm run typecheck && npm run build` による検証と画面レイアウト確認
+- [x] **タスク1: `src/backend/index.ts` の `GET /api/users` 等のエンドポイント SQL クエリに連続日数カラムを追加**
+- [x] **タスク2: フロントエンドでの連続日数疎通確認とビジュアルチェック**
+- [x] **タスク3: ビルド・型チェック (`npm run typecheck && npm run build`) による動作検証**

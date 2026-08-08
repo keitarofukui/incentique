@@ -1,7 +1,7 @@
 # テスト & QA検証レポート
 
 ## 1. 検証対象機能
-**自分フォーカス最上部連続ヒーローカード (`PersonalStreakCard`) の導入および過去実績を破壊しないDB確定値ストリーク計算**
+**連続日数カラムの API SELECT クエリ拡張 & 全ユーザー連続日数データ疎通修正**
 
 ---
 
@@ -25,14 +25,13 @@ computing gzip size...
 dist/index.html                   1.04 kB │ gzip:   0.60 kB
 dist/assets/index-DVBNUq6O.css   65.10 kB │ gzip:  10.81 kB
 dist/assets/index-DBYnc3xG.js   416.95 kB │ gzip: 108.80 kB
-✓ built in 1.41s
+✓ built in 1.44s
 ```
 
 ---
 
 ## 3. UI・動作検証（Browser/DevTools）
-- **画面レイアウト**: **PASS** (ダッシュボード最上部に `PersonalStreakCard` が正しく配置され、自分フォーカスのUIを実現)
-- **データ一貫性**: **PASS** (DB蓄積連続数値 `current_streak_days` 等に基づき、過去設定変更による日数変分を完全に防止)
+- **データ疎通性**: **PASS** (`GET /api/users` から `current_streak_days` 等を取得し「りょうたろう」および全ユーザーの正しい連続日数が画面に反映されることを確認)
 - **コンソールエラーの有無**: なし (エラーなし)
 
 ---
