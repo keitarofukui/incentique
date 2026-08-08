@@ -19,7 +19,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
     );
   }, [actionLogs, userId]);
 
-  // Generate N days dates array [YYYY-MM-DD] with category breakdown
+  // Generate N days dates array [YYYY-MM-DD] with 5-category breakdown
   const days = useMemo(() => {
     const arr: {
       dateStr: string;
@@ -27,7 +27,8 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
       quiz: number;
       input: number;
       training: number;
-      other: number;
+      meal: number;
+      bonus: number;
       total: number;
     }[] = [];
     const now = new Date();
@@ -37,7 +38,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
       d.setDate(d.getDate() - i);
       const dateStr = toLocalDateStr(d);
       const label = `${d.getMonth() + 1}/${d.getDate()}`;
-      arr.push({ dateStr, label, quiz: 0, input: 0, training: 0, other: 0, total: 0 });
+      arr.push({ dateStr, label, quiz: 0, input: 0, training: 0, meal: 0, bonus: 0, total: 0 });
     }
 
     userLogs.forEach((log) => {
@@ -53,8 +54,11 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
           dayObj.input += pts;
         } else if (cat === 'training') {
           dayObj.training += pts;
+        } else if (cat === 'eat_rice' || cat === 'eat_meat') {
+          dayObj.meal += pts;
         } else {
-          dayObj.other += pts;
+          // 'bonus' and any other reward points
+          dayObj.bonus += pts;
         }
         dayObj.total += pts;
       }
@@ -79,8 +83,8 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
     }
   }
 
-  // Smooth Stacked Area Chart SVG Path Generator
-  const chartHeight = 170;
+  // Smooth 5-Layer Stacked Area Chart SVG Path Generator
+  const chartHeight = 175;
   const chartWidth = 800;
   const topPadding = 15;
   const bottomPadding = 10;
@@ -90,7 +94,8 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
   // Layer 0: quiz (cyan)
   // Layer 1: input (purple)
   // Layer 2: training (emerald)
-  // Layer 3: other (amber)
+  // Layer 3: meal (amber)
+  // Layer 4: bonus (rose)
   const stackedPoints = useMemo(() => {
     if (days.length === 0) return [];
     const stepX = chartWidth / Math.max(days.length - 1, 1);
@@ -101,13 +106,15 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
       const hQuiz = (d.quiz / maxPoints) * usableHeight;
       const hInput = (d.input / maxPoints) * usableHeight;
       const hTraining = (d.training / maxPoints) * usableHeight;
-      const hOther = (d.other / maxPoints) * usableHeight;
+      const hMeal = (d.meal / maxPoints) * usableHeight;
+      const hBonus = (d.bonus / maxPoints) * usableHeight;
 
       const yBase = chartHeight - bottomPadding;
       const yQuiz = yBase - hQuiz;
       const yInput = yQuiz - hInput;
       const yTraining = yInput - hTraining;
-      const yOther = yTraining - hOther; // Top-most Y for total
+      const yMeal = yTraining - hMeal;
+      const yBonus = yMeal - hBonus; // Top-most Y for total
 
       return {
         x,
@@ -115,7 +122,8 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
         yQuiz,
         yInput,
         yTraining,
-        yOther,
+        yMeal,
+        yBonus,
         data: d,
       };
     });
@@ -137,8 +145,8 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
 
   // Build SVG path for a stacked area layer defined by upper Y and lower Y values
   const buildStackedAreaD = (
-    upperKey: 'yQuiz' | 'yInput' | 'yTraining' | 'yOther',
-    lowerKey: 'yBase' | 'yQuiz' | 'yInput' | 'yTraining'
+    upperKey: 'yQuiz' | 'yInput' | 'yTraining' | 'yMeal' | 'yBonus',
+    lowerKey: 'yBase' | 'yQuiz' | 'yInput' | 'yTraining' | 'yMeal'
   ) => {
     if (stackedPoints.length < 2) return '';
 
@@ -160,12 +168,13 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
   const pathQuiz = useMemo(() => buildStackedAreaD('yQuiz', 'yBase'), [stackedPoints]);
   const pathInput = useMemo(() => buildStackedAreaD('yInput', 'yQuiz'), [stackedPoints]);
   const pathTraining = useMemo(() => buildStackedAreaD('yTraining', 'yInput'), [stackedPoints]);
-  const pathOther = useMemo(() => buildStackedAreaD('yOther', 'yTraining'), [stackedPoints]);
+  const pathMeal = useMemo(() => buildStackedAreaD('yMeal', 'yTraining'), [stackedPoints]);
+  const pathBonus = useMemo(() => buildStackedAreaD('yBonus', 'yMeal'), [stackedPoints]);
 
   // Overall top line path
   const lineTopPath = useMemo(() => {
     if (stackedPoints.length < 2) return '';
-    return buildBezierPath(stackedPoints.map((p) => ({ x: p.x, y: p.yOther })));
+    return buildBezierPath(stackedPoints.map((p) => ({ x: p.x, y: p.yBonus })));
   }, [stackedPoints]);
 
   return (
@@ -189,7 +198,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">各メニューの色と連動！カテゴリ毎の頑張りがひと目で分かる積み上げグラフ</p>
+            <p className="text-xs text-slate-400">「食事」と「ボーナス」を完全分離！どの分野をどれだけ頑張ったか一目でわかる</p>
           </div>
         </div>
 
@@ -231,27 +240,31 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
         </div>
       </div>
 
-      {/* Menu-Synchronized Category Legend Bar */}
-      <div className="flex items-center justify-end gap-3 text-xs font-bold text-slate-300 flex-wrap pt-1">
-        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-1 rounded-xl border border-cyan-500/30">
+      {/* 5-Category Legend Bar */}
+      <div className="flex items-center justify-end gap-2 sm:gap-3 text-xs font-bold text-slate-300 flex-wrap pt-1">
+        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-cyan-500/30">
           <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block shadow-glow-cyan" />
           <span className="text-cyan-300">🧠 クイズ</span>
         </div>
-        <div className="flex items-center gap-1.5 bg-purple-950/40 px-2.5 py-1 rounded-xl border border-purple-500/30">
+        <div className="flex items-center gap-1.5 bg-purple-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-purple-500/30">
           <span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block shadow-glow-purple" />
           <span className="text-purple-300">📚 インプット</span>
         </div>
-        <div className="flex items-center gap-1.5 bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+        <div className="flex items-center gap-1.5 bg-emerald-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-emerald-500/30">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow-glow-emerald" />
           <span className="text-emerald-300">🏋️ 運動</span>
         </div>
-        <div className="flex items-center gap-1.5 bg-amber-950/40 px-2.5 py-1 rounded-xl border border-amber-500/30">
+        <div className="flex items-center gap-1.5 bg-amber-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-amber-500/30">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-glow-gold" />
-          <span className="text-amber-300">🍚 食事/他</span>
+          <span className="text-amber-300">🍚 食事</span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-rose-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-rose-500/30">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block shadow-glow-rose" />
+          <span className="text-rose-300">🎁 ボーナス</span>
         </div>
       </div>
 
-      {/* Menu-Matched Stacked Animated Area Chart */}
+      {/* 5-Layer Menu-Matched Stacked Animated Area Chart */}
       <div className="pt-2 relative">
         <div className="h-48 w-full relative">
           <svg
@@ -260,33 +273,39 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
             preserveAspectRatio="none"
           >
             <defs>
-              {/* Quiz Gradient (Cyan - Header Menu matched) */}
+              {/* Quiz Gradient (Cyan) */}
               <linearGradient id="gradQuiz" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.85" />
                 <stop offset="100%" stopColor="#0284c7" stopOpacity="0.45" />
               </linearGradient>
-              {/* Input Gradient (Purple - Header Menu matched) */}
+              {/* Input Gradient (Purple) */}
               <linearGradient id="gradInput" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#c084fc" stopOpacity="0.85" />
                 <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.45" />
               </linearGradient>
-              {/* Training Gradient (Emerald - Header Menu matched) */}
+              {/* Training Gradient (Emerald) */}
               <linearGradient id="gradTraining" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#34d399" stopOpacity="0.85" />
                 <stop offset="100%" stopColor="#059669" stopOpacity="0.45" />
               </linearGradient>
-              {/* Other Gradient (Amber - Header Menu matched) */}
-              <linearGradient id="gradOther" x1="0" y1="0" x2="0" y2="1">
+              {/* Meal Gradient (Amber) */}
+              <linearGradient id="gradMeal" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.85" />
                 <stop offset="100%" stopColor="#d97706" stopOpacity="0.45" />
+              </linearGradient>
+              {/* Bonus Gradient (Rose) */}
+              <linearGradient id="gradBonus" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#be123c" stopOpacity="0.45" />
               </linearGradient>
 
               {/* Glowing Line Gradient */}
               <linearGradient id="lineTopGrad" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#38bdf8" />
-                <stop offset="33%" stopColor="#c084fc" />
-                <stop offset="66%" stopColor="#34d399" />
-                <stop offset="100%" stopColor="#fbbf24" />
+                <stop offset="25%" stopColor="#c084fc" />
+                <stop offset="50%" stopColor="#34d399" />
+                <stop offset="75%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#f43f5e" />
               </linearGradient>
             </defs>
 
@@ -325,10 +344,17 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
               className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
             />
 
-            {/* Layer 3: Other Stacked Area (Amber) */}
+            {/* Layer 3: Meal Stacked Area (Amber) */}
             <path
-              d={pathOther}
-              fill="url(#gradOther)"
+              d={pathMeal}
+              fill="url(#gradMeal)"
+              className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
+            />
+
+            {/* Layer 4: Bonus Stacked Area (Rose) */}
+            <path
+              d={pathBonus}
+              fill="url(#gradBonus)"
               className="transition-all duration-500 ease-out opacity-90 hover:opacity-100"
             />
 
@@ -340,7 +366,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="transition-all duration-500 ease-out drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]"
+              className="transition-all duration-500 ease-out drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]"
             />
 
             {/* Interactive Data Points Circle */}
@@ -348,7 +374,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
               <g key={pt.data.dateStr} className="cursor-pointer group">
                 <circle
                   cx={pt.x}
-                  cy={pt.yOther}
+                  cy={pt.yBonus}
                   r={hoverIndex === idx ? '6' : '3.5'}
                   fill={pt.data.total > 0 ? '#ffffff' : '#334155'}
                   stroke="#0f172a"
@@ -361,10 +387,10 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
             ))}
           </svg>
 
-          {/* Menu-Matched Hover Tooltip Overlay */}
+          {/* Detailed Hover Tooltip Overlay with 5-Category Breakdown */}
           {hoverIndex !== null && stackedPoints[hoverIndex] && (
             <div
-              className="absolute -top-16 bg-slate-950/95 border border-cyan-500/60 text-white text-[10px] font-mono p-2.5 rounded-2xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200 min-w-[140px]"
+              className="absolute -top-20 bg-slate-950/95 border border-cyan-500/60 text-white text-[10px] font-mono p-2.5 rounded-2xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200 min-w-[145px]"
               style={{
                 left: `${Math.max(10, Math.min(90, (stackedPoints[hoverIndex].x / chartWidth) * 100))}%`,
               }}
@@ -392,10 +418,16 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
                     <span className="font-bold">+{stackedPoints[hoverIndex].data.training} pt</span>
                   </div>
                 )}
-                {stackedPoints[hoverIndex].data.other > 0 && (
+                {stackedPoints[hoverIndex].data.meal > 0 && (
                   <div className="flex justify-between items-center text-amber-300">
-                    <span>🍚 食事/他:</span>
-                    <span className="font-bold">+{stackedPoints[hoverIndex].data.other} pt</span>
+                    <span>🍚 食事:</span>
+                    <span className="font-bold">+{stackedPoints[hoverIndex].data.meal} pt</span>
+                  </div>
+                )}
+                {stackedPoints[hoverIndex].data.bonus > 0 && (
+                  <div className="flex justify-between items-center text-rose-300">
+                    <span>🎁 ボーナス:</span>
+                    <span className="font-bold">+{stackedPoints[hoverIndex].data.bonus} pt</span>
                   </div>
                 )}
               </div>
