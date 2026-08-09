@@ -1,25 +1,73 @@
-# 調査報告レポート: 重複している「全カテゴリ制覇カード」の削除調査
+# 調査報告レポート: りょうたろう君のストリークボーナス計算ロジックの不具合・欠陥調査
 
 ## 1. 調査目的 & 概要
-ユーザーからのご指摘「全カテゴリ状況はダッシュボードに入っているので、その下のカードは不要じゃないですか？また重複している」に基づき、[Dashboard.tsx](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/Dashboard.tsx) および [PersonalStreakCard.tsx](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/PersonalStreakCard.tsx) 内の重複カード配置を調査・解消する。
+ユーザーからの指摘「400ポイントは嘘だけど、りょうたろうの場合、連続7日、第2段階は発動するはずです。全然計算できてなくないですか？」に基づき、ストリークボーナス計算プログラム（`src/backend/index.ts` の `updateStreaks`）とDB上の実データを照合し、本来発動すべきボーナス額と計算ロジックの欠陥を解明する。
 
 ---
 
-## 2. 事実（ファクト）
-1. **[PersonalStreakCard.tsx Line 356-404](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/PersonalStreakCard.tsx#L356-L404)**:
-   - 「📊 ダッシュボード」カードの内部に「👑 本日の全カテゴリ制覇進捗」領域（4カテゴリの完了チェックとボーナス案内）がすでに組み込まれている。
-2. **[Dashboard.tsx Line 93-97](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/Dashboard.tsx#L93-L97)**:
-   - `PersonalStreakCard` の直下に `<AllCategoryCard>` が配置されているため、まったく同じ「全カテゴリ制覇」の情報が上下2箇所に完全に重複表示されていた。
+## 2. 結論（事実・ファクト）
+
+### 結論: **ユーザーのご指摘が 100% 正しいです。プログラムの計算ロジックに致命的な欠陥（バグ）があり、本来発動すべき「連続7日・中級（第2段階）ボーナス」が無視され、誤った400ptで上書きされていました。**
+
+本日（2026-08-09）のりょうたろう君の実データ：
+- **通常ストリーク**: **7日連続** (マイルストーン 7達成) → 本来 **70 pt**
+- **中級ストリーク (100pt以上)**: 本日素点 182 pt ≥ 100 pt のためクリア！ **7日連続** (マイルストーン 7達成) → 本来 **210 pt**
+- **神ストリーク (300pt以上)**: 本日素点 182 pt < 300 pt のため **未達成** (誤付与 400 pt は嘘)
 
 ---
 
-## 3. 解消方針
-- **`Dashboard.tsx` から `<AllCategoryCard>` を完全に削除・除去する**。
-- `PersonalStreakCard.tsx` 内の一本化された「全カテゴリ制覇進捗」のみとし、不要な重複カードを排除してホーム画面をすっきり整理・最適化する。
+## 3. なぜ計算できていないのか？（プログラム内の3つの欠陥）
+
+[src/backend/index.ts Line 279-296](file:///Users/fukuikeitaro/Documents/game/src/backend/index.ts#L279-L296) の計算処理に以下の3つの致命的なバグが存在します。
+
+```typescript
+// 現行プログラムの計算コード抜粋
+if (STREAK_MILESTONES.includes(newCurrentStreak) && dailyMultiplier > 0) {
+  const b = newCurrentStreak * dailyMultiplier; // ① 通常: 7日 × 10pt = 70pt
+  if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
+}
+if (STREAK_MILESTONES.includes(newCurrent50ptStreak) && midMultiplier > 0) {
+  const b = newCurrent50ptStreak * midMultiplier; // ② 中級: 7日 × 30pt = 210pt
+  if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
+}
+if (STREAK_MILESTONES.includes(newCurrent100ptStreak) && godMultiplier > 0) {
+  const b = newCurrent100ptStreak * godMultiplier; // ③ 神: 4日 × 100pt = 400pt
+  if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
+}
+```
+
+### ❌ バグ①: 本日未達成の「神ストリーク」が誤判定されている
+- 本日の素点 182 pt は 300 pt（神ストリークの閾値）に達していません。
+- しかし、前日までの `current_100pt_streak_days = 4` の値がそのまま参照され、本日の達成有無を無視して `4日 × 100pt = 400pt` が勝手に試算されてしまいました。
+
+### ❌ バグ②: `Math.max`（上書き）処理による中級ボーナスの消滅
+- コード内で `if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;` と「最高額で上書き」するロジックになっています。
+- その結果、本来発動すべき **「中級7日連続（210pt）」** や **「通常7日連続（70pt）」** が、誤って算出された「神400pt」によってすべて上書き・握りつぶされてしまいました。
+
+### ❌ バグ③: 複数ストリーク重複達成時の合算・ステップアップ計算欠陥
+- 通常ストリーク（1日10pt係数）と中級ストリーク（1日30pt係数）を両方達成した場合、別々に付与されるべきか、上位のみを適用するかの仕様・計算式が整理されておらず、誤った比較が行われています。
 
 ---
 
-## 4. 推奨アクション
-- [x] **Step 1 (設計)**: `Dashboard.tsx` から `<AllCategoryCard>` を削除し、「📊 ダッシュボード」カード内の一本化構造へ設計。
-- [x] **Step 2 (製造・テスト)**: コード更新、ビルド検証。
-- [x] **Step 3 (デプロイ)**: 本番デプロイ (`npm run deploy`) および Git コミット・プッシュ。
+## 4. 正しい計算・本来付与されるべきだったボーナス額
+
+りょうたろう君の本日の本来の判定結果：
+
+| ストリーク種別 | 本日の達成状況 | 計算式 (日数 × 係数) | 本来のボーナス額 | 現行コードでの挙動 |
+| :--- | :--- | :--- | :--- | :--- |
+| **通常ストリーク (第1段階)** | **7日連続 達成** | 7日 × 10 pt | **70 pt** | 神400ptにより上書き消滅 |
+| **中級ストリーク (第2段階)** | **7日連続 達成** (182pt ≥ 100pt) | 7日 × 30 pt | **210 pt** | 神400ptにより上書き消滅 |
+| **神ストリーク (第3段階)** | **未達成** (182pt < 300pt) | - | **0 pt** | 誤って400ptと判定され発火 |
+
+👉 **本来給付されるべき正しいボーナス額**:
+- 中級（第2段階）単体適用の場合: **210 pt** （または通常＋中級合算で **280 pt**）
+- **実際給付されてしまった誤ったボーナス額**: **400 pt**
+
+---
+
+## 5. 今後の推奨改善アクション
+
+- [ ] **1. 設計フェーズ (`/architect` または `設計:`) への引き継ぎ**:
+  - **本日達成フラグの厳格チェック**: 本日素点が閾値（100pt/300pt）に達していないストリークはボーナス算出対象から除外。
+  - **ストリーク加算・合算ロジックの再定義**: 通常・中級・神が同時達成された場合に「合算」するのか「各ライン独立して給付」するのかの設計確定。
+  - **りょうたろう君のポイント補正**: 誤給付された 400pt と本来受給すべき 210pt (または 280pt) の差額調整。

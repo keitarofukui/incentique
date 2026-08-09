@@ -276,20 +276,20 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     let targetMaxStreakBonus = 0;
     let streakMessages: string[] = [];
 
-    // 通常ストリーク満額
-    if (STREAK_MILESTONES.includes(newCurrentStreak) && dailyMultiplier > 0) {
+    // 通常ストリーク満額（本日ログイン・アクション実行済みの場合のみ）
+    if (newLastActionDate === logicalToday && STREAK_MILESTONES.includes(newCurrentStreak) && dailyMultiplier > 0) {
       const b = newCurrentStreak * dailyMultiplier;
       if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
       streakMessages.push(`🔥${newCurrentStreak}日連続`);
     }
-    // 中級ストリーク満額
-    if (STREAK_MILESTONES.includes(newCurrent50ptStreak) && midMultiplier > 0) {
+    // 中級ストリーク満額（本日素点が midThreshold 以上達成済みの場合のみ）
+    if (newLast50ptDate === logicalToday && STREAK_MILESTONES.includes(newCurrent50ptStreak) && midMultiplier > 0) {
       const b = newCurrent50ptStreak * midMultiplier;
       if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
       streakMessages.push(`💥${midThreshold}pt以上${newCurrent50ptStreak}日連続`);
     }
-    // 神ストリーク満額
-    if (STREAK_MILESTONES.includes(newCurrent100ptStreak) && godMultiplier > 0) {
+    // 神ストリーク満額（本日素点が godThreshold 以上達成済みの場合のみ）
+    if (newLast100ptDate === logicalToday && STREAK_MILESTONES.includes(newCurrent100ptStreak) && godMultiplier > 0) {
       const b = newCurrent100ptStreak * godMultiplier;
       if (b > targetMaxStreakBonus) targetMaxStreakBonus = b;
       streakMessages.push(`👑${godThreshold}pt以上${newCurrent100ptStreak}日連続`);
