@@ -674,17 +674,25 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 >
                   キャンセル
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading || isPointsExceeded || !newPointsStr || newPoints <= 0}
-                  className={`px-5 py-2 rounded-xl text-xs font-black transition-all shadow-lg ${
-                    isPointsExceeded || !newPointsStr || newPoints <= 0
-                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                      : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
-                  }`}
-                >
-                  {isParentMode ? '追加する' : '交換をリクエストする'}
-                </button>
+                {(() => {
+                  const isFormInvalid = itemType === 'cash'
+                    ? (!cashAmountStr || cashAmount <= 0)
+                    : (!newPointsStr || newPoints <= 0);
+                  const isBtnDisabled = loading || isPointsExceeded || isFormInvalid;
+                  return (
+                    <button
+                      type="submit"
+                      disabled={isBtnDisabled}
+                      className={`px-5 py-2 rounded-xl text-xs font-black transition-all shadow-lg ${
+                        isBtnDisabled
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                          : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
+                      }`}
+                    >
+                      {isParentMode ? '追加する' : '交換をリクエストする'}
+                    </button>
+                  );
+                })()}
               </div>
             </form>
           </div>
