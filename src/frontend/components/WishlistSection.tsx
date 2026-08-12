@@ -26,6 +26,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   const [itemType, setItemType] = useState<'goods' | 'cash'>('goods');
   const [newTitle, setNewTitle] = useState<string>('');
   const [newPointsStr, setNewPointsStr] = useState<string>('');
+  const [cashAmountStr, setCashAmountStr] = useState<string>('');
   const [newImageUrl, setNewImageUrl] = useState<string>('');
   const [newProductUrl, setNewProductUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -33,6 +34,9 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   if (!currentUser && !isParentMode) return null;
 
   const newPoints = Number(newPointsStr) || 0;
+  const cashAmount = Number(cashAmountStr) || 0;
+  // 浮動小数点数誤差（700 / 0.7 = 1000.0000000000001 -> 1001pt）を防止するため (cashAmount * 10) / 7 で算出
+  const requiredPointsForCash = cashAmount > 0 ? Math.ceil((cashAmount * 10) / 7) : 0;
 
   // Parent mode sees every child's list; a child sees only their own
   const displayWishItems = isParentMode
@@ -74,24 +78,39 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
     const targetUser = currentUser ? currentUser : users[0];
     const availablePoints = targetUser ? targetUser.current_points : 0;
 
-    if (!newPointsStr || newPoints <= 0) {
-      alert('交換ポイントを入力してください。');
-      return;
-    }
+    let finalPoints = 0;
+    let finalTitle = '';
 
-    // Validation for points limit
-    if (!isParentMode && newPoints > availablePoints) {
-      alert(`所持ポイント（${availablePoints.toLocaleString()} pt）を超えて設定することはできません。`);
-      return;
-    }
+    if (itemType === 'cash') {
+      if (!cashAmountStr || cashAmount <= 0) {
+        alert('換金希望金額を入力してください。');
+        return;
+      }
+      finalPoints = requiredPointsForCash;
+      finalTitle = `現金還元 (${cashAmount.toLocaleString()}円)`;
 
-    const finalTitle = itemType === 'cash'
-      ? `現金還元 (${Math.floor(newPoints * 0.7).toLocaleString()}円)`
-      : newTitle.trim();
+      const maxCashForUser = Math.floor(availablePoints * 0.7);
+      if (!isParentMode && finalPoints > availablePoints) {
+        alert(`所持ポイント（${availablePoints.toLocaleString()} pt）で換金できるのは最大 ${maxCashForUser.toLocaleString()} 円までです。`);
+        return;
+      }
+    } else {
+      if (!newPointsStr || newPoints <= 0) {
+        alert('交換ポイントを入力してください。');
+        return;
+      }
+      finalPoints = newPoints;
+      finalTitle = newTitle.trim();
 
-    if (!finalTitle) {
-      alert('商品・報酬タイトルを入力してください。');
-      return;
+      if (!finalTitle) {
+        alert('商品・報酬タイトルを入力してください。');
+        return;
+      }
+
+      if (!isParentMode && finalPoints > availablePoints) {
+        alert(`所持ポイント（${availablePoints.toLocaleString()} pt）を超えて設定することはできません。`);
+        return;
+      }
     }
 
     const targetUserId = targetUser?.id;
@@ -111,13 +130,13 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
         'この内容で交換をリクエストしますか？',
         '',
         `【${itemType === 'cash' ? '現金還元' : '欲しいもの'}】${finalTitle}`,
-        `必要ポイント: ${newPoints.toLocaleString()} pt`,
+        `必要ポイント: ${finalPoints.toLocaleString()} pt`,
       ];
       if (itemType === 'cash') {
-        lines.push(`受け取る現金: ¥${Math.floor(newPoints * 0.7).toLocaleString()}（7掛け）`);
+        lines.push(`受取現金金額: ¥${cashAmount.toLocaleString()}（7掛け還元）`);
       }
       lines.push(
-        `残りポイント: ${availablePoints.toLocaleString()} → ${(availablePoints - newPoints).toLocaleString()} pt`,
+        `残りポイント: ${availablePoints.toLocaleString()} → ${(availablePoints - finalPoints).toLocaleString()} pt`,
         '',
         '※ポイントが引かれるのは、保護者が実際に手渡したあとです。'
       );
@@ -134,7 +153,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
           title: finalTitle,
           imageUrl: itemType === 'cash' ? undefined : (newImageUrl || undefined),
           productUrl: itemType === 'cash' ? undefined : (newProductUrl.trim() || undefined),
-          requiredPoints: newPoints,
+          requiredPoints: finalPoints,
           itemType: itemType,
         })
       });
@@ -163,6 +182,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
       setNewTitle('');
       setNewPointsStr('');
+      setCashAmountStr('');
       setNewImageUrl('');
       setNewProductUrl('');
       setItemType('goods');
@@ -177,7 +197,9 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
   };
 
   const userCurrentPoints = currentUser ? currentUser.current_points : (users[0]?.current_points || 0);
-  const isPointsExceeded = !isParentMode && newPoints > userCurrentPoints;
+  const maxCash = Math.floor(userCurrentPoints * 0.7);
+  const effectiveRequiredPoints = itemType === 'cash' ? requiredPointsForCash : newPoints;
+  const isPointsExceeded = !isParentMode && effectiveRequiredPoints > userCurrentPoints;
 
   return (
     <div className="space-y-6">
@@ -498,7 +520,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </div>
               )}
 
-              {/* Title Input: Only shown for Goods */}
+              {/* Goods: Title Input */}
               {itemType === 'goods' && (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-300">商品・報酬タイトル</label>
@@ -513,53 +535,105 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                 </div>
               )}
 
-              {/* Point Input & Validation */}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-xs">
-                  <label className="font-bold text-slate-300">交換ポイント (pt)</label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
-                    </span>
-                    {!isParentMode && userCurrentPoints > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setNewPointsStr(String(userCurrentPoints))}
-                        className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black hover:bg-amber-500/30 transition-all"
-                      >
-                        全額
-                      </button>
-                    )}
+              {/* Cash: Amount Input & Point Reverse-Calculation / Goods: Point Input */}
+              {itemType === 'cash' ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <label className="font-bold text-slate-300">換金希望金額 (円)</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
+                        <span className="text-[10px] text-emerald-400 ml-1">
+                          (最大 {maxCash.toLocaleString()} 円換金可)
+                        </span>
+                      </span>
+                      {!isParentMode && maxCash > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCashAmountStr(String(maxCash))}
+                          className="px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black hover:bg-emerald-500/30 transition-all shrink-0"
+                        >
+                          全額換金
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <input
-                  type="number"
-                  placeholder="例: 1000"
-                  // step=50 だと所持ポイントが50の倍数でないとき（例: 3,006pt）
-                  // 全額を入力した瞬間にブラウザ標準の検証で弾かれてしまう
-                  step={1}
-                  min={1}
-                  max={!isParentMode ? userCurrentPoints : undefined}
-                  value={newPointsStr}
-                  onChange={(e) => setNewPointsStr(e.target.value)}
-                  className={`w-full bg-slate-900 border rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none ${
-                    isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-amber-400'
-                  }`}
-                />
-                {isPointsExceeded && (
-                  <p className="text-[11px] font-bold text-red-400 flex items-center gap-1 mt-1">
-                    ⚠️ 所持ポイント（{userCurrentPoints.toLocaleString()} pt）を超えて入力することはできません。
-                  </p>
-                )}
-              </div>
 
-              {/* Live Preview for Cash Option */}
-              {itemType === 'cash' && newPoints > 0 && (
-                <div className="p-3 bg-slate-900 border border-emerald-500/40 rounded-xl flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-bold">💵 受取現金金額 (7掛け):</span>
-                  <span className="text-base font-black text-emerald-400 font-mono">
-                    ¥ {Math.floor(newPoints * 0.7).toLocaleString()} 円
-                  </span>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3.5 text-emerald-400 font-black text-sm select-none">¥</span>
+                    <input
+                      type="number"
+                      placeholder="例: 700"
+                      step={10}
+                      min={1}
+                      max={!isParentMode ? maxCash : undefined}
+                      value={cashAmountStr}
+                      onChange={(e) => setCashAmountStr(e.target.value)}
+                      className={`w-full bg-slate-900 border rounded-xl pl-8 pr-4 py-2 text-sm text-white font-mono focus:outline-none ${
+                        isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-400'
+                      }`}
+                    />
+                  </div>
+
+                  {cashAmount > 0 && (
+                    <div className="p-3 bg-slate-900 border border-emerald-500/40 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-300 font-bold">💵 必要ポイント (7掛け還元):</span>
+                        <span className="text-base font-black text-amber-400 font-mono">
+                          {requiredPointsForCash.toLocaleString()} pt
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-400 font-mono pt-1.5 border-t border-slate-800">
+                        <span>交換後残りポイント:</span>
+                        <span className={userCurrentPoints - requiredPointsForCash < 0 ? 'text-red-400 font-bold' : 'text-slate-300'}>
+                          {(userCurrentPoints - requiredPointsForCash).toLocaleString()} pt
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {isPointsExceeded && (
+                    <p className="text-[11px] font-bold text-red-400 flex items-center gap-1 mt-1">
+                      ⚠️ 所持ポイント（{userCurrentPoints.toLocaleString()} pt）で換金できるのは最大 {maxCash.toLocaleString()} 円までです。
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <label className="font-bold text-slate-300">交換ポイント (pt)</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
+                      </span>
+                      {!isParentMode && userCurrentPoints > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setNewPointsStr(String(userCurrentPoints))}
+                          className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black hover:bg-amber-500/30 transition-all"
+                        >
+                          全額
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="例: 1000"
+                    step={1}
+                    min={1}
+                    max={!isParentMode ? userCurrentPoints : undefined}
+                    value={newPointsStr}
+                    onChange={(e) => setNewPointsStr(e.target.value)}
+                    className={`w-full bg-slate-900 border rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none ${
+                      isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-amber-400'
+                    }`}
+                  />
+                  {isPointsExceeded && (
+                    <p className="text-[11px] font-bold text-red-400 flex items-center gap-1 mt-1">
+                      ⚠️ 所持ポイント（{userCurrentPoints.toLocaleString()} pt）を超えて入力することはできません。
+                    </p>
+                  )}
                 </div>
               )}
 
