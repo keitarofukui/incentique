@@ -101,3 +101,18 @@ export const logLogicalDateStr = (raw?: string): string => {
 
 /** 今日の論理日付（朝4時区切り） */
 export const todayLogicalDateStr = (): string => toLogicalDateStr(new Date());
+
+/**
+ * 指定された論理日付文字列（YYYY-MM-DD）と今日の論理日付との日数差を返す。
+ * 未設定またはフォーマット不正の場合は Infinity を返す。
+ */
+export const getLogicalDaysDiff = (dateStr?: string): number => {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return Infinity;
+  const todayStr = todayLogicalDateStr();
+  const tToday = new Date(todayStr).getTime();
+  const tTarget = new Date(dateStr).getTime();
+  if (isNaN(tToday) || isNaN(tTarget)) return Infinity;
+  const diffTime = tToday - tTarget;
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+};
+

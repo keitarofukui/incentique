@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, ActionLog } from '../types';
 import { Flame, CheckCircle2, ArrowRight, Zap } from 'lucide-react';
-import { logLogicalDateStr, todayLogicalDateStr } from '../dateUtils';
+import { logLogicalDateStr, todayLogicalDateStr, getLogicalDaysDiff } from '../dateUtils';
 
 interface PersonalStreakCardProps {
   currentUser: User;
@@ -108,14 +108,24 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
   const allCategoryAwarded = completedCategoriesCount === 4;
   const missingCategories = categories.filter((c) => !c.done);
 
-  // DB確定の連続日数（過的な設定変更に影響されない実績値）
-  const streakDaily = currentUser.current_streak_days || 0;
-  const streakMid = currentUser.current_50pt_streak_days || 0;
-  const streakGod = currentUser.current_100pt_streak_days || 0;
+  // DB確定の連続日数（最終活動日から2日以上経過している場合は失効して0日として動的補正）
+  const diffDaily = getLogicalDaysDiff(currentUser.last_action_date);
+  const diffMid = getLogicalDaysDiff(currentUser.last_50pt_date);
+  const diffGod = getLogicalDaysDiff(currentUser.last_100pt_date);
 
-  const streakIfRecorded = doneToday ? streakDaily : streakDaily + 1;
-  const streakMidIfRecorded = todayBase >= midThreshold ? streakMid : streakMid + 1;
-  const streakGodIfRecorded = todayBase >= godThreshold ? streakGod : streakGod + 1;
+  const rawStreakDaily = currentUser.current_streak_days || 0;
+  const rawStreakMid = currentUser.current_50pt_streak_days || 0;
+  const rawStreakGod = currentUser.current_100pt_streak_days || 0;
+
+  // 最終活動日が今日または昨日（diff <= 1）であれば有効。diff >= 2 であれば失効（0日）
+  const streakDaily = diffDaily <= 1 ? rawStreakDaily : 0;
+  const streakMid = diffMid <= 1 ? rawStreakMid : 0;
+  const streakGod = diffGod <= 1 ? rawStreakGod : 0;
+
+  const streakIfRecorded = doneToday ? streakDaily : (diffDaily <= 1 ? streakDaily + 1 : 1);
+  const streakMidIfRecorded = todayBase >= midThreshold ? streakMid : (diffMid <= 1 ? streakMid + 1 : 1);
+  const streakGodIfRecorded = todayBase >= godThreshold ? streakGod : (diffGod <= 1 ? streakGod + 1 : 1);
+
 
   const dailyBonusPayout = streakIfRecorded * dailyMultiplier;
   const midBonusPayout = streakMidIfRecorded * midMultiplier;

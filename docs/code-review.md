@@ -1,20 +1,21 @@
-# コードレビュー結果レポート
+# コードレビュー報告書: 連続記録失効判定の実装
 
-## 1. 総合判定
-**判定**: 【 LOOKS_GOOD_TO_ME (LGTM) 】
-
----
-
-## 2. 品質評価サマリー
-- **可読性・命名**: **良好** (`cashAmountStr`, `requiredPointsForCash`, `maxCash`, `effectiveRequiredPoints` 等、役割の明確な英単語で命名されています)
-- **コード構造・共通化**: **良好** (物品モードと現金還元モードの表示切り替えが条件分岐で綺麗に整理され、既存の `requiredPoints` 送信形式との後方互換性が保たれています)
-- **パフォーマンス**: **良好** (計算はすべて同期的な軽量の算術処理 `Math.ceil` / `Math.floor` で行われており、レンダリング負荷は極めて低いです)
-- **型定義 & API整合性**: **良好** (既存の API ペイロード型 `requiredPoints: number` をそのまま満たしており、Undefined や型ミスマッチの発生はありません)
+## 1. 概要
+- 対象ファイル: `src/frontend/dateUtils.ts`, `src/frontend/components/PersonalStreakCard.tsx`
+- 目的: 連続記録（デイリー・中級・神）の失効動的判定機能のコード品質、安全性、可読性の検証。
 
 ---
 
-## 3. 指摘事項 & リファクタリング評価
-1. **[WishlistSection.tsx: L35-L36] 逆算計算式のカプセル化**
-   - `Math.ceil(cashAmount / 0.7)` は非常に明快に書かれています。全額ボタンでセットされる `maxCash` (`Math.floor(userCurrentPoints * 0.7)`) も数学的に整合性が取れています。
-2. **[WishlistSection.tsx: モーダル表示部] UIの一貫性と視認性**
-   - 金額入力フィールドに `¥` アイコンを絶対配置し、エメラルド基調（`text-emerald-400`, `border-emerald-500`）の現金テーマカラーが統一されています。
+## 2. 評価・チェック結果
+
+| レビュー項目 | 判定 | 評価コメント |
+| :--- | :---: | :--- |
+| **TypeScript / 型安全性** | ✅ PASS | 型定義・`undefined` / `null` チェックおよびフォーマット判定が厳格で型エラーなし。 |
+| **ビルド検証** | ✅ PASS | `npm run build` にて 0 エラーで Vite バンドル作成成功。 |
+| **パフォーマンス・効率性** | ✅ PASS | `getLogicalDaysDiff` は軽量な文字列・Time比較であり、再レンダリング時のオーバーヘッドは極小。 |
+| **可読性・保守性** | ✅ PASS | 補正前の生データ (`rawStreak`) と補正後の表示用データ (`streakDaily`) が明示的に分かれており可読性が高い。 |
+
+---
+
+## 3. レビュー結果
+- **総合判定**: **合格 (PASS)**
