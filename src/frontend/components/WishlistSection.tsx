@@ -564,7 +564,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     <input
                       type="number"
                       placeholder="例: 700"
-                      step={10}
+                      step={1}
                       min={1}
                       max={!isParentMode ? maxCash : undefined}
                       value={cashAmountStr}
