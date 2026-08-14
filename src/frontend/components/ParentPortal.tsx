@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame, LayoutDashboard } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 import { ApproveWishModal } from './ApproveWishModal';
 import { ReturnWishModal } from './ReturnWishModal';
+import { ParentMemberDashboardCard } from './ParentMemberDashboardCard';
 
 interface ParentPortalProps {
   users: User[];
@@ -54,8 +55,14 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
 
-  // サブタブ管理 ('requests_logs' | 'users_training' | 'point_rules' | 'settings')
-  const [activeSubTab, setActiveSubTab] = useState<'requests_logs' | 'users_training' | 'point_rules' | 'settings'>('requests_logs');
+  // サブタブ管理 ('dashboard' | 'requests_logs' | 'users_training' | 'point_rules' | 'settings')
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'requests_logs' | 'users_training' | 'point_rules' | 'settings'>('dashboard');
+
+  const handleSelectUserFilterFromCard = (userId: string, targetSubTab: 'requests_logs') => {
+    setSelectedUserIdFilter(userId);
+    fetchAllLogs(1, userId);
+    setActiveSubTab(targetSubTab);
+  };
 
   const handleSaveParentPin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,6 +332,18 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       {/* Tab Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-800/80 pb-2 overflow-x-auto scrollbar-none">
         <button
+          onClick={() => setActiveSubTab('dashboard')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${
+            activeSubTab === 'dashboard'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-glow-gold'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          <span>📊 メンバーダッシュボード</span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('requests_logs')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap relative ${
             activeSubTab === 'requests_logs'
@@ -377,6 +396,44 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           <span>🛡 保護者設定</span>
         </button>
       </div>
+
+      {/* Tab 0: Member Dashboard */}
+      {activeSubTab === 'dashboard' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-4 sm:p-5 rounded-2xl border border-slate-800">
+            <div>
+              <h3 className="text-lg font-black text-amber-400 flex items-center gap-2">
+                <LayoutDashboard className="w-5 h-5" />
+                <span>全メンバーの活動 & ポイントダッシュボード</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                登録メンバーの通算ポイント、当日の獲得ポイント、連続達成日数（補正済）、アクティビティを一括参照できます。
+              </p>
+            </div>
+            <div className="text-xs font-bold text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 shrink-0">
+              登録メンバー: {users.length} 名
+            </div>
+          </div>
+
+          {users.length === 0 ? (
+            <div className="p-8 text-center bg-slate-900/40 rounded-2xl border border-slate-800 text-slate-400">
+              登録されているメンバーがいません。「ユーザー & 運動管理」タブからメンバーを登録してください。
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {users.map((user) => (
+                <ParentMemberDashboardCard
+                  key={user.id}
+                  user={user}
+                  actionLogs={allLogs}
+                  wishItems={wishItems}
+                  onSelectUserFilter={handleSelectUserFilterFromCard}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tab 1: Requests & Action Logs */}
       {activeSubTab === 'requests_logs' && (
