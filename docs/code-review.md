@@ -7,15 +7,13 @@
 
 ## 2. 品質評価サマリー
 - **可読性・命名**: 良好
-  - `ParentMemberDashboardCard.tsx` の変数命名（`todayBasePoints`, `todayBonusPoints`, `streakDaily`, `userClaimedWishes` 等）およびコンポーネント構造がシンプルで直感的にわかりやすいです。
-- **コード構造・共通化**: 良好
-  - `dateUtils.ts` の `logLogicalDateStr` および `getLogicalDaysDiff` ユーティリティを活用し、他コンポーネントと同等の失効補正ロジックを共通化しています。
+  - `ParentMemberDashboardCard.tsx` の表示ラベルが動的な `{midThreshold}pt連続` / `{godThreshold}pt連続` に修正され、ゲーム全体の表示（`StreakBonusInfo.tsx` や `PersonalStreakCard.tsx`）と完全に表記が一致しました。
+- **コード構造・保守性**: 良好
+  - `ParentPortal.tsx` の `pointRules` state から動的にパラメータを抽出し、適切なデフォルトフォールバック値（100 / 250）を設定しているため堅牢です。
 - **パフォーマンス**: 良好
-  - ログの集計を全ログに対する軽量な `filter` / `forEach` で行っており、余計な計算コストやレンダリング負荷が生じない構造です。
+  - Propsの追加のみで不要な再計算・再レンダリングのオーバーヘッドはありません。
 
 ---
 
 ## 3. 指摘事項 & リファクタリング提案
-1. **[`ParentMemberDashboardCard.tsx`](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/ParentMemberDashboardCard.tsx)**:
-   - 全体的なアクセントカラーとフォント設定がアプリテーマ（サイバー・ダークテイスト）と完璧に同調しています。
-   - `User` オブジェクトの未定義値 (`current_points` が未指定の場合のフォールバックなど) に対する安全性プロテクト `(user.current_points || 0)` が組み込まれており、堅牢です。
+1. 特になし。要件通りに動的ラベルへの修正が完了しています。

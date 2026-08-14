@@ -1,52 +1,45 @@
-# 調査報告レポート: 保護者画面におけるメンバー別ポイント・連続日数ダッシュボード表示
+# 調査報告レポート: 連続日数のポイント閾値（50pt/100pt）表示と実態の不一致について
 
 ## 1. 調査目的 & 概要
-保護者画面（管理者ポータル）において、メンバー（子ども）ごとの所持ポイント数、各種連続達成日数（連続アクション日数、50pt達成連続、100pt達成連続）、本日の獲得ポイントや活動状況を一発で閲覧・把握できるダッシュボード画面の提供に向け、現状のフロントエンド・バックエンドのデータ構造および実装状態を調査・分析しました。
+保護者ダッシュボードやUI上の表示において、連続達成日数の表示ラベルが「50pt連続」「100pt連続」となっており、実態の判定閾値と異なっているとのご指摘を受け、コードベース全体の連続達成判定ロジック、DBカラム名、および設定ルールの整合性を調査・解明しました。
 
 ---
 
 ## 2. 現状のコード構造・ファクト（事実）
 
-### 2.1. 保護者画面の現行構成 (`src/frontend/components/ParentPortal.tsx`)
-- **ヘッダー部**: [`ParentPortal.tsx`](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/ParentPortal.tsx#L314-L322) の `Quick User summary badge` にて、メンバーごとの「アバター」「名前」「通算ポイント（`current_points`）」を横スクロールバッジで簡易表示しているのみ。
-- **サブタブ構成**:
-  1. `🎁 リクエスト & 履歴` (`requests_logs`)
-  2. `👥 ユーザー & 運動管理` (`users_training`)
-  3. `⚙️ ポイント獲得ルール` (`point_rules`)
-  4. `🛡 保護者設定` (`settings`)
-- **課題**: メンバーそれぞれの連続日数（連続ログイン・50pt達成連続・100pt達成連続）や、本日の獲得ポイント・当日の学習/運動達成状況を一目で閲覧できる専用画面・カードが存在しない。
+### 2.1. DBスキーマ・変数名の歴史的背景
+- **DBカラム名 (`schema.sql` / `types.ts`)**:
+  - `last_50pt_date`, `current_50pt_streak_days`: 中級ストリーク用
+  - `last_100pt_date`, `current_100pt_streak_days`: 上級ストリーク用
+  - 歴史的経緯によりDBカラム名には `50pt` / `100pt` という固定名が付与されています。
 
-### 2.2. データモデルの保持状況 (`src/frontend/types.ts`)
-- [`User` インターフェース](file:///Users/fukuikeitaro/Documents/game/src/frontend/types.ts#L17-L36) には、ダッシュボード表示に必要なデータフィールドが既にすべて保持されています。
-  - `current_points`: 通算所持ポイント
-  - `last_action_date` / `current_streak_days`: 最終活動日・連続活動日数
-  - `last_50pt_date` / `current_50pt_streak_days`: 最終50pt達成日・50pt達成連続日数
-  - `last_100pt_date` / `current_100pt_streak_days`: 最終100pt達成日・100pt達成連続日数
-  - `last_300pt_bonus_date` / `last_500pt_bonus_date` / `last_1000pt_bonus_date`: ボリュームボーナス達成状況
+### 2.2. バックエンド & ポイントルールの実態 (`src/backend/index.ts`)
+- バックエンドの実際の連続日数判定・ボーナス付与処理（[`src/backend/index.ts:L183-L187`](file:///Users/fukuikeitaro/Documents/game/src/backend/index.ts#L183-L187)）では、DBカラム `current_50pt_streak_days` および `current_100pt_streak_days` を使用しているものの、**実際の判定閾値（しきい値）はポイントルール定義 (`point_rules`) から動的に取得**されています：
+  - **中級ストリーク閾値 (`streak_mid_threshold`)**: デフォルト **`100 pt`** 以上/日
+  - **上級ストリーク閾値 (`streak_god_threshold`)**: デフォルト **`250 pt`** (または **`300 pt`**) 以上/日
 
-### 2.3. 連続日数の動的補正ロジック (`PersonalStreakCard.tsx` / `RivalPulse.tsx`)
-- DBに保存されている `current_streak_days` 等は過去の最終活動時点の数値であるため、最終活動日から2日以上離れている場合（`getLogicalDaysDiff(last_date) >= 2`）は、画面表示時に動的に `0日` （失効）として扱う補正ロジックが既存コンポーネント（[`PersonalStreakCard.tsx`](file:///Users/fukuikeitaro/Documents/game/src/frontend/components/PersonalStreakCard.tsx#L127-L138)）で実装済みです。
+### 2.3. フロントエンド表示の乖離
+- **ユーザー画面 (`PersonalStreakCard.tsx` / `StreakBonusInfo.tsx`)**:
+  - ルール定義 `midThreshold` (100pt) / `godThreshold` (250pt/300pt) を参照し、`💥 100pt達成連続` / `👑 250pt達成連続` と正しく表示されています。
+- **保護者画面 (`ParentMemberDashboardCard.tsx`)**:
+  - DBカラム名 `current_50pt_streak_days` / `current_100pt_streak_days` の文字を直訳し、ラベルを固定で `50pt連続` / `100pt連続` と表示していたため、実態のゲームルール（100pt/250pt）と表記が食い違っていました。
 
 ---
 
-## 3. 分析・効果・影響範囲
+## 3. 原因・影響範囲
 
-### 3.1. 実装における実現性
-- **バックエンドAPI改修不要**:
-  保護者画面は既に `users` 一覧（`GET /api/users`）および `actionLogs` 一覧（`GET /api/action-logs`）を取得・管理しているため、既存のAPIとデータモデルのみでダッシュボード表示を完全完遂できます。
+### 3.1. 原因
+- DBカラム名（`50pt`/`100pt`）と、実際に運用されているポイントルール（`100pt`/`250pt`）の乖離。
+- 保護者ダッシュボードカードにおいて、動的なポイントルールしきい値を取得・参照せず、DBカラム名に基づくハードコード表記を行っていたこと。
 
-### 3.2. 期待される効果
-- **保護者の利便性向上**: 子どもの日々の頑張り（本日のポイント、ストリーク維持状況、未承認リクエスト有無）が保護者画面を開いた瞬間に一目で分かります。
-- **モチベーション管理**: 連続日数が途切れそうなメンバーや、ポイント獲得が順調なメンバーをリアルタイムで把握しやすくなります。
-
-### 3.3. 影響範囲
-- `ParentPortal.tsx` 内のサブタブメニュー構成およびダッシュボード表示用カードコンポーネントの追加。
-- 既存機能（リクエスト承認、マスター設定、PIN設定等）への破壊的変更はありません。
+### 3.2. 影響範囲
+- `ParentMemberDashboardCard.tsx` の表示ラベル表記。
+- ロジック・計算値自体は正しいデータを参照していますが、保護者が画面で見た際のラベルの数値テキストが実態と異なって見えていました。
 
 ---
 
 ## 4. 今後の推奨アクション（次のステップ案）
 
-- [ ] **設計フェーズ (`/architect`)**: `ParentPortal.tsx` への「📊 メンバーダッシュボード」サブタブ追加およびカードデザイン・表示因子の詳細設計（`docs/design-spec.md` の作成）。
-- [ ] **UIコンポーネント構築 (`/dev`)**: メンバーごとのポイント、3種の連続日数（補正ロジック適用）、本日獲得ポイント、達成状況バッジを網羅した高質感カードUIの実装。
-- [ ] **クイック操作連携 (`/dev`)**: ダッシュボードカードから該当メンバーの未承認リクエスト承認や履歴フィルターへのワンタップ遷移導線を追加。
+- [ ] **設計フェーズ (`/architect`)**: `ParentMemberDashboardCard.tsx` において `/api/point-rules`（または共通プロップス）から `streak_mid_threshold` (100pt) および `streak_god_threshold` (250pt/300pt) を取得し、動的ラベル（例: `100pt連続`, `250pt連続`）に修正する設計策定。
+- [ ] **実装フェーズ (`/dev`)**: `ParentMemberDashboardCard.tsx` のラベル表示ロジックの改修。
+- [ ] **全自動連携 (`全自動:` / `/auto`)**: 調査〜修正〜テスト〜本番適用を一気に自動実行。

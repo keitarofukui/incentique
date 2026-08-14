@@ -1,7 +1,7 @@
 # テスト & QA検証レポート
 
 ## 1. 検証対象機能
-- 機能名: 保護者画面におけるメンバー別ポイント・連続日数ダッシュボード（`ParentMemberDashboardCard` & `ParentPortal.tsx`）
+- 機能名: 保護者ダッシュボードにおける連続日数ポイント閾値（100pt/250pt）動的表示の修正
 
 ---
 
@@ -15,21 +15,16 @@
   rendering chunks...
   dist/index.html                   1.04 kB │ gzip:   0.60 kB
   dist/assets/index-D4cAiW_n.css   66.43 kB │ gzip:  10.97 kB
-  dist/assets/index-DWsker1j.js   431.76 kB │ gzip: 113.09 kB
-  ✓ built in 2.44s
+  dist/assets/index-XyJ3TcX8.js   432.00 kB │ gzip: 113.22 kB
+  ✓ built in 2.12s
   ```
 
 ---
 
 ## 3. UI・動作検証
-- **コンポーネントの構造検証**: PASS
-  - `ParentMemberDashboardCard` コンポーネントが新規作成され、`ParentPortal.tsx` のサブタブ `dashboard` 内に正常にマウントされていることを確認。
-- **データ集計 & 補正ロジック**: PASS
-  - 本日の獲得ポイント（素点・ボーナス）が正しく分類・計算され、全4カテゴリ（クイズ・インプット・運動・食事）の達成フラグが正しく判定されるロジックを検証。
-  - 最終活動日から2日以上経過したユーザーに対する3種類の連続日数（通常・50pt・100pt）の `0日` 補正表示（失効判定）が正常に動作することを確認。
-- **イベント操作・画面遷移**: PASS
-  - 「未承認リクエスト」バッジおよび「活動履歴・申請を見る」ボタンをクリックした際、`selectedUserIdFilter` に該当メンバーIDがセットされ、`requests_logs` タブへシームレスに切り替わるコールバックロジックを検証。
-- **コンソールエラーの有無**: なし（TypeScript型チェックおよびViteビルドともに完全パス）
+- **ラベル動的描画の検証**: PASS
+  - `ParentMemberDashboardCard` において、`midThreshold` (100pt) および `godThreshold` (250pt) の動的テキスト描画（「100pt連続」「250pt連続」）が意図通りにレンダリングされることを検証。
+- **コンソールエラーの有無**: なし
 
 ---
 

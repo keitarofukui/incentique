@@ -421,15 +421,24 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              {users.map((user) => (
-                <ParentMemberDashboardCard
-                  key={user.id}
-                  user={user}
-                  actionLogs={allLogs}
-                  wishItems={wishItems}
-                  onSelectUserFilter={handleSelectUserFilterFromCard}
-                />
-              ))}
+              {users.map((user) => {
+                const midRule = pointRules.find((r) => r.category === 'streak_mid_threshold');
+                const godRule = pointRules.find((r) => r.category === 'streak_god_threshold');
+                const midThreshold = midRule ? midRule.points : 100;
+                const godThreshold = godRule ? godRule.points : 250;
+
+                return (
+                  <ParentMemberDashboardCard
+                    key={user.id}
+                    user={user}
+                    actionLogs={allLogs}
+                    wishItems={wishItems}
+                    midThreshold={midThreshold}
+                    godThreshold={godThreshold}
+                    onSelectUserFilter={handleSelectUserFilterFromCard}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

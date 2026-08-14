@@ -7,6 +7,8 @@ interface ParentMemberDashboardCardProps {
   user: User;
   actionLogs: ActionLog[];
   wishItems: WishItem[];
+  midThreshold?: number;
+  godThreshold?: number;
   onSelectUserFilter: (userId: string, targetSubTab: 'requests_logs') => void;
 }
 
@@ -14,6 +16,8 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
   user,
   actionLogs,
   wishItems,
+  midThreshold = 100,
+  godThreshold = 250,
   onSelectUserFilter,
 }) => {
   const todayStr = todayLogicalDateStr();
@@ -158,11 +162,11 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
               </div>
             </div>
 
-            {/* 2. 50pt Streak */}
+            {/* 2. Mid Streak */}
             <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
               <div className="text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1">
                 <Flame className="w-3 h-3 text-orange-400" />
-                <span>50pt連続</span>
+                <span>{midThreshold}pt連続</span>
               </div>
               <div className={`text-base font-black font-mono mt-0.5 ${streakMid > 0 ? 'text-orange-400' : 'text-slate-500'}`}>
                 {streakMid} <span className="text-[10px]">日</span>
@@ -172,11 +176,11 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
               </div>
             </div>
 
-            {/* 3. 100pt Streak */}
+            {/* 3. God Streak */}
             <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
               <div className="text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1">
                 <Trophy className="w-3 h-3 text-purple-400" />
-                <span>100pt連続</span>
+                <span>{godThreshold}pt連続</span>
               </div>
               <div className={`text-base font-black font-mono mt-0.5 ${streakGod > 0 ? 'text-purple-400' : 'text-slate-500'}`}>
                 {streakGod} <span className="text-[10px]">日</span>
