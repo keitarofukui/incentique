@@ -15,6 +15,9 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
   const [gradeLevelFilter, setGradeLevelFilter] = useState<string>(currentUser?.grade_level || 'all');
   const [category, setCategory] = useState<string>('all');
   const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
+  const [nextBatchBuffer, setNextBatchBuffer] = useState<QuizQuestion[] | null>(null);
+  const [isPrefetching, setIsPrefetching] = useState<boolean>(false);
+  const [isFetchingNextBatch, setIsFetchingNextBatch] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -40,6 +43,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
 
   const fetchQuizzes = async () => {
     setLoading(true);
+    setNextBatchBuffer(null);
     try {
       let url = `/api/quizzes?grade_level=${gradeLevelFilter}`;
       if (category !== 'all') {
@@ -66,12 +70,33 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
     }
   };
 
+  const prefetchNextBatch = async () => {
+    if (isPrefetching) return;
+    setIsPrefetching(true);
+    try {
+      let url = `/api/quizzes?grade_level=${gradeLevelFilter}`;
+      if (category !== 'all') {
+        url += `&category=${category}`;
+      }
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.quizzes && data.quizzes.length > 0) {
+        setNextBatchBuffer(data.quizzes);
+      }
+    } catch (err) {
+      console.error('Prefetch error', err);
+    } finally {
+      setIsPrefetching(false);
+    }
+  };
+
   useEffect(() => {
+    setNextBatchBuffer(null);
     fetchQuizzes();
   }, [gradeLevelFilter, category, currentUser.id]);
 
   const handleSelectOption = async (index: number) => {
-    if (isAnswered) return;
+    if (isAnswered || isFetchingNextBatch) return;
 
     setSelectedOption(index);
     setIsAnswered(true);
@@ -132,16 +157,34 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (isFetchingNextBatch) return;
+
     setIsAnswered(false);
     setSelectedOption(null);
 
-    // Continuous infinite shuffle
     if (currentIndex + 1 < quizzes.length) {
-      setCurrentIndex((prev) => prev + 1);
+      const nextIdx = currentIndex + 1;
+      setCurrentIndex(nextIdx);
+
+      // 残り5問以下でバッファがなければ事前プレフェッチを発火
+      if (nextIdx >= quizzes.length - 5 && !nextBatchBuffer && !isPrefetching) {
+        prefetchNextBatch();
+      }
     } else {
-      // Re-fetch next batch seamlessly
-      fetchQuizzes();
+      // 1バッチ（48問）完走時
+      if (nextBatchBuffer && nextBatchBuffer.length > 0) {
+        setQuizzes(nextBatchBuffer);
+        setNextBatchBuffer(null);
+        setCurrentIndex(0);
+      } else {
+        setIsFetchingNextBatch(true);
+        try {
+          await fetchQuizzes();
+        } finally {
+          setIsFetchingNextBatch(false);
+        }
+      }
     }
   };
 

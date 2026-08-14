@@ -34,6 +34,9 @@ export const App: React.FC = () => {
   const [swipeDirection, setSwipeDirection] = useState<'next' | 'prev'>('next');
   const [transitionKey, setTransitionKey] = useState(0);
 
+  const [userSummary, setUserSummary] = useState<UserSummary | null>(null);
+  const [dailyStats, setDailyStats] = useState<DailyStatItem[]>([]);
+
   // Full 8-Menu Swipe Cycle Loop: Home -> Quiz -> Read/Movie -> Training -> Eat -> History -> Wishlist -> Rivals -> Home
   const TAB_CYCLE = useMemo(() => ['dashboard', 'quiz', 'input_book', 'training', 'eat_rice', 'action-logs', 'wishlist', 'rivals'], []);
 
@@ -58,12 +61,10 @@ export const App: React.FC = () => {
   const handleSetActiveTab = useCallback((newTab: string) => {
     const currentIndex = TAB_CYCLE.indexOf(activeTab);
     const nextIndex = TAB_CYCLE.indexOf(newTab);
-    if (nextIndex > currentIndex) {
-      setSwipeDirection('next');
-    } else {
-      setSwipeDirection('prev');
+    if (currentIndex !== -1 && nextIndex !== -1 && currentIndex !== nextIndex) {
+      setSwipeDirection(nextIndex > currentIndex ? 'next' : 'prev');
+      setTransitionKey((k) => k + 1);
     }
-    setTransitionKey((k) => k + 1);
     setActiveTab(newTab);
   }, [activeTab, TAB_CYCLE]);
 
@@ -115,9 +116,20 @@ export const App: React.FC = () => {
     setTouchStartY(null);
   };
 
+  const handleUserSelect = (user: User) => {
+    setCurrentUser(user);
+    setIsParentMode(false);
+    localStorage.setItem('incentique_is_parent_mode', 'false');
+    localStorage.setItem('incentique_last_user_id', user.id);
+    setActiveTab('dashboard');
+  };
+
   const handleActionSuccess = () => {
     fetchData();
-    // Stay on the current page for continuous input (don't navigate to action-logs)
+    if (currentUser?.id) {
+      fetchUserSummary(currentUser.id);
+      fetchDailyStats(currentUser.id);
+    }
   };
 
   const handleOpenInputReviewModal = (type?: 'input_book' | 'input_movie' | 'input_manga') => {
@@ -125,12 +137,40 @@ export const App: React.FC = () => {
     handleSetActiveTab('input_book');
   };
 
+  const fetchUserSummary = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/summary`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.summary) {
+          setUserSummary(data.summary);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch user summary', err);
+    }
+  };
+
+  const fetchDailyStats = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/daily-stats?days=30`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.dailyStats) {
+          setDailyStats(data.dailyStats);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch daily stats', err);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const [uRes, wRes, lRes] = await Promise.all([
         fetch('/api/users'),
         fetch('/api/wish-items'),
-        fetch('/api/action-logs')
+        fetch('/api/action-logs?limit=500')
       ]);
 
       if (uRes.ok) {
@@ -399,6 +439,8 @@ export const App: React.FC = () => {
                   currentGoal={currentGoal}
                   users={users}
                   actionLogs={actionLogs}
+                  userSummary={userSummary}
+                  dailyStats={dailyStats}
                   onNavigate={handleSetActiveTab}
                   onGoalUpdated={(newGoal) => setCurrentGoal(newGoal)}
                 />

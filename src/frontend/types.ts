@@ -91,3 +91,20 @@ export interface ActionLog {
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
+
+export interface UserSummary {
+  totalPoints: number;
+  todayEarnedPoints: number;
+  quizTotalCount: number;
+  todayCategories: { [key: string]: boolean };
+}
+
+export interface DailyStatItem {
+  dateStr: string;
+  quiz: number;
+  input: number;
+  training: number;
+  meal: number;
+  bonus: number;
+  total: number;
+}

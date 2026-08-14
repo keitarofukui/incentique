@@ -6,13 +6,14 @@ import { logLocalDateStr, toLocalDateStr } from '../dateUtils';
 interface DailyChartProps {
   actionLogs: ActionLog[];
   userId: string;
+  dailyStats?: DailyStatItem[];
 }
 
-export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) => {
+export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dailyStats }) => {
   const [chartPeriod, setChartPeriod] = useState<number>(7); // 7, 30, 90
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  // Filter approved logs for current user
+  // Filter approved logs for current user (fallback)
   const userLogs = useMemo(() => {
     return actionLogs.filter(
       (log) => log.user_id === userId && log.status === 'approved'
@@ -41,31 +42,45 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId }) =>
       arr.push({ dateStr, label, quiz: 0, input: 0, training: 0, meal: 0, bonus: 0, total: 0 });
     }
 
-    userLogs.forEach((log) => {
-      const logDateStr = logLocalDateStr(log.created_at);
-      const dayObj = arr.find((d) => d.dateStr === logDateStr);
-
-      if (dayObj) {
-        const pts = Number(log.earned_points || 0);
-        const cat = log.category || '';
-        if (cat === 'quiz' || cat === 'study') {
-          dayObj.quiz += pts;
-        } else if (cat.startsWith('input_')) {
-          dayObj.input += pts;
-        } else if (cat === 'training') {
-          dayObj.training += pts;
-        } else if (cat === 'eat_rice' || cat === 'eat_meat') {
-          dayObj.meal += pts;
-        } else {
-          // 'bonus' and any other reward points
-          dayObj.bonus += pts;
+    if (dailyStats && dailyStats.length > 0) {
+      dailyStats.forEach((stat) => {
+        const dayObj = arr.find((d) => d.dateStr === stat.dateStr);
+        if (dayObj) {
+          dayObj.quiz = stat.quiz;
+          dayObj.input = stat.input;
+          dayObj.training = stat.training;
+          dayObj.meal = stat.meal;
+          dayObj.bonus = stat.bonus;
+          dayObj.total = stat.total;
         }
-        dayObj.total += pts;
-      }
-    });
+      });
+    } else {
+      userLogs.forEach((log) => {
+        const logDateStr = logLocalDateStr(log.created_at);
+        const dayObj = arr.find((d) => d.dateStr === logDateStr);
+
+        if (dayObj) {
+          const pts = Number(log.earned_points || 0);
+          const cat = log.category || '';
+          if (cat === 'quiz' || cat === 'study') {
+            dayObj.quiz += pts;
+          } else if (cat.startsWith('input_')) {
+            dayObj.input += pts;
+          } else if (cat === 'training') {
+            dayObj.training += pts;
+          } else if (cat === 'eat_rice' || cat === 'eat_meat') {
+            dayObj.meal += pts;
+          } else {
+            // 'bonus' and any other reward points
+            dayObj.bonus += pts;
+          }
+          dayObj.total += pts;
+        }
+      });
+    }
 
     return arr;
-  }, [chartPeriod, userLogs]);
+  }, [userLogs, dailyStats, chartPeriod]);
 
   const maxPoints = Math.max(...days.map((d) => d.total), 10);
   const totalPeriodPoints = days.reduce((sum, d) => sum + d.total, 0);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, ActionLog, UserGoal } from '../types';
+import { User, ActionLog, UserGoal, UserSummary, DailyStatItem } from '../types';
 import { Clock, Banknote, X } from 'lucide-react';
 import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
@@ -12,6 +12,8 @@ interface DashboardProps {
   currentGoal: UserGoal | null;
   users: User[];
   actionLogs: ActionLog[];
+  userSummary?: UserSummary | null;
+  dailyStats?: DailyStatItem[];
   onNavigate: (tab: string) => void;
   onGoalUpdated: (newGoal: UserGoal) => void;
 }
@@ -21,6 +23,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   currentGoal,
   users,
   actionLogs,
+  userSummary,
+  dailyStats,
   onNavigate,
   onGoalUpdated,
 }) => {
@@ -39,7 +43,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       return (b.id || '').localeCompare(a.id || '');
     });
   const userMajorLogs = userLogs.filter((log) => log.category !== 'quiz');
-  const quizSuccessCount = userLogs.filter((log) => log.category === 'quiz').length;
+  const quizSuccessCount = userSummary?.quizTotalCount !== undefined
+    ? userSummary.quizTotalCount
+    : userLogs.filter((log) => log.category === 'quiz').length;
 
   // Active until tomorrow (July 31, 2026)
   const isCashBackBannerActive = todayLocalDateStr() <= '2026-07-31';
@@ -88,11 +94,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <PersonalStreakCard
         currentUser={currentUser}
         actionLogs={actionLogs}
+        userSummary={userSummary}
         onNavigate={onNavigate}
       />
 
       {/* 2. BLOCK 2: 7日 / 30日 / 90日 3期間対応ニュルっと動く積み上げ面グラデーショングラフ */}
-      <DailyChart actionLogs={actionLogs} userId={currentUser.id} />
+      <DailyChart actionLogs={actionLogs} userId={currentUser.id} dailyStats={dailyStats} />
 
       {/* 4. BLOCK 4: 主な活動成果タイムライン */}
       <div className="glass-card p-6 rounded-2xl space-y-4">

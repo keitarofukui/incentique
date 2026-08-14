@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, ActionLog } from '../types';
+import { User, ActionLog, UserSummary } from '../types';
 import { Flame, CheckCircle2, ArrowRight, Zap } from 'lucide-react';
 import { logLogicalDateStr, todayLogicalDateStr, getLogicalDaysDiff } from '../dateUtils';
 
 interface PersonalStreakCardProps {
   currentUser: User;
   actionLogs: ActionLog[];
+  userSummary?: UserSummary | null;
   onNavigate: (tab: string) => void;
 }
 
@@ -14,6 +15,7 @@ const DEFAULT_STREAK_MILESTONES = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 15
 export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
   currentUser,
   actionLogs,
+  userSummary,
   onNavigate,
 }) => {
   const [rulePoints, setRulePoints] = useState<{ [cat: string]: number }>({});
@@ -63,6 +65,13 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       input: false,
     };
 
+    if (userSummary && userSummary.todayCategories) {
+      catMap.quiz = !!userSummary.todayCategories.quiz || !!userSummary.todayCategories.study;
+      catMap.training = !!userSummary.todayCategories.training;
+      catMap.eat_rice = !!userSummary.todayCategories.eat_rice || !!userSummary.todayCategories.eat_meat;
+      catMap.input = !!userSummary.todayCategories.input_book || !!userSummary.todayCategories.input_manga || !!userSummary.todayCategories.input_movie;
+    }
+
     actionLogs.forEach((log) => {
       if (log.user_id !== currentUser.id || log.status === 'rejected') return;
       const day = logLogicalDateStr(log.created_at);
@@ -79,12 +88,18 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         bonusSum += Math.max(0, earned - base);
         count += 1;
 
-        if (cat === 'quiz' || cat === 'study') catMap.quiz = true;
-        if (cat === 'training') catMap.training = true;
-        if (cat === 'eat_rice' || cat === 'eat_meat') catMap.eat_rice = true;
-        if (cat.startsWith('input_')) catMap.input = true;
+        if (!userSummary) {
+          if (cat === 'quiz' || cat === 'study') catMap.quiz = true;
+          if (cat === 'training') catMap.training = true;
+          if (cat === 'eat_rice' || cat === 'eat_meat') catMap.eat_rice = true;
+          if (cat.startsWith('input_')) catMap.input = true;
+        }
       }
     });
+
+    if (userSummary && userSummary.todayEarnedPoints > 0 && count === 0) {
+      count = 1;
+    }
 
     return {
       todayBase: baseSum,
@@ -93,7 +108,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       todayCount: count,
       categoryStatus: catMap,
     };
-  }, [actionLogs, currentUser.id, todayStr]);
+  }, [actionLogs, userSummary, currentUser.id, todayStr]);
 
   const doneToday = todayCount > 0;
 

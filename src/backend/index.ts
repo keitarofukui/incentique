@@ -408,6 +408,109 @@ app.get('/api/users', async (c) => {
   }
 });
 
+app.get('/api/users/:id/summary', async (c) => {
+  try {
+    const userId = c.req.param('id');
+    const logicalToday = getLogicalDate();
+
+    const user: any = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
+      .bind(userId)
+      .first();
+
+    if (!user) {
+      return c.json({ success: false, error: 'User not found' }, 404);
+    }
+
+    // 本日の獲得ポイント
+    const todayResult: any = await c.env.DB.prepare(
+      "SELECT SUM(earned_points) as total FROM action_logs WHERE user_id = ? AND date(datetime(created_at, '+5 hours')) = ?"
+    ).bind(userId, logicalToday).first();
+
+    // クイズ累積正解数
+    const quizResult: any = await c.env.DB.prepare(
+      "SELECT COUNT(*) as total FROM action_logs WHERE user_id = ? AND category = 'quiz' AND status = 'approved'"
+    ).bind(userId).first();
+
+    // 本日の完了カテゴリ一覧
+    const categoriesResult: any = await c.env.DB.prepare(
+      "SELECT DISTINCT category FROM action_logs WHERE user_id = ? AND date(datetime(created_at, '+5 hours')) = ?"
+    ).bind(userId, logicalToday).all();
+
+    const categoryList = (categoriesResult.results || []).map((r: any) => r.category);
+    const todayCategories: { [key: string]: boolean } = {
+      quiz: categoryList.includes('quiz') || categoryList.includes('study'),
+      study: categoryList.includes('quiz') || categoryList.includes('study'),
+      input_book: categoryList.includes('input_book') || categoryList.includes('input_manga') || categoryList.includes('input_movie'),
+      training: categoryList.includes('training'),
+      eat_rice: categoryList.includes('eat_rice') || categoryList.includes('eat_meat'),
+    };
+
+    return c.json({
+      success: true,
+      summary: {
+        totalPoints: user.current_points || 0,
+        todayEarnedPoints: todayResult?.total || 0,
+        quizTotalCount: quizResult?.total || 0,
+        todayCategories,
+      }
+    });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+app.get('/api/users/:id/daily-stats', async (c) => {
+  try {
+    const userId = c.req.param('id');
+    const days = parseInt(c.req.query('days') || '30', 10);
+
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        date(datetime(created_at, '+5 hours')) as dateStr,
+        category,
+        SUM(earned_points) as points
+      FROM action_logs
+      WHERE user_id = ?
+        AND date(datetime(created_at, '+5 hours')) >= date('now', '-' || ? || ' days')
+      GROUP BY dateStr, category
+      ORDER BY dateStr ASC
+    `).bind(userId, days).all();
+
+    // 日別に集計して整形
+    const dateMap: { [dateStr: string]: any } = {};
+
+    (results || []).forEach((row: any) => {
+      const d = row.dateStr;
+      if (!dateMap[d]) {
+        dateMap[d] = { dateStr: d, quiz: 0, input: 0, training: 0, meal: 0, bonus: 0, total: 0 };
+      }
+      const cat = row.category;
+      const pts = Number(row.points) || 0;
+      if (cat === 'quiz' || cat === 'study') {
+        dateMap[d].quiz += pts;
+      } else if (cat === 'input_book' || cat === 'input_manga' || cat === 'input_movie') {
+        dateMap[d].input += pts;
+      } else if (cat === 'training') {
+        dateMap[d].training += pts;
+      } else if (cat === 'eat_rice' || cat === 'eat_meat') {
+        dateMap[d].meal += pts;
+      } else if (cat === 'bonus') {
+        dateMap[d].bonus += pts;
+      }
+      dateMap[d].total += pts;
+    });
+
+    const dailyStats = Object.values(dateMap);
+
+    return c.json({
+      success: true,
+      dailyStats
+    });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
 app.post('/api/users', async (c) => {
   try {
     const body = await c.req.json<{

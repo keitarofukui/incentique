@@ -107,8 +107,11 @@ CREATE TABLE IF NOT EXISTS action_logs (
   -- ガチャ倍率・ボーナスを含まない素点。1日ボリュームボーナスの判定はこちらを使う
   base_points INTEGER,
   status TEXT DEFAULT 'pending',
-  created_at DATE DEFAULT (CURRENT_DATE)
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_action_logs_user_cat_date ON action_logs (user_id, category, created_at);
+CREATE INDEX IF NOT EXISTS idx_action_logs_user_date ON action_logs (user_id, created_at DESC);
 
 -- ポイントルール初期投入 (映画120pt, 読書300pt, 漫画50pt, トレーニング50pt, クイズ1pt, 300pt突破200pt, 600pt突破300pt)
 INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
