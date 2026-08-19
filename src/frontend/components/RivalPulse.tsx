@@ -13,6 +13,7 @@ interface RivalPulseProps {
 const DEFAULT_RULE_POINTS: { [cat: string]: number } = {
   input_book: 300,
   input_movie: 120,
+  input_drama: 120,
   input_manga: 50,
   study_quiz: 1,
 };
@@ -96,6 +97,7 @@ const describeCatchUp = (gap: number, pts: { [cat: string]: number }): string =>
   const steps: { cat: string; label: string; unit: string }[] = [
     { cat: 'input_book', label: '読書', unit: '冊' },
     { cat: 'input_movie', label: '映画', unit: '本' },
+    { cat: 'input_drama', label: 'ドラマ', unit: '話' },
     { cat: 'input_manga', label: '漫画', unit: '冊' },
   ];
 

@@ -440,7 +440,7 @@ app.get('/api/users/:id/summary', async (c) => {
     const todayCategories: { [key: string]: boolean } = {
       quiz: categoryList.includes('quiz') || categoryList.includes('study'),
       study: categoryList.includes('quiz') || categoryList.includes('study'),
-      input_book: categoryList.includes('input_book') || categoryList.includes('input_manga') || categoryList.includes('input_movie'),
+      input_book: categoryList.includes('input_book') || categoryList.includes('input_manga') || categoryList.includes('input_movie') || categoryList.includes('input_drama'),
       training: categoryList.includes('training'),
       eat_rice: categoryList.includes('eat_rice') || categoryList.includes('eat_meat'),
     };
@@ -488,7 +488,7 @@ app.get('/api/users/:id/daily-stats', async (c) => {
       const pts = Number(row.points) || 0;
       if (cat === 'quiz' || cat === 'study') {
         dateMap[d].quiz += pts;
-      } else if (cat === 'input_book' || cat === 'input_manga' || cat === 'input_movie') {
+      } else if (cat === 'input_book' || cat === 'input_manga' || cat === 'input_movie' || cat === 'input_drama') {
         dateMap[d].input += pts;
       } else if (cat === 'training') {
         dateMap[d].training += pts;
@@ -574,6 +574,9 @@ app.get('/api/rivals', async (c) => {
 app.get('/api/point-rules', async (c) => {
   try {
     try {
+      await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('input_drama', 'ドラマインプット', 120, 'ドラマを観て感想メモ・レビューを提出')"
+      ).run();
       await c.env.DB.prepare(
         "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス')"
       ).run();
@@ -1170,6 +1173,11 @@ app.post('/api/action-logs', async (c) => {
         const ratePercent = body.category === 'eat_meat' ? (isJunior ? 15 : 4.5) : isJunior ? 10 : 3;
         const requestedGrams = Math.min(1000, Math.max(1, body.grams));
         basePoints = Math.floor((requestedGrams * ratePercent) / 100);
+      }
+    } else if (body.category === 'input_manga') {
+      const user: any = await c.env.DB.prepare('SELECT grade_level FROM users WHERE id = ?').bind(body.userId).first();
+      if (user && (user.grade_level || '').startsWith('high')) {
+        basePoints = Math.floor(basePoints / 10);
       }
     }
 

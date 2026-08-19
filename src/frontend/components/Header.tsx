@@ -10,7 +10,7 @@ interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenTrainingModal: () => void;
-  onOpenInputReviewModal: (type?: 'input_book' | 'input_movie' | 'input_manga') => void;
+  onOpenInputReviewModal: (type?: 'input_book' | 'input_movie' | 'input_drama' | 'input_manga') => void;
   onOpenEatRiceModal?: () => void;
 }
 

@@ -32,6 +32,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   const [pointRules, setPointRules] = useState<PointRule[]>([
     { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
     { category: 'input_movie', title: '🎬 映画インプット', points: 120, description: '映画を観てレビューを提出（自己申告）' },
+    { category: 'input_drama', title: '📺 ドラマインプット', points: 120, description: 'ドラマを観て感想メモ・レビューを提出（自己申告）' },
     { category: 'input_manga', title: '💬 漫画インプット', points: 50, description: '漫画を読んで感想メモを提出（自己申告）' },
     { category: 'study_quiz', title: '🧠 クイズ1問正解', points: 1, description: '4択クイズ正解時の獲得ポイント' },
     { category: 'bonus_300pt', title: '🎉 1日300pt突破ボーナス', points: 200, description: 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス（0で無効化）' },
@@ -141,6 +142,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   const DEFAULT_RULES: PointRule[] = [
     { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
     { category: 'input_movie', title: '🎬 映画インプット', points: 120, description: '映画を観てレビューを提出（自己申告）' },
+    { category: 'input_drama', title: '📺 ドラマインプット', points: 120, description: 'ドラマを観て感想メモ・レビューを提出（自己申告）' },
     { category: 'input_manga', title: '💬 漫画インプット', points: 50, description: '漫画を読んで感想メモを提出（自己申告）' },
     { category: 'study_quiz', title: '🧠 クイズ1問正解', points: 1, description: '4択クイズ正解時の獲得ポイント' },
     { category: 'bonus_300pt', title: '🎉 1日300pt突破ボーナス', points: 200, description: 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス（0で無効化）' },
@@ -649,6 +651,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                               study: '📚 学習',
                               input_book: '📖 読書',
                               input_movie: '🎬 映画',
+                              input_drama: '📺 ドラマ',
                               input_manga: '💬 漫画',
                               training: '🏋️‍♂️ 運動',
                             };

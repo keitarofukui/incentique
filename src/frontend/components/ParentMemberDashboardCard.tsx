@@ -52,7 +52,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
 
     if (log.category === 'quiz') {
       quizCount += 1;
-    } else if (['input_book', 'input_manga', 'input_movie'].includes(log.category)) {
+    } else if (['input_book', 'input_manga', 'input_movie', 'input_drama'].includes(log.category)) {
       hasInput = true;
     } else if (log.category === 'training') {
       hasTraining = true;

@@ -30,7 +30,7 @@ export const App: React.FC = () => {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
   const [isParentPinModalOpen, setIsParentPinModalOpen] = useState<boolean>(false);
   const [gachaResult, setGachaResult] = useState<GachaResult | null>(null);
-  const [inputReviewType, setInputReviewType] = useState<'input_book' | 'input_movie' | 'input_manga'>('input_book');
+  const [inputReviewType, setInputReviewType] = useState<'input_book' | 'input_movie' | 'input_drama' | 'input_manga'>('input_book');
   const [swipeDirection, setSwipeDirection] = useState<'next' | 'prev'>('next');
   const [transitionKey, setTransitionKey] = useState(0);
 
@@ -132,7 +132,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleOpenInputReviewModal = (type?: 'input_book' | 'input_movie' | 'input_manga') => {
+  const handleOpenInputReviewModal = (type?: 'input_book' | 'input_movie' | 'input_drama' | 'input_manga') => {
     if (type) setInputReviewType(type);
     handleSetActiveTab('input_book');
   };

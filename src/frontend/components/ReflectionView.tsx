@@ -205,7 +205,7 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full uppercase">
-                    {item.category === 'input_book' ? '📖 読書' : item.category === 'input_movie' ? '🎬 映画' : '💬 漫画'}
+                    {item.category === 'input_book' ? '📖 読書' : item.category === 'input_movie' ? '🎬 映画' : item.category === 'input_drama' ? '📺 ドラマ' : '💬 漫画'}
                   </span>
                   <span className="text-xs font-mono font-black text-amber-400">+{item.earned_points || 0} pt</span>
                 </div>
@@ -262,7 +262,7 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
           <span className="text-xs font-bold text-slate-400 shrink-0">絞り込み:</span>
           {[
             { id: 'all', label: 'すべて表示' },
-            { id: 'input', label: '📚 読書・映画' },
+            { id: 'input', label: '📚 読書・映画・ドラマ' },
             { id: 'training', label: '🏋️‍♂️ 運動' },
             { id: 'eat_rice', label: '🍚🥩 食事' },
             { id: 'quiz', label: '🧠 クイズ' },
@@ -301,6 +301,8 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
                         ? '読書'
                         : log.category === 'input_movie'
                         ? '映画'
+                        : log.category === 'input_drama'
+                        ? 'ドラマ'
                         : log.category === 'input_manga'
                         ? '漫画'
                         : log.category === 'training'

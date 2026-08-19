@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { BookOpen, Film, BookMarked, Send, AlertCircle } from 'lucide-react';
+import { BookOpen, Film, Tv, BookMarked, Send, AlertCircle } from 'lucide-react';
 
 import { GachaResult } from './LuckyGachaModal';
 import { SuccessToast } from './SuccessToast';
 
 interface InputReviewModalProps {
   currentUser: User | null;
-  initialType?: 'input_book' | 'input_movie' | 'input_manga';
+  initialType?: 'input_book' | 'input_movie' | 'input_drama' | 'input_manga';
   onSuccess: () => void;
   onGachaResult?: (result: GachaResult) => void;
 }
@@ -20,12 +20,13 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
 }) => {
   if (!currentUser) return null;
 
-  const [category, setCategory] = useState<'input_book' | 'input_movie' | 'input_manga'>(initialType);
+  const [category, setCategory] = useState<'input_book' | 'input_movie' | 'input_drama' | 'input_manga'>(initialType);
   const [title, setTitle] = useState<string>('');
   const [reviewText, setReviewText] = useState<string>('');
   const [rulePoints, setRulePoints] = useState<{ [cat: string]: number }>({
     input_book: 300,
     input_movie: 120,
+    input_drama: 120,
     input_manga: 50,
   });
   const [loading, setLoading] = useState<boolean>(false);
@@ -51,15 +52,24 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
       .catch(() => {});
   }, []);
 
-  const handleCategoryChange = (newCat: 'input_book' | 'input_movie' | 'input_manga') => {
+  const handleCategoryChange = (newCat: 'input_book' | 'input_movie' | 'input_drama' | 'input_manga') => {
     setCategory(newCat);
     setTitle('');
     setErrorMsg('');
     setSuccessMsg('');
   };
 
+  const getPointsForCat = (cat: string) => {
+    const rawPts = rulePoints[cat] || (cat === 'input_book' ? 300 : cat === 'input_movie' ? 120 : cat === 'input_drama' ? 120 : 50);
+    const isHigh = (currentUser.grade_level || '').startsWith('high');
+    if (cat === 'input_manga' && isHigh) {
+      return Math.floor(rawPts / 10);
+    }
+    return rawPts;
+  };
+
   const getPoints = () => {
-    return rulePoints[category] || (category === 'input_book' ? 300 : category === 'input_movie' ? 120 : 50);
+    return getPointsForCat(category);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,8 +142,8 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">📚 読書・映画・漫画 インプット報告</h3>
-              <p className="text-xs text-slate-400 mt-0.5">読んだ本や観た映画の気付きを提出してポイントを獲得！</p>
+              <h3 className="text-xl font-black text-white">📚 読書・映画・ドラマ・漫画 インプット報告</h3>
+              <p className="text-xs text-slate-400 mt-0.5">読んだ本や観た映画・ドラマの気付きを提出してポイントを獲得！</p>
             </div>
           </div>
         </div>
@@ -142,7 +152,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
         <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/60 to-purple-950/60 border border-amber-500/30 flex items-center gap-3 text-xs text-amber-300">
           <span className="text-2xl animate-bounce">☀️</span>
           <div>
-            <span className="font-black text-amber-200">【☀️夏休み確率UP中】</span> 読書・映画・漫画インプットでもガチャボーナス（2倍・3倍・10倍）の当選確率が <strong className="font-mono underline text-amber-200 text-sm">通常の2倍</strong> に大幅UP中！
+            <span className="font-black text-amber-200">【☀️夏休み確率UP中】</span> 読書・映画・ドラマ・漫画インプットでもガチャボーナス（2倍・3倍・10倍）の当選確率が <strong className="font-mono underline text-amber-200 text-sm">通常の2倍</strong> に大幅UP中！
           </div>
         </div>
 
@@ -158,44 +168,57 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
           {/* Category Tabs */}
           <div className="space-y-2">
             <label className="text-xs font-extrabold text-slate-300">ジャンルを選択</label>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => handleCategoryChange('input_book')}
-                className={`p-3.5 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                className={`p-3 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                   category === 'input_book'
                     ? 'bg-purple-500/25 border-purple-400 text-purple-200 shadow-glow-purple font-black'
                     : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <BookOpen className="w-6 h-6 text-purple-400" />
-                <span>読書 (+{rulePoints.input_book}pt)</span>
+                <BookOpen className="w-5 h-5 text-purple-400" />
+                <span>読書 (+{getPointsForCat('input_book')}pt)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleCategoryChange('input_movie')}
-                className={`p-3.5 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                className={`p-3 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                   category === 'input_movie'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-200 shadow-glow-cyan font-black'
                     : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <Film className="w-6 h-6 text-blue-400" />
-                <span>映画 (+{rulePoints.input_movie}pt)</span>
+                <Film className="w-5 h-5 text-blue-400" />
+                <span>映画 (+{getPointsForCat('input_movie')}pt)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCategoryChange('input_drama')}
+                className={`p-3 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                  category === 'input_drama'
+                    ? 'bg-teal-500/25 border-teal-400 text-teal-200 shadow-glow-cyan font-black'
+                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <Tv className="w-5 h-5 text-teal-400" />
+                <span>ドラマ (+{getPointsForCat('input_drama')}pt)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleCategoryChange('input_manga')}
-                className={`p-3.5 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                className={`p-3 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                   category === 'input_manga'
                     ? 'bg-amber-500/25 border-amber-400 text-amber-200 shadow-glow-gold font-black'
                     : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <BookMarked className="w-6 h-6 text-amber-400" />
-                <span>漫画 (+{rulePoints.input_manga}pt)</span>
+                <BookMarked className="w-5 h-5 text-amber-400" />
+                <span>漫画 (+{getPointsForCat('input_manga')}pt)</span>
               </button>
             </div>
           </div>
@@ -203,7 +226,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
           {/* Title Input Field */}
           <div className="space-y-1.5">
             <label className="text-xs font-extrabold text-slate-300">
-              {category === 'input_book' ? '本のタイトル' : category === 'input_movie' ? '映画・ドキュメンタリー名' : '漫画の題名'}
+              {category === 'input_book' ? '本のタイトル' : category === 'input_movie' ? '映画・ドキュメンタリー名' : category === 'input_drama' ? 'ドラマタイトル・回' : '漫画の題名'}
             </label>
             <input
               type="text"
@@ -215,6 +238,8 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
                   ? '例: 『思考の整理学』'
                   : category === 'input_movie'
                   ? '例: 『トップガン マーヴェリック』'
+                  : category === 'input_drama'
+                  ? '例: 『VIVANT』第1話'
                   : '例: 『ONE PIECE 第1巻』'
               }
               className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-400 no-swipe"

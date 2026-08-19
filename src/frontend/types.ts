@@ -82,7 +82,7 @@ export interface ActionLog {
   user_name?: string;
   // 'quiz' is written by POST /api/quizzes/answer, 'bonus' by the streak /
   // volume milestone payouts in updateStreaks; 'study' is legacy data
-  category: 'quiz' | 'bonus' | 'study' | 'input_book' | 'input_manga' | 'input_movie' | 'training' | 'eat_rice' | 'eat_meat';
+  category: 'quiz' | 'bonus' | 'study' | 'input_book' | 'input_manga' | 'input_movie' | 'input_drama' | 'training' | 'eat_rice' | 'eat_meat';
   title_or_menu: string;
   review_text?: string;
   earned_points: number;
