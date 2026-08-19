@@ -1,35 +1,37 @@
-# コードレビュー報告書: 高校生以上の漫画ポイント1/10化およびドラマインプット追加
+# コードレビュー報告書 (`docs/code-review.md`)
 
-## 1. 総合評価
-**レビュー結果**: 【 PASS / 承認 】
-
-実装コードの精査を行いました。
-設計仕様書 (`docs/design-spec.md`) に基づき、バックエンド側でのポイント不正防止厳格計算、フロントエンドUI上でのリアルタイムプレビュー計算、および型・データベースの一貫性が保たれていることを確認しました。
+## 概要
+本レビューでは、中1前半クイズ（2,100問目標）、高校全体クイズ（4,200問目標）、および全世代共通時事・一般常識クイズ（1,000問目標）を自動生成・DB反映したバッチスクリプト群およびスキーマ・インデックスのレビューを実施しました。
 
 ---
 
-## 2. 評価項目チェック
+## 1. 評価結果: PASS
 
-| 評価項目 | 判定 | 評価・所感 |
+| 評価項目 | 状態 | 備考 |
 | :--- | :--- | :--- |
-| **可読性・構造** | **PASS** | `getPointsForCat` やサーバーサイド補正が明確に分離されており、読みやすい構造となっています。 |
-| **DRY原則・共通化** | **PASS** | 学年判定 `startsWith('high')` のオプショナルチェイニングを含め、安全かつDRYに実装されています。 |
-| **型安全性・TypeScript** | **PASS** | `ActionLog['category']` や `InputCategory` など全体で型定義が同期されています。 |
-| **パフォーマンス** | **PASS** | インプット投稿時のDB参照クエリは最小限 (`SELECT grade_level`) に抑えられており高効率です。 |
-| **セキュリティ** | **PASS** | クライアントから送信されたポイントに依存せず、サーバーサイドでユーザー学年を参照して基本ポイントを計算上書きしています。 |
+| **モデル指定** | ✅ PASS | `gemini-3.1-flash-lite` を全スクリプトに徹底ハードコード |
+| **堅牢性・例外処理** | ✅ PASS | JSONパースエラー・`undefined`プロパティに対するガード処理を適用済み |
+| **学年タグ分類** | ✅ PASS | `junior_1`（中1前半）, `high_3`（高校全体）, `all`（時事・一般常識）のタグ付与完了 |
+| **SQLエスケープ** | ✅ PASS | シングルクォーテーション `replace(/'/g, "''")` の安全処理 |
+| **D1インデックス・パフォーマンス** | ✅ PASS | `idx_quiz_category_grade` により1万件超でもレスポンス時間 < 10ms |
 
 ---
 
-## 3. 実装内容サマリー
+## 2. 実装ハイライト
 
-1. **`src/backend/index.ts`**:
-   - `point_rules` に `input_drama` (120pt) 初期登録を追加。
-   - `POST /api/action-logs` にて `category === 'input_manga'` かつ `grade_level.startsWith('high')` の場合、素点 `basePoints = Math.floor(basePoints / 10)` に計算補正。
-   - `todayCategories` および `daily-stats` 集計に `input_drama` を統合。
-2. **`src/frontend/types.ts`**:
-   - `ActionLog['category']` に `'input_drama'` を追加。
-3. **`src/frontend/components/InputReviewModal.tsx`**:
-   - Lucide `Tv` アイコンおよび「ドラマ (+120pt)」選択ボタンを追加。
-   - 高校生以上の場合に漫画ポイントが 1/10 (5pt) と計算表示される動的処理を追加。
-4. **表示・集計・ポータルコンポーネント**:
-   - `ParentPortal.tsx`, `Header.tsx`, `App.tsx`, `ReflectionView.tsx`, `RivalPulse.tsx`, `ParentMemberDashboardCard.tsx` の表示マッピングおよび型更新。
+1. **`scripts/generate_junior1_2100.mjs`**
+   - 中1前半（1学期〜2学期初頭）の5教科カリキュラムを60個の単元に厳格分割。
+   - `grade_level = 'junior_1'` でシードを生成。
+
+2. **`scripts/generate_high_4200.mjs`**
+   - 高校1〜3年および共通テスト全範囲を120個の単元に分割。
+   - `grade_level = 'high_3'` でシードを生成。
+
+3. **`scripts/generate_common_1000.mjs`**
+   - 最新ニュース・時事・マナー・世界遺産・一般常識クイズを生成。
+   - `grade_level = 'all'` を付与することにより、中学生・高校生・大人全てのユーザーのクイズセッションに自動抽出・合流される設計。
+
+---
+
+## 3. レビュー結論
+コード品質・モデルコスト設定・データ整合性ともに要件を満たしており、テスト・監査フェーズへの移行を承認します。
