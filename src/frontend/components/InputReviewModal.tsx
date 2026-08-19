@@ -26,7 +26,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
   const [rulePoints, setRulePoints] = useState<{ [cat: string]: number }>({
     input_book: 300,
     input_movie: 120,
-    input_drama: 120,
+    input_drama: 5,
     input_manga: 50,
   });
   const [loading, setLoading] = useState<boolean>(false);
@@ -60,7 +60,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
   };
 
   const getPointsForCat = (cat: string) => {
-    const rawPts = rulePoints[cat] || (cat === 'input_book' ? 300 : cat === 'input_movie' ? 120 : cat === 'input_drama' ? 120 : 50);
+    const rawPts = rulePoints[cat] || (cat === 'input_book' ? 300 : cat === 'input_movie' ? 120 : cat === 'input_drama' ? 5 : 50);
     const isHigh = (currentUser.grade_level || '').startsWith('high');
     if (cat === 'input_manga' && isHigh) {
       return Math.floor(rawPts / 10);
@@ -205,7 +205,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
                 }`}
               >
                 <Tv className="w-5 h-5 text-teal-400" />
-                <span>ドラマ (+{getPointsForCat('input_drama')}pt)</span>
+                <span>ドラマ (+{getPointsForCat('input_drama')}pt/話)</span>
               </button>
 
               <button

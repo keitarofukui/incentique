@@ -117,7 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_action_logs_user_date ON action_logs (user_id, cr
 INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
 ('input_book', '読書インプット', 300, '本を1冊読んで感想レビューを提出'),
 ('input_movie', '映画インプット', 120, '映画やドキュメンタリーを観てレビューを提出'),
-('input_drama', 'ドラマインプット', 120, 'ドラマを観て感想メモ・レビューを提出'),
+('input_drama', 'ドラマインプット', 5, 'ドラマを観て感想メモ・レビューを提出'),
 ('input_manga', '漫画', 50, '漫画を読んで感想メモを提出'),
 ('training', 'トレーニング', 50, '筋トレ・HIIT・動画トレーニング成果を報告'),
 ('study_quiz', '暗記クイズ1問正解', 1, '4択クイズ1問正解につき1ポイント'),

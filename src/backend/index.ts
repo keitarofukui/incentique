@@ -575,7 +575,7 @@ app.get('/api/point-rules', async (c) => {
   try {
     try {
       await c.env.DB.prepare(
-        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('input_drama', 'ドラマインプット', 120, 'ドラマを観て感想メモ・レビューを提出')"
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('input_drama', 'ドラマインプット', 5, 'ドラマを観て感想メモ・レビューを提出')"
       ).run();
       await c.env.DB.prepare(
         "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_300pt', '🎉 1日300pt突破ボーナス', 200, 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス')"
