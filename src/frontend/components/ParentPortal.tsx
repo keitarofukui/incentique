@@ -52,6 +52,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   const [allLogs, setAllLogs] = useState<ActionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
   const [selectedUserIdFilter, setSelectedUserIdFilter] = useState<string>('all');
+  const [selectedWishUserFilter, setSelectedWishUserFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
 
@@ -728,76 +729,145 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           </div>
 
           {/* 承認済みの交換履歴。申請リストからは消えるので、ここだけが記録になる */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span>✅ 交換の承認履歴</span>
-              </h3>
-              <span className="text-xs text-slate-400">
-                引き落とし済み合計:{' '}
-                <strong className="text-amber-400 font-mono">
-                  {approvedWishes
-                    .reduce((sum, w) => sum + (w.approved_points ?? w.required_points), 0)
-                    .toLocaleString()} pt
-                </strong>
-              </span>
-            </div>
+          <div className="space-y-4 pt-4 border-t border-slate-800/80">
+            {(() => {
+              const filteredApprovedWishes = approvedWishes.filter(
+                (w) => selectedWishUserFilter === 'all' || w.user_id === selectedWishUserFilter
+              );
+              const totalDeducted = filteredApprovedWishes.reduce(
+                (sum, w) => sum + (w.approved_points ?? w.required_points),
+                0
+              );
+              const totalCash = filteredApprovedWishes
+                .filter((w) => w.item_type === 'cash')
+                .reduce((sum, w) => sum + Math.floor((w.approved_points ?? w.required_points) * 0.7), 0);
 
-            {approvedWishes.length === 0 ? (
-              <div className="glass-card p-6 rounded-2xl text-center text-xs text-slate-400">
-                まだ承認済みの交換はありません。
-              </div>
-            ) : (
-              <div className="glass-card rounded-2xl border border-slate-800 divide-y divide-slate-800/80">
-                {approvedWishes.map((item) => {
-                  const deducted = item.approved_points ?? item.required_points;
-                  const gap = deducted - item.required_points;
-                  return (
-                    <div key={item.id} className="p-4 flex items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full">
-                            {item.user_name || '—'}
-                          </span>
-                          <span className="text-sm font-bold text-white break-words">{item.title}</span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
-                          {item.approved_at ? formatLogDateTime(item.approved_at, true) : '日時記録なし'}
-                          {gap !== 0 && (
-                            <span className={gap > 0 ? ' text-rose-300' : ' text-emerald-300'}>
-                              {' '}／ 申請 {item.required_points.toLocaleString()}pt から
-                              {gap > 0 ? `+${gap.toLocaleString()}` : gap.toLocaleString()}pt
-                            </span>
-                          )}
-                        </div>
-                        {item.product_url && (
-                          <a
-                            href={item.product_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-300 hover:text-orange-200 underline underline-offset-2"
-                          >
-                            🛒 購入ページ
-                          </a>
-                        )}
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <div className="text-sm font-black font-mono text-amber-400">
-                          -{deducted.toLocaleString()} pt
-                        </div>
-                        {item.item_type === 'cash' && (
-                          <div className="text-[10px] text-emerald-300 font-bold">
-                            ¥{Math.floor(deducted * 0.7).toLocaleString()} 還元
-                          </div>
-                        )}
-                      </div>
+              return (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                        <span>✅ ポイント交換・引き落とし完了履歴</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        過去に承認・ポイント引き落としが完了したご褒美および現金還元の全履歴です。
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+
+                    <div className="flex items-center gap-3 text-xs shrink-0 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">引き落とし累計</span>
+                        <strong className="text-amber-400 font-mono text-sm">{totalDeducted.toLocaleString()} pt</strong>
+                      </div>
+                      {totalCash > 0 && (
+                        <div className="border-l border-slate-800 pl-3">
+                          <span className="text-slate-400 block text-[10px]">現金還元累計</span>
+                          <strong className="text-emerald-400 font-mono text-sm">¥{totalCash.toLocaleString()}円</strong>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* メンバー絞り込みフィルター */}
+                  {users.length > 0 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                      <span className="text-xs font-bold text-slate-400 mr-1 shrink-0">絞り込み:</span>
+                      <button
+                        onClick={() => setSelectedWishUserFilter('all')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          selectedWishUserFilter === 'all'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                            : 'bg-slate-900/80 text-slate-400 border border-slate-800 hover:text-slate-200'
+                        }`}
+                      >
+                        全員 ({approvedWishes.length})
+                      </button>
+                      {users.map((u) => {
+                        const count = approvedWishes.filter((w) => w.user_id === u.id).length;
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => setSelectedWishUserFilter(u.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1 ${
+                              selectedWishUserFilter === u.id
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                                : 'bg-slate-900/80 text-slate-400 border border-slate-800 hover:text-slate-200'
+                            }`}
+                          >
+                            <span>{u.avatar || '⚡'}</span>
+                            <span>{u.name}</span>
+                            <span className="text-[10px] opacity-75 font-mono">({count})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {filteredApprovedWishes.length === 0 ? (
+                    <div className="glass-card p-6 rounded-2xl text-center text-xs text-slate-400 border border-slate-800">
+                      {selectedWishUserFilter === 'all'
+                        ? 'まだ承認済みのポイント交換・引き落とし履歴はありません。'
+                        : 'このメンバーの交換・引き落とし履歴はありません。'}
+                    </div>
+                  ) : (
+                    <div className="glass-card rounded-2xl border border-slate-800 divide-y divide-slate-800/80">
+                      {filteredApprovedWishes.map((item) => {
+                        const deducted = item.approved_points ?? item.required_points;
+                        const gap = deducted - item.required_points;
+                        return (
+                          <div key={item.id} className="p-4 flex items-start justify-between gap-3 hover:bg-slate-900/40 transition-colors">
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                                  {item.user_name || 'メンバー'}
+                                </span>
+                                {item.item_type === 'cash' && (
+                                  <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                    💵 現金受領
+                                  </span>
+                                )}
+                                <span className="text-sm font-bold text-white break-words">{item.title}</span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                {item.approved_at ? formatLogDateTime(item.approved_at, true) : '日時記録なし'}
+                                {gap !== 0 && (
+                                  <span className={gap > 0 ? ' text-rose-300' : ' text-emerald-300'}>
+                                    {' '}／ 申請 {item.required_points.toLocaleString()}pt から
+                                    {gap > 0 ? `+${gap.toLocaleString()}` : gap.toLocaleString()}pt
+                                  </span>
+                                )}
+                              </div>
+                              {item.product_url && (
+                                <a
+                                  href={item.product_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-300 hover:text-orange-200 underline underline-offset-2"
+                                >
+                                  🛒 購入・参照ページ
+                                </a>
+                              )}
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="text-sm font-black font-mono text-amber-400">
+                                -{deducted.toLocaleString()} pt
+                              </div>
+                              {item.item_type === 'cash' && (
+                                <div className="text-[10px] text-emerald-300 font-bold">
+                                  ¥{Math.floor(deducted * 0.7).toLocaleString()} 還元
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

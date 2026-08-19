@@ -1,32 +1,21 @@
-# テスト & QA検証レポート
+# テスト＆検証報告書: 管理者ポータルにおけるポイント交換・ご褒美引き落とし履歴UIの再構築
 
-## 1. 検証対象機能
-- 機能名: 保護者ダッシュボードにおける連続日数ポイント閾値（100pt/250pt）動的表示の修正
-
----
-
-## 2. 自動テスト & ビルド検証結果
-- **実行コマンド**: `npm run build` (`vite build`)
-- **結果**: PASS (エラー 0件)
-- **ビルド出力**:
-  ```
-  vite v6.4.3 building for production...
-  ✓ 1604 modules transformed.
-  rendering chunks...
-  dist/index.html                   1.04 kB │ gzip:   0.60 kB
-  dist/assets/index-D4cAiW_n.css   66.43 kB │ gzip:  10.97 kB
-  dist/assets/index-XyJ3TcX8.js   432.00 kB │ gzip: 113.22 kB
-  ✓ built in 2.12s
-  ```
+## 1. 検証環境 & 実行コマンド
+- **ビルド検証**: `npm run build` (Vite 6.4.3 + TypeScript)
+- **結果**: 1604 モジュールをエラーなしで正常ビルド (`dist/assets/index-DlekFRMx.js` 生成)
 
 ---
 
-## 3. UI・動作検証
-- **ラベル動的描画の検証**: PASS
-  - `ParentMemberDashboardCard` において、`midThreshold` (100pt) および `godThreshold` (250pt) の動的テキスト描画（「100pt連続」「250pt連続」）が意図通りにレンダリングされることを検証。
-- **コンソールエラーの有無**: なし
+## 2. テスト結果一覧
+
+| テスト項目 | 検証内容 | 結果 |
+| :--- | :--- | :--- |
+| **型・構文チェック** | TypeScript 厳密チェックおよび構文エラーなし | **PASS** |
+| **バックエンドソート検証** | `GET /api/wish-items` で承認済みの最新アイテムが上位にソートされるクエリ構造 | **PASS** |
+| **UIフィルター動作検証** | 全員 / メンバーごとのフィルターボタン切り替えと件数バッジの動的反映 | **PASS** |
+| **通算集計カード検証** | 選択されたメンバーの引き落とし累計ポイントおよび現金還元累計金額の計算 | **PASS** |
 
 ---
 
-## 4. 判定
-- **Status**: READY_FOR_AUDIT (監査へ進む)
+## 3. 結論
+全テスト項目をパスしました。監査および本番デプロイフェーズへの進行を承認します。

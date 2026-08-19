@@ -1264,7 +1264,7 @@ app.get('/api/wish-items', async (c) => {
       params.push(userId);
     }
 
-    query += ' ORDER BY wish_items.required_points ASC';
+    query += ' ORDER BY wish_items.is_approved ASC, wish_items.approved_at DESC, wish_items.created_at DESC, wish_items.required_points ASC';
 
     const { results } = await c.env.DB.prepare(query).bind(...params).all();
     return c.json({ success: true, wishItems: results });
