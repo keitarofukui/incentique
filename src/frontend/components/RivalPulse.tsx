@@ -74,6 +74,7 @@ const CATEGORY_GROUPS = [
   { key: 'quiz' as const, label: 'クイズ', icon: '🧠', tab: 'quiz', match: (c: string) => c === 'quiz' || c === 'study' },
   { key: 'input' as const, label: 'インプット', icon: '📚', tab: 'input_book', match: (c: string) => c.startsWith('input_') },
   { key: 'training' as const, label: '運動', icon: '🏋️', tab: 'training', match: (c: string) => c === 'training' },
+  { key: 'housework' as const, label: '家事', icon: '🧹', tab: 'housework', match: (c: string) => c === 'housework' },
   { key: 'meal' as const, label: '食事', icon: '🍚', tab: 'eat_rice', match: (c: string) => c === 'eat_rice' || c === 'eat_meat' },
 ];
 

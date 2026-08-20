@@ -7,15 +7,13 @@
 
 ## 2. 評価項目チェック
 - **要件の網羅性**: OK
-  - 家事メニューのマスター管理（CRUD API + 保護者ポータルUI）および子供用ダッシュボードでの獲得アクションUIの両面が漏れなく定義されています。
-  - ユーザー指定の初期マスタ5種（洗濯物を干す 30pt / 洗濯物を畳む 30pt / ご飯を作る 30pt / 献立を考える 20pt / ゴミを捨てる 10pt）が正確に反映されています。
+  - 家事（`housework`）を全カテゴリ制覇の判定対象に追加し、従来の4カテゴリから5カテゴリ（クイズ・インプット・運動・家事・食事）コンプリート型へ拡張する設計が漏れなく網羅されています。
 - **データモデル・API設計**: OK
-  - `housework_menus` テーブル設計は既存の `training_menus` と整合性が高く、`action_logs` へのシームレスな記録が可能です。
-  - RESTful API (`GET`, `POST`, `PUT`, `DELETE /api/housework-menus`) のデータパスが明確です。
-- **タスク分解の明確さ**: OK
-  - データベーススキーマ ➔ 型定義 ➔ バックエンド API ➔ 保護者管理UI ➔ 子供用UI ➔ ナビゲーション連動 の依存順に分解されています。
+  - `src/backend/index.ts` の `ALL_CATEGORY_GROUPS` への要素追加、並びにフロントエンド (`AllCategoryCard`, `PersonalStreakCard`, `RivalPulse`) の同期設計が完全に統合されています。
+- **結合疎通テストの明記**: OK
+  - 再発防止策に従い、`curl` リクエストによる実際の HTTP 結合テスト手順がタスクリストに明記されています。
 
 ---
 
 ## 3. レビュー結論
-設計仕様書 [design-spec.md](file:///Users/fukuikeitaro/Documents/game/docs/design-spec.md) の内容に問題はありません。製造フェーズ (Developer) への移行を承認します。
+設計仕様書 [design-spec.md](file:///Users/fukuikeitaro/Documents/game/docs/design-spec.md) を承認いたします。製造フェーズ (Developer) へ移行します。

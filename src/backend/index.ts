@@ -137,13 +137,14 @@ function getDaysDifference(date1: string, date2: string): number {
 const STREAK_MILESTONE_DAYS = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30, 50, 100, 150, 200, 250, 300, 365];
 
 /**
- * 「全カテゴリ制覇」判定に使うカテゴリ群。1日でこの4つすべてに記録があればボーナス。
+ * 「全カテゴリ制覇」判定に使うカテゴリ群。1日でこの5つすべてに記録があればボーナス。
  * 付与ポイントは point_rules の 'bonus_all_category'（保護者ポータルで変更・0で無効化）。
  */
 const ALL_CATEGORY_GROUPS = [
   { key: 'quiz', label: 'クイズ', icon: '🧠', match: "category IN ('quiz','study')" },
   { key: 'input', label: 'インプット', icon: '📚', match: "category LIKE 'input\\_%' ESCAPE '\\'" },
   { key: 'training', label: '運動', icon: '🏋️', match: "category = 'training'" },
+  { key: 'housework', label: '家事', icon: '🧹', match: "category = 'housework'" },
   { key: 'meal', label: '食事', icon: '🍚', match: "category IN ('eat_rice','eat_meat')" },
 ] as const;
 
@@ -362,7 +363,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
 
       if (pts > 0) {
         bonusPointsTotal += pts;
-        bonusMessages.push(`【🎯全カテゴリ制覇！クイズ・インプット・運動・食事コンプリート＋${pts}pt！】`);
+        bonusMessages.push(`【🎯全カテゴリ制覇！クイズ・インプット・運動・家事・食事コンプリート＋${pts}pt！】`);
       }
     }
   }
@@ -587,7 +588,7 @@ app.get('/api/point-rules', async (c) => {
         "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_1000pt', '🤯 1日1000pt突破ボーナス', 500, 'ボーナス・ガチャ倍率を除いた1日の素点が1000ptを超えた時の単発ボーナス')"
       ).run();
       await c.env.DB.prepare(
-        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_all_category', '🎯 全カテゴリ制覇ボーナス', 100, '1日でクイズ・インプット・運動・食事の4カテゴリすべてを記録した時の単発ボーナス（0で無効化）')"
+        "INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES ('bonus_all_category', '🎯 全カテゴリ制覇ボーナス', 100, '1日でクイズ・インプット・運動・家事・食事の5カテゴリすべてを記録した時の単発ボーナス（0で無効化）')"
       ).run();
       
       // 連続ボーナス用 動的ルールキー

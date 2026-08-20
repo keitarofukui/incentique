@@ -47,6 +47,18 @@ const CATEGORY_GROUPS = [
     match: (c: string) => c === 'training',
   },
   {
+    key: 'housework' as const,
+    label: '家事',
+    icon: '🧹',
+    tab: 'housework',
+    colorStyle: {
+      done: 'bg-amber-500/15 border-amber-500/50 text-amber-300 shadow-glow-gold',
+      pending: 'bg-slate-950/80 border-slate-800 hover:border-amber-400',
+      activeText: 'text-amber-300',
+    },
+    match: (c: string) => c === 'housework',
+  },
+  {
     key: 'meal' as const,
     label: '食事',
     icon: '🍚',
@@ -121,7 +133,7 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
             <h4 className="text-sm font-black text-white flex items-center gap-1.5">
               🎯 全カテゴリ制覇ボーナス
             </h4>
-            <p className="text-[11px] text-slate-400">メニューと連動した4カテゴリを今日1回ずつ達成してボーナスゲット！</p>
+            <p className="text-[11px] text-slate-400">メニューと連動した5カテゴリを今日1回ずつ達成してボーナスゲット！</p>
           </div>
         </div>
         <span className="text-xs font-mono font-black text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 rounded-xl">
@@ -129,7 +141,7 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
         {CATEGORY_GROUPS.map((g) => {
           const done = !!todayCategories[g.key];
           return (
@@ -144,15 +156,15 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
                   : `${g.colorStyle.pending} cursor-pointer`
               }`}
             >
-              <div className="text-xl leading-none">{g.icon}</div>
-              <div className={`text-xs font-bold mt-1 ${done ? g.colorStyle.activeText : 'text-slate-200'}`}>
+              <div className="text-lg sm:text-xl leading-none">{g.icon}</div>
+              <div className={`text-[10px] sm:text-xs font-bold mt-1 ${done ? g.colorStyle.activeText : 'text-slate-200'}`}>
                 {g.label}
               </div>
               <div className="mt-1 flex items-center justify-center">
                 {done ? (
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 ) : (
-                  <span className="text-[10px] text-slate-500 font-bold px-1.5 py-0.5 rounded-full bg-slate-900">未</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold px-1 py-0.5 rounded-full bg-slate-900">未</span>
                 )}
               </div>
             </button>
@@ -167,7 +179,7 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
           </p>
         ) : missingCategories.length === 0 ? (
           <p className="text-xs font-bold text-emerald-300">
-            🎉 4つ揃いました！次の行動記録で +{allCategoryPoints.toLocaleString()}pt が付与されます！
+            🎉 5つ揃いました！次の行動記録で +{allCategoryPoints.toLocaleString()}pt が付与されます！
           </p>
         ) : missingCategories.length === 1 ? (
           <p className="text-xs font-bold text-indigo-200">

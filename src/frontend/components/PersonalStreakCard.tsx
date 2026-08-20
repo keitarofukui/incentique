@@ -61,6 +61,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
     const catMap: { [key: string]: boolean } = {
       quiz: false,
       training: false,
+      housework: false,
       eat_rice: false,
       input: false,
     };
@@ -68,6 +69,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
     if (userSummary && userSummary.todayCategories) {
       catMap.quiz = !!userSummary.todayCategories.quiz || !!userSummary.todayCategories.study;
       catMap.training = !!userSummary.todayCategories.training;
+      catMap.housework = !!userSummary.todayCategories.housework;
       catMap.eat_rice = !!userSummary.todayCategories.eat_rice || !!userSummary.todayCategories.eat_meat;
       catMap.input = !!userSummary.todayCategories.input_book || !!userSummary.todayCategories.input_manga || !!userSummary.todayCategories.input_movie;
     }
@@ -91,6 +93,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         if (!userSummary) {
           if (cat === 'quiz' || cat === 'study') catMap.quiz = true;
           if (cat === 'training') catMap.training = true;
+          if (cat === 'housework') catMap.housework = true;
           if (cat === 'eat_rice' || cat === 'eat_meat') catMap.eat_rice = true;
           if (cat.startsWith('input_')) catMap.input = true;
         }
@@ -114,13 +117,14 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
 
   const categories = [
     { key: 'quiz', label: 'クイズ/勉強', icon: '🧠', done: categoryStatus.quiz },
-    { key: 'training', label: '運動', icon: '💪', done: categoryStatus.training },
-    { key: 'eat_rice', label: '食事/水分', icon: '🍚', done: categoryStatus.eat_rice },
     { key: 'input', label: 'インプット', icon: '📖', done: categoryStatus.input },
+    { key: 'training', label: '運動', icon: '💪', done: categoryStatus.training },
+    { key: 'housework', label: '家事', icon: '🧹', done: categoryStatus.housework },
+    { key: 'eat_rice', label: '食事/水分', icon: '🍚', done: categoryStatus.eat_rice },
   ];
 
   const completedCategoriesCount = categories.filter((c) => c.done).length;
-  const allCategoryAwarded = completedCategoriesCount === 4;
+  const allCategoryAwarded = completedCategoriesCount === 5;
   const missingCategories = categories.filter((c) => !c.done);
 
   // DB確定の連続日数（最終活動日から2日以上経過している場合は失効して0日として動的補正）
