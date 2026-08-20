@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenTrainingModal: () => void;
   onOpenInputReviewModal: (type?: 'input_book' | 'input_movie' | 'input_drama' | 'input_manga') => void;
   onOpenEatRiceModal?: () => void;
+  onOpenHouseworkModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,6 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTrainingModal,
   onOpenInputReviewModal,
   onOpenEatRiceModal,
+  onOpenHouseworkModal,
 }) => {
   const activeBtnRef = useRef<HTMLButtonElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -219,6 +221,20 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <span>🍚🥩 食べて稼ぐ</span>
+              </button>
+            )}
+
+            {onOpenHouseworkModal && (
+              <button
+                ref={activeTab === 'housework' ? activeBtnRef : null}
+                onClick={onOpenHouseworkModal}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 shrink-0 ${
+                  activeTab === 'housework'
+                    ? 'bg-amber-500 text-slate-950 border-2 border-amber-300 shadow-glow-gold font-black'
+                    : 'text-amber-300 hover:text-white bg-amber-950/60 border border-amber-500/40'
+                }`}
+              >
+                <span>🧹 家事で稼ぐ</span>
               </button>
             )}
 

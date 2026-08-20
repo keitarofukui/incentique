@@ -264,6 +264,7 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
             { id: 'all', label: 'すべて表示' },
             { id: 'input', label: '📚 読書・映画・ドラマ' },
             { id: 'training', label: '🏋️‍♂️ 運動' },
+            { id: 'housework', label: '🧹 家事' },
             { id: 'eat_rice', label: '🍚🥩 食事' },
             { id: 'quiz', label: '🧠 クイズ' },
           ].map((f) => (
@@ -307,6 +308,8 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
                         ? '漫画'
                         : log.category === 'training'
                         ? 'トレーニング'
+                        : log.category === 'housework'
+                        ? '🧹 家事'
                         : log.category === 'eat_rice'
                         ? '🍚 お米'
                         : log.category === 'eat_meat'

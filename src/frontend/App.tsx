@@ -8,6 +8,7 @@ import { WishlistSection } from './components/WishlistSection';
 import { TrainingModal } from './components/TrainingModal';
 import { InputReviewModal } from './components/InputReviewModal';
 import { EatRiceModal } from './components/EatRiceModal';
+import { HouseworkModal } from './components/HouseworkModal';
 import { ParentPortal } from './components/ParentPortal';
 import { UserRegisterModal } from './components/UserRegisterModal';
 import { RivalBoard } from './components/RivalBoard';
@@ -37,8 +38,8 @@ export const App: React.FC = () => {
   const [userSummary, setUserSummary] = useState<UserSummary | null>(null);
   const [dailyStats, setDailyStats] = useState<DailyStatItem[]>([]);
 
-  // Full 8-Menu Swipe Cycle Loop: Home -> Quiz -> Read/Movie -> Training -> Eat -> History -> Wishlist -> Rivals -> Home
-  const TAB_CYCLE = useMemo(() => ['dashboard', 'quiz', 'input_book', 'training', 'eat_rice', 'action-logs', 'wishlist', 'rivals'], []);
+  // Full 9-Menu Swipe Cycle Loop: Home -> Quiz -> Read/Movie -> Training -> Eat -> Housework -> History -> Wishlist -> Rivals -> Home
+  const TAB_CYCLE = useMemo(() => ['dashboard', 'quiz', 'input_book', 'training', 'eat_rice', 'housework', 'action-logs', 'wishlist', 'rivals'], []);
 
   const handleSwipeTab = useCallback((direction: 'next' | 'prev') => {
     if (isParentMode || !currentUser) return;
@@ -406,6 +407,7 @@ export const App: React.FC = () => {
           onOpenTrainingModal={() => handleSetActiveTab('training')}
           onOpenInputReviewModal={handleOpenInputReviewModal}
           onOpenEatRiceModal={() => handleSetActiveTab('eat_rice')}
+          onOpenHouseworkModal={() => handleSetActiveTab('housework')}
         />
 
         {/* Main Content Area */}
@@ -493,6 +495,14 @@ export const App: React.FC = () => {
                 <EatRiceModal
                   currentUser={currentUser}
                   actionLogs={actionLogs}
+                  onSuccess={handleActionSuccess}
+                  onGachaResult={setGachaResult}
+                />
+              )}
+
+              {activeTab === 'housework' && (
+                <HouseworkModal
+                  currentUser={currentUser}
                   onSuccess={handleActionSuccess}
                   onGachaResult={setGachaResult}
                 />

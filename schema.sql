@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS training_menus (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 家事メニュー (家事で稼ぐ対応)
+CREATE TABLE IF NOT EXISTS housework_menus (
+  id TEXT PRIMARY KEY,
+  menu_name TEXT NOT NULL,
+  default_points INTEGER DEFAULT 30,
+  icon TEXT DEFAULT '🧹',
+  description TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ユーザーテーブル
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
@@ -131,6 +141,14 @@ INSERT OR IGNORE INTO training_menus (id, menu_name, default_points, video_url) 
 ('menu_hiit', 'HIIT トレーニング', 50, 'https://youtu.be/VFywKvvNuWE?si=_BKuQ94p88T8i26q'),
 ('menu_plank', 'プランク トレーニング', 50, 'https://youtu.be/4scc_lxw6L8?si=BtuMJBGMZF9OvqO4'),
 ('menu_pushup', '腕立て トレーニング', 50, 'https://youtu.be/kUNR0pDlOok?si=RPgNQsqO17vWCBnB');
+
+-- 家事メニュー初期登録
+INSERT OR IGNORE INTO housework_menus (id, menu_name, default_points, icon, description) VALUES
+('hw_laundry_hang', '洗濯物を干す', 30, '🧺', '洗濯物を干す作業を行う'),
+('hw_laundry_fold', '洗濯物を畳む', 30, '👕', '畳んでたたんで収納する'),
+('hw_cook_one', 'ご飯を作る（1品）', 30, '🍳', '料理を1品作る'),
+('hw_plan_menu', '献立を考える', 20, '💡', '1日または1食の献立を提案する'),
+('hw_trash', 'ゴミを捨てる', 10, '🗑️', '家中のゴミを集めて集積所へ出す');
 
 -- クイズ初期プール (英語・社会・理科)
 INSERT OR IGNORE INTO quiz_questions (id, grade_level, category, question_text, options_json, correct_index, difficulty) VALUES

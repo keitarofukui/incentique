@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, WishItem, PointRule, ActionLog } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame, LayoutDashboard } from 'lucide-react';
+import { User, WishItem, PointRule, ActionLog, HouseworkMenu } from '../types';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame, LayoutDashboard, Sparkles } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 import { ApproveWishModal } from './ApproveWishModal';
 import { ReturnWishModal } from './ReturnWishModal';
@@ -915,6 +915,9 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
           {/* Training Menu Master Maintenance Widget */}
           <TrainingMenuManager />
+
+          {/* Housework Menu Master Maintenance Widget */}
+          <HouseworkMenuManager />
         </div>
       )}
 
@@ -1485,6 +1488,257 @@ const TrainingMenuManager: React.FC = () => {
                 }
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[11px] text-slate-300 focus:outline-none focus:border-emerald-400 font-mono"
               />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+const HouseworkMenuManager: React.FC = () => {
+  const [menus, setMenus] = useState<HouseworkMenu[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [newMenuName, setNewMenuName] = useState<string>('');
+  const [newMenuPts, setNewMenuPts] = useState<number>(30);
+  const [newIcon, setNewIcon] = useState<string>('🧹');
+  const [newDescription, setNewDescription] = useState<string>('');
+  const [msg, setMsg] = useState<string>('');
+  const [savedMenuId, setSavedMenuId] = useState<string | null>(null);
+
+  const fetchMenus = () => {
+    setLoading(true);
+    fetch('/api/housework-menus')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.menus) {
+          setMenus(data.menus);
+        }
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchMenus();
+  }, []);
+
+  const handleAddMenu = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMenuName.trim()) return;
+
+    try {
+      const res = await fetch('/api/housework-menus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          menuName: newMenuName.trim(),
+          defaultPoints: newMenuPts,
+          icon: newIcon.trim() || '🧹',
+          description: newDescription.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.menus) {
+        setMenus(data.menus);
+        setNewMenuName('');
+        setNewDescription('');
+        setNewMenuPts(30);
+        setNewIcon('🧹');
+        setMsg('新しい家事メニューを追加しました！');
+        setTimeout(() => setMsg(''), 3000);
+      }
+    } catch (err) {
+      alert('家事メニューの追加に失敗しました');
+    }
+  };
+
+  const handleDeleteMenu = async (menuId: string, name: string) => {
+    if (!window.confirm(`家事メニュー「${name}」を削除しますか？`)) return;
+
+    try {
+      const res = await fetch(`/api/housework-menus/${menuId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success && data.menus) {
+        setMenus(data.menus);
+        setMsg(`「${name}」を削除しました`);
+        setTimeout(() => setMsg(''), 3000);
+      }
+    } catch (err) {
+      alert('削除に失敗しました');
+    }
+  };
+
+  const handleUpdateMenu = async (menu: HouseworkMenu) => {
+    try {
+      const res = await fetch(`/api/housework-menus/${menu.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          menuName: menu.menu_name,
+          defaultPoints: Number(menu.default_points || 30),
+          icon: menu.icon || '🧹',
+          description: menu.description || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.menus) {
+        setMenus(data.menus);
+        setSavedMenuId(menu.id);
+        setMsg(`「${menu.menu_name}」の設定を更新しました！`);
+        setTimeout(() => setSavedMenuId(null), 3000);
+        setTimeout(() => setMsg(''), 3000);
+      }
+    } catch (err) {
+      alert('更新に失敗しました');
+    }
+  };
+
+  return (
+    <div className="glass-card p-6 rounded-3xl border border-amber-500/40 space-y-5 shadow-2xl bg-gradient-to-br from-amber-950/20 via-slate-900/80 to-transparent">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <h3 className="text-lg font-black text-white flex items-center gap-2">
+            <span>🧹</span> 家事で稼ぐ メニューマスター管理
+          </h3>
+          <p className="text-xs text-slate-400">
+            お手伝い・家事のメニューと、子どもたちが達成した際に獲得できるポイントを設定できます。
+          </p>
+        </div>
+      </div>
+
+      {msg && (
+        <div className="p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-xs font-bold animate-fade-in flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{msg}</span>
+        </div>
+      )}
+
+      {/* 新規家事メニュー追加フォーム */}
+      <form onSubmit={handleAddMenu} className="bg-slate-950/80 p-4 rounded-2xl border border-amber-500/30 space-y-3">
+        <h4 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> 新しい家事メニューを追加
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          <div className="sm:col-span-2">
+            <label className="block text-[10px] text-slate-400 mb-1">アイコン</label>
+            <input
+              type="text"
+              value={newIcon}
+              onChange={(e) => setNewIcon(e.target.value)}
+              placeholder="🧹"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-amber-400"
+            />
+          </div>
+          <div className="sm:col-span-5">
+            <label className="block text-[10px] text-slate-400 mb-1">家事メニュー名</label>
+            <input
+              type="text"
+              placeholder="例: お風呂掃除、食器洗い"
+              value={newMenuName}
+              onChange={(e) => setNewMenuName(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
+              required
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <label className="block text-[10px] text-slate-400 mb-1">獲得ポイント (pt)</label>
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              value={newMenuPts}
+              onChange={(e) => setNewMenuPts(Number(e.target.value))}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400"
+              required
+            />
+          </div>
+          <div className="sm:col-span-2 flex items-end">
+            <button
+              type="submit"
+              className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs shadow-lg transition-all"
+            >
+              追加
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* 登録済み家事メニュー一覧 */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-slate-300">登録中メニュー ({menus.length}件)</h4>
+        {loading ? (
+          <div className="text-center py-4 text-xs text-slate-500">読み込み中...</div>
+        ) : menus.length === 0 ? (
+          <div className="text-center py-6 text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800">
+            登録されている家事メニューはありません
+          </div>
+        ) : (
+          menus.map((m) => (
+            <div
+              key={m.id}
+              className={`bg-slate-950/60 border rounded-2xl p-3.5 space-y-2 transition-all ${
+                savedMenuId === m.id ? 'border-emerald-500/80 bg-emerald-950/20' : 'border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={m.icon || '🧹'}
+                    onChange={(e) =>
+                      setMenus((prev) =>
+                        prev.map((item) => (item.id === m.id ? { ...item, icon: e.target.value } : item))
+                      )
+                    }
+                    className="w-10 bg-slate-900 border border-slate-800 rounded-lg py-1 text-center text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                  <input
+                    type="text"
+                    value={m.menu_name}
+                    onChange={(e) =>
+                      setMenus((prev) =>
+                        prev.map((item) => (item.id === m.id ? { ...item, menu_name: e.target.value } : item))
+                      )
+                    }
+                    className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={m.default_points}
+                      onChange={(e) =>
+                        setMenus((prev) =>
+                          prev.map((item) =>
+                            item.id === m.id ? { ...item, default_points: Number(e.target.value) } : item
+                          )
+                        )
+                      }
+                      className="w-16 bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-center text-xs font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="text-[10px] text-slate-400">pt</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleUpdateMenu(m)}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition-all flex items-center gap-1"
+                  >
+                    <Save className="w-3.5 h-3.5" /> 保存
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteMenu(m.id, m.menu_name)}
+                    className="p-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all"
+                    title="この家事メニューを削除"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           ))
         )}

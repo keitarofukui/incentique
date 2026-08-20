@@ -1096,6 +1096,99 @@ app.delete('/api/training-menus/:id', async (c) => {
 });
 
 // ==========================================
+// Housework Menus Master Endpoints
+// ==========================================
+app.get('/api/housework-menus', async (c) => {
+  try {
+    try {
+      await c.env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS housework_menus (
+          id TEXT PRIMARY KEY,
+          menu_name TEXT NOT NULL,
+          default_points INTEGER DEFAULT 30,
+          icon TEXT DEFAULT '🧹',
+          description TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `).run();
+      await c.env.DB.prepare(`
+        INSERT OR IGNORE INTO housework_menus (id, menu_name, default_points, icon, description) VALUES
+        ('hw_laundry_hang', '洗濯物を干す', 30, '🧺', '洗濯物を干す作業を行う'),
+        ('hw_laundry_fold', '洗濯物を畳む', 30, '👕', '畳んでたたんで収納する'),
+        ('hw_cook_one', 'ご飯を作る（1品）', 30, '🍳', '料理を1品作る'),
+        ('hw_plan_menu', '献立を考える', 20, '💡', '1日または1食の献立を提案する'),
+        ('hw_trash', 'ゴミを捨てる', 10, '🗑️', '家中のゴミを集めて集積所へ出す');
+      `).run();
+    } catch (_) {}
+
+    const { results } = await c.env.DB.prepare('SELECT * FROM housework_menus ORDER BY created_at ASC').all();
+    return c.json({ success: true, menus: results });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+app.post('/api/housework-menus', async (c) => {
+  try {
+    const body = await c.req.json<{
+      menuName: string;
+      defaultPoints?: number;
+      icon?: string;
+      description?: string;
+    }>();
+
+    const id = 'hw_' + Date.now();
+    const pts = body.defaultPoints || 30;
+
+    await c.env.DB.prepare(
+      'INSERT INTO housework_menus (id, menu_name, default_points, icon, description) VALUES (?, ?, ?, ?, ?)'
+    )
+      .bind(id, body.menuName, pts, body.icon || '🧹', body.description || null)
+      .run();
+
+    const { results } = await c.env.DB.prepare('SELECT * FROM housework_menus ORDER BY created_at ASC').all();
+    return c.json({ success: true, menus: results });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+app.put('/api/housework-menus/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json<{
+      menuName: string;
+      defaultPoints: number;
+      icon?: string;
+      description?: string;
+    }>();
+
+    await c.env.DB.prepare(
+      'UPDATE housework_menus SET menu_name = ?, default_points = ?, icon = ?, description = ? WHERE id = ?'
+    )
+      .bind(body.menuName, body.defaultPoints || 30, body.icon || '🧹', body.description || null, id)
+      .run();
+
+    const { results } = await c.env.DB.prepare('SELECT * FROM housework_menus ORDER BY created_at ASC').all();
+    return c.json({ success: true, menus: results });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+app.delete('/api/housework-menus/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    await c.env.DB.prepare('DELETE FROM housework_menus WHERE id = ?').bind(id).run();
+
+    const { results } = await c.env.DB.prepare('SELECT * FROM housework_menus ORDER BY created_at ASC').all();
+    return c.json({ success: true, menus: results });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+// ==========================================
 // 4. Action Logs & Wishlist
 // ==========================================
 app.get('/api/action-logs', async (c) => {
