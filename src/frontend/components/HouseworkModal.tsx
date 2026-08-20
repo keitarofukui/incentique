@@ -65,7 +65,7 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/actions', {
+      const res = await fetch('/api/action-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
