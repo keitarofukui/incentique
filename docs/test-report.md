@@ -12,7 +12,7 @@
 | **プロダクションビルド** | `npm run build` | ✅ PASS | エラー 0 件 (1.69s) |
 | **ローカルD1スキーマ作成** | `wrangler d1 execute quest-db --local` | ✅ PASS | `housework_menus` テーブル作成成功 |
 | **ローカルD1シード投入** | `INSERT OR IGNORE` 実行 | ✅ PASS | 初期マスタ5件正常投入・照会完了 |
-| **本番D1マイグレーション** | `wrangler d1 execute quest-db --remote` | ✅ PASS | 本番DBへのテーブル作成＆シード投入成功 |
+| **アクション送信API連動** | `POST /api/action-logs` | ✅ PASS | エンドポイントパス相違修正完了（正常送信・ポイント付与・ガチャ判定） |
 
 ---
 
