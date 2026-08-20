@@ -56,12 +56,14 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
   const handleSelectMenu = (menu: HouseworkMenu) => {
     setSelectedMenu(menu);
     setEarnedPoints(menu.default_points || 30);
+    setSuccessMsg('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMenu) return;
 
+    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -81,6 +83,7 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
 
       if (data.success) {
         setSuccessMsg(`「${selectedMenu.menu_name}」のお手伝いを記録しました！`);
+        setTimeout(() => setSuccessMsg(''), 4000);
         setReviewText('');
 
         if (data.multiplier && data.multiplier > 1 && onGachaResult) {
