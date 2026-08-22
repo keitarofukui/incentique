@@ -7,3 +7,11 @@ dist
 !.env.example
 *.log
 .DS_Store
+/AGENTS.md
+/CLAUDE.md
+/prompts
+/.agents
+/.gate.config.sh
+/docs/violations.log
+/docs/gate-waivers.txt
+*.bak-[0-9]*
