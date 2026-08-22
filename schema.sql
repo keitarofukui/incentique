@@ -134,7 +134,7 @@ INSERT OR IGNORE INTO point_rules (category, title, points, description) VALUES
 ('bonus_300pt',  '🎉 1日300pt突破ボーナス',  200, 'ボーナス・ガチャ倍率を除いた1日の素点が300ptを超えた時の単発ボーナス'),
 ('bonus_500pt',  '🔥 1日500pt突破ボーナス',  300, 'ボーナス・ガチャ倍率を除いた1日の素点が500ptを超えた時の単発ボーナス'),
 ('bonus_1000pt', '🤯 1日1000pt突破ボーナス', 500, 'ボーナス・ガチャ倍率を除いた1日の素点が1000ptを超えた時の単発ボーナス'),
-('bonus_all_category', '🎯 全カテゴリ制覇ボーナス', 100, '1日でクイズ・インプット・運動・食事の4カテゴリすべてを記録した時の単発ボーナス（0で無効化）');
+('bonus_all_category', '🎯 全カテゴリ制覇ボーナス', 100, '1日でクイズ・インプット・運動・家事・食事の5カテゴリすべてを記録した時の単発ボーナス（0で無効化）');
 
 -- 指定のYouTube動画トレーニングメニュー初期登録 (各 50 pt)
 INSERT OR IGNORE INTO training_menus (id, menu_name, default_points, video_url) VALUES
