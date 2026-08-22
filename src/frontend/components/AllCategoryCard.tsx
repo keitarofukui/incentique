@@ -133,7 +133,7 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
             <h4 className="text-sm font-black text-white flex items-center gap-1.5">
               🎯 全カテゴリ制覇ボーナス
             </h4>
-            <p className="text-[11px] text-slate-400">メニューと連動した5カテゴリを今日1回ずつ達成してボーナスゲット！</p>
+            <p className="text-xs text-slate-400">メニューと連動した5カテゴリを今日1回ずつ達成してボーナスゲット！</p>
           </div>
         </div>
         <span className="text-xs font-mono font-black text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 rounded-xl">
@@ -157,14 +157,14 @@ export const AllCategoryCard: React.FC<AllCategoryCardProps> = ({
               }`}
             >
               <div className="text-lg sm:text-xl leading-none">{g.icon}</div>
-              <div className={`text-[10px] sm:text-xs font-bold mt-1 ${done ? g.colorStyle.activeText : 'text-slate-200'}`}>
+              <div className={`text-xs sm:text-xs font-bold mt-1 ${done ? g.colorStyle.activeText : 'text-slate-200'}`}>
                 {g.label}
               </div>
               <div className="mt-1 flex items-center justify-center">
                 {done ? (
                   <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 ) : (
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold px-1 py-0.5 rounded-full bg-slate-900">未</span>
+                  <span className="text-xs sm:text-xs text-slate-500 font-bold px-1 py-0.5 rounded-full bg-slate-900">未</span>
                 )}
               </div>
             </button>

@@ -184,15 +184,15 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
           <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-            <span className="text-[9px] font-semibold text-slate-400 block">⚡ 実力素点</span>
+            <span className="text-xs font-semibold text-slate-400 block">⚡ 実力素点</span>
             <span className="text-xs font-mono font-black text-cyan-300">+{todayBase.toLocaleString()} pt</span>
           </div>
           <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-            <span className="text-[9px] font-semibold text-slate-400 block">🎁 ボーナス等</span>
+            <span className="text-xs font-semibold text-slate-400 block">🎁 ボーナス等</span>
             <span className="text-xs font-mono font-black text-purple-300">+{todayBonus.toLocaleString()} pt</span>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-center shadow-md">
-            <span className="text-[9px] font-bold text-amber-300 block">🏆 本日獲得合計</span>
+            <span className="text-xs font-bold text-amber-300 block">🏆 本日獲得合計</span>
             <span className="text-sm font-mono font-black text-amber-300">+{todayTotal.toLocaleString()} pt</span>
           </div>
         </div>
@@ -206,26 +206,26 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
             <span className="text-lg">🏆</span>
             <span className="text-xs font-black text-slate-300">これまでの累計獲得</span>
             {lifetimeMilestone !== undefined && (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
+              <span className="text-xs font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
                 🎖️ {(lifetimeMilestone / 10000).toLocaleString()}万pt達成
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
             <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-center shadow-glow-gold">
-              <span className="text-[9px] font-bold text-amber-300 block">💰 累計獲得</span>
+              <span className="text-xs font-bold text-amber-300 block">💰 累計獲得</span>
               <span className="text-lg font-mono font-black text-amber-300 leading-tight whitespace-nowrap">
                 {lifetimeEarned.toLocaleString()} pt
               </span>
             </div>
             <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-              <span className="text-[9px] font-semibold text-slate-400 block">🎁 交換に使った</span>
+              <span className="text-xs font-semibold text-slate-400 block">🎁 交換に使った</span>
               <span className="text-xs font-mono font-black text-slate-300 whitespace-nowrap">
                 {lifetimeSpent.toLocaleString()} pt
               </span>
             </div>
             <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-              <span className="text-[9px] font-semibold text-slate-400 block">👛 いま使える</span>
+              <span className="text-xs font-semibold text-slate-400 block">👛 いま使える</span>
               <span className="text-xs font-mono font-black text-amber-400 whitespace-nowrap">
                 {lifetimeBalance.toLocaleString()} pt
               </span>
@@ -274,7 +274,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs font-black text-indigo-300 flex items-center gap-1">
               <span>🔥 デイリー</span>
-              <span className="text-[10px] font-normal text-slate-400">(1pt+)</span>
+              <span className="text-xs font-normal text-slate-400">(1pt+)</span>
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
               streakDaily > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
@@ -296,7 +296,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               )}
             </div>
             {/* 今日達成したら何ptもらえるか */}
-            <div className="p-1.5 rounded-lg bg-indigo-950/80 border border-indigo-500/30 text-[10px] font-bold text-indigo-200 flex items-center justify-between">
+            <div className="p-1.5 rounded-lg bg-indigo-950/80 border border-indigo-500/30 text-xs font-bold text-indigo-200 flex items-center justify-between">
               <span>獲得ボーナス:</span>
               <span className="font-mono font-black text-amber-300">+{dailyBonusPayout} pt</span>
             </div>
@@ -310,7 +310,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs font-black text-rose-300 flex items-center gap-1">
               <span>💥 中級</span>
-              <span className="text-[10px] font-normal text-slate-400">({midThreshold}pt+)</span>
+              <span className="text-xs font-normal text-slate-400">({midThreshold}pt+)</span>
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
               streakMid > 0 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-400'
@@ -340,7 +340,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               </div>
             )}
             {/* 今日達成したら何ptもらえるか */}
-            <div className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-500/30 text-[10px] font-bold text-rose-200 flex items-center justify-between">
+            <div className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-500/30 text-xs font-bold text-rose-200 flex items-center justify-between">
               <span>達成時ボーナス:</span>
               <span className="font-mono font-black text-amber-300">+{midBonusPayout} pt</span>
             </div>
@@ -354,7 +354,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs font-black text-amber-300 flex items-center gap-1">
               <span>👑 神</span>
-              <span className="text-[10px] font-normal text-slate-400">({godThreshold}pt+)</span>
+              <span className="text-xs font-normal text-slate-400">({godThreshold}pt+)</span>
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
               streakGod > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
@@ -384,7 +384,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               </div>
             )}
             {/* 今日達成したら何ptもらえるか */}
-            <div className="p-1.5 rounded-lg bg-amber-950/80 border border-amber-500/30 text-[10px] font-bold text-amber-200 flex items-center justify-between">
+            <div className="p-1.5 rounded-lg bg-amber-950/80 border border-amber-500/30 text-xs font-bold text-amber-200 flex items-center justify-between">
               <span>達成時ボーナス:</span>
               <span className="font-mono font-black text-amber-300">+{godBonusPayout} pt</span>
             </div>
@@ -429,7 +429,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-bold text-emerald-300 flex items-center justify-between gap-2">
           <span>🎉 本日の日常アクション記録完了！連続記録継続中！</span>
           {upcomingMilestone && (
-            <span className="text-slate-400 font-normal text-[11px] shrink-0">
+            <span className="text-slate-400 font-normal text-xs shrink-0">
               次の節目 {upcomingMilestone}日目まであと{upcomingMilestone - streakDaily}日
             </span>
           )}
@@ -446,7 +446,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
             <span className="text-base">👑</span>
             <span className="text-xs font-black text-white">本日の全カテゴリ制覇進捗</span>
           </div>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
             allCategoryAwarded
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
               : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
@@ -472,7 +472,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           ))}
         </div>
 
-        <p className="text-[11px] text-slate-300 leading-relaxed">
+        <p className="text-xs text-slate-300 leading-relaxed">
           {allCategoryAwarded ? (
             <span className="text-emerald-300 font-bold">✨ すばらしい！本日全{categories.length}カテゴリを達成し、制覇ボーナスを獲得しました！</span>
           ) : (

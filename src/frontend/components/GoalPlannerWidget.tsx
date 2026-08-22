@@ -119,7 +119,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-black text-white">目標 ＆ 達成ペース計画</h3>
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-500/30">
+              <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-500/30">
                 いつでも変更OK
               </span>
             </div>
@@ -146,14 +146,14 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
         
         {/* Card 1: Target Item */}
         <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">目標のご褒美</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目標のご褒美</span>
           <div className="text-base font-black text-amber-300 truncate">{targetTitle || '未設定 (目標を設定しよう)'}</div>
           <div className="text-xs text-amber-400 font-mono font-extrabold">{targetPoints.toLocaleString()} pt 目標</div>
         </div>
 
         {/* Card 2: Deadline */}
         <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
             <Calendar className="w-3 h-3 text-cyan-400" /> 達成期日
           </span>
           <div className="text-base font-black text-white font-mono">{targetDateStr || '未設定'}</div>
@@ -162,20 +162,20 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
 
         {/* Card 3: Remaining Points */}
         <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">必要な残りポイント</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">必要な残りポイント</span>
           <div className="text-base font-black text-amber-400 font-mono">{pointsNeeded.toLocaleString()} pt</div>
           <div className="text-xs text-slate-400">進捗率: {progressPercent}%</div>
         </div>
 
         {/* Card 4: Daily Target Pace */}
         <div className="bg-gradient-to-tr from-amber-500/20 to-yellow-500/10 p-4 rounded-2xl border border-amber-500/40 space-y-1 shadow-glow-gold">
-          <span className="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+          <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wider flex items-center gap-1">
             <Flame className="w-3.5 h-3.5 text-amber-400" /> 1日あたりの必要ペース
           </span>
           <div className="text-2xl font-black text-amber-300 font-mono">
             {dailyRequiredPace.toLocaleString()} <span className="text-xs">pt/日</span>
           </div>
-          <div className="text-[10px] text-amber-200">期日通りに達成するための目安</div>
+          <div className="text-xs text-amber-200">期日通りに達成するための目安</div>
         </div>
 
       </div>
@@ -211,7 +211,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
               <div className="text-xs text-cyan-400 font-mono font-extrabold">
                 1日 {dailyRequiredPace.toLocaleString()} 問
               </div>
-              <p className="text-[10px] text-slate-400">1問1ptで全額稼ぐ場合の目安</p>
+              <p className="text-xs text-slate-400">1問1ptで全額稼ぐ場合の目安</p>
             </div>
           </div>
 
@@ -222,7 +222,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
               <div className="text-xs text-purple-400 font-mono font-extrabold">
                 1日 約 {Math.max(1, Math.ceil(dailyRequiredPace / 300))} 冊/本
               </div>
-              <p className="text-[10px] text-slate-400">読書(+300pt)や映画(+120pt)の感想提出</p>
+              <p className="text-xs text-slate-400">読書(+300pt)や映画(+120pt)の感想提出</p>
             </div>
           </div>
 
@@ -233,7 +233,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
               <div className="text-xs text-emerald-400 font-mono font-extrabold">
                 1日 {Math.max(1, Math.ceil(dailyRequiredPace / 50))} 回
               </div>
-              <p className="text-[10px] text-slate-400">1回あたり+50ptでトレーニング達成</p>
+              <p className="text-xs text-slate-400">1回あたり+50ptでトレーニング達成</p>
             </div>
           </div>
         </div>

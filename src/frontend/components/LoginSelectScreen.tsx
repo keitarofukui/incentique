@@ -27,7 +27,7 @@ export const LoginSelectScreen: React.FC<LoginSelectScreenProps> = ({
         {/* App Branding */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple p-0.5 shadow-glow-cyan">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+            <div className="w-full h-full bg-slate-950 rounded-[0.875rem] flex items-center justify-center">
               <Trophy className="w-9 h-9 text-cyber-neonCyan" />
             </div>
           </div>

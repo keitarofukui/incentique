@@ -313,7 +313,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-black text-amber-300">⚔️ 今日の勝負</h3>
-            <p className="text-[11px] text-slate-400 truncate">
+            <p className="text-xs text-slate-400 truncate">
               毎日0ptスタート。今日やった分だけが今日の順位になる！
             </p>
           </div>
@@ -352,10 +352,10 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
                     {row.user.name}
                   </span>
                   {idx === 0 && row.todayPoints > 0 && (
-                    <span className="text-[10px] shrink-0">👑</span>
+                    <span className="text-xs shrink-0">👑</span>
                   )}
                   {row.streak >= 2 && (
-                    <span className="text-[10px] font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                    <span className="text-xs font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
                       🔥{row.streak}日連続
                     </span>
                   )}
@@ -364,9 +364,9 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
                 <div className="text-right shrink-0">
                   <span className="text-sm font-mono font-black text-amber-400">
                     {row.todayPoints.toLocaleString()}
-                    <span className="text-[10px] font-normal ml-0.5">pt</span>
+                    <span className="text-xs font-normal ml-0.5">pt</span>
                   </span>
-                  <span className="text-[10px] text-slate-400 font-mono ml-1.5">{row.todayCount}件</span>
+                  <span className="text-xs text-slate-400 font-mono ml-1.5">{row.todayCount}件</span>
                 </div>
               </div>
 
@@ -386,7 +386,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
               </div>
 
               {row.todayPoints > 0 && (
-                <div className="mt-1.5 flex items-center gap-2 text-[10px] font-mono">
+                <div className="mt-1.5 flex items-center gap-2 text-xs font-mono">
                   <span className={isMe ? 'text-cyan-300' : 'text-amber-300'}>
                     素点 {row.todayBase.toLocaleString()}
                   </span>
@@ -450,7 +450,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
         <div className="pt-3 border-t border-slate-800 space-y-2">
           <div className="flex items-center gap-1.5">
             <Crown className="w-3.5 h-3.5 text-amber-400" />
-            <h4 className="text-[11px] font-black text-amber-300">今週のチャンピオン（直近7日）</h4>
+            <h4 className="text-xs font-black text-amber-300">今週のチャンピオン（直近7日）</h4>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -468,13 +468,13 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-sm shrink-0">{c.icon}</span>
                     <div className="min-w-0">
-                      <div className="text-[10px] text-slate-400 font-bold leading-none">{c.title}</div>
+                      <div className="text-xs text-slate-400 font-bold leading-none">{c.title}</div>
                       <div className={`text-xs font-black truncate ${isMe ? 'text-cyber-neonCyan' : 'text-white'}`}>
                         {c.holder.user.name}
                       </div>
                     </div>
                   </div>
-                  <span className="text-[11px] font-mono font-black text-amber-400 shrink-0">
+                  <span className="text-xs font-mono font-black text-amber-400 shrink-0">
                     {c.format(c.holder.week[c.key])}
                   </span>
                 </div>

@@ -87,11 +87,11 @@ export const ApproveWishModal: React.FC<ApproveWishModalProps> = ({
         </div>
 
         <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400">
+          <div className="text-xs font-bold text-slate-400">
             {item.user_name ? `${item.user_name} さんのリクエスト` : 'リクエスト内容'}
           </div>
           <div className="text-sm font-bold text-white break-words">{item.title}</div>
-          <div className="text-[11px] text-slate-400 font-mono">
+          <div className="text-xs text-slate-400 font-mono">
             申請ポイント: {item.required_points.toLocaleString()} pt ／ 所持: {availablePoints.toLocaleString()} pt
           </div>
         </div>
@@ -111,17 +111,17 @@ export const ApproveWishModal: React.FC<ApproveWishModalProps> = ({
             />
             <span className="text-sm font-bold text-amber-400 shrink-0">pt</span>
           </div>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             ※実際の購入額に合わせて増減できます。申請額のままでよければそのまま承認してください。
           </p>
 
           {valid && diff !== 0 && (
-            <p className={`text-[11px] font-bold ${diff > 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+            <p className={`text-xs font-bold ${diff > 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
               申請額より {Math.abs(diff).toLocaleString()}pt {diff > 0 ? '多く引きます' : '少なく引きます'}
             </p>
           )}
           {isCash && valid && (
-            <p className="text-[11px] font-bold text-emerald-300">
+            <p className="text-xs font-bold text-emerald-300">
               💵 現金還元（7掛け）: ¥{Math.floor(points * 0.7).toLocaleString()} 円
             </p>
           )}
@@ -136,7 +136,7 @@ export const ApproveWishModal: React.FC<ApproveWishModalProps> = ({
           </div>
         )}
 
-        <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-[11px] text-amber-200 font-bold">
+        <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 font-bold">
           承認すると {valid ? Math.floor(points).toLocaleString() : '—'} pt が引き落とされます。この操作は取り消せません。
         </div>
 

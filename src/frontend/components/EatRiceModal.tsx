@@ -276,7 +276,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
               <div className="text-xs font-black text-amber-300 flex items-center gap-1.5">
                 <span>本日の食べる実績</span>
               </div>
-              <p className="text-[11px] text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5">
                 🍚 主食: <strong className="text-amber-300 font-mono">{stats.riceTodayGrams}g</strong> ({stats.riceTodayCount}回)
                 <span className="mx-1.5 text-slate-600">|</span>
                 🥩 お肉: <strong className="text-rose-300 font-mono">{stats.meatTodayGrams}g</strong> ({stats.meatTodayCount}回)
@@ -287,7 +287,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
             <div className="text-xl font-black font-mono text-amber-400">
               {activeSubTab === 'rice' ? stats.riceTodayGrams : stats.meatTodayGrams} <span className="text-xs font-bold text-amber-300">g</span>
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">
+            <div className="text-xs text-slate-400 font-mono">
               今月累計: {((activeSubTab === 'rice' ? stats.riceMonthGrams : stats.meatMonthGrams) / 1000).toFixed(1)}kg
             </div>
           </div>
@@ -325,7 +325,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
             <div className="space-y-3.5">
               <label className="text-xs font-bold text-amber-300 block flex items-center justify-between">
                 <span>🍚 食べた主食（炭水化物）の種類を選択</span>
-                <span className="text-[10px] text-slate-400 font-normal">タップで自動グラム換算！</span>
+                <span className="text-xs text-slate-400 font-normal">タップで自動グラム換算！</span>
               </label>
 
               {/* Carb Category Selector Buttons */}
@@ -358,7 +358,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
               {/* Presets per Carb Type */}
               {carbType === 'rice' && (
                 <div className="space-y-1.5 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <div className="text-[11px] font-bold text-amber-300">🍚 白飯・丼もの</div>
+                  <div className="text-xs font-bold text-amber-300">🍚 白飯・丼もの</div>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { label: '🍚 軽め', val: 150 },
@@ -377,7 +377,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
                         }`}
                       >
                         <div>{preset.label}</div>
-                        <div className="text-[10px] opacity-80 font-mono">{preset.val}g</div>
+                        <div className="text-xs opacity-80 font-mono">{preset.val}g</div>
                       </button>
                     ))}
                   </div>
@@ -386,7 +386,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
 
               {carbType === 'noodle' && (
                 <div className="space-y-1.5 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <div className="text-[11px] font-bold text-cyan-300">🍜 ラーメン / うどん / そば (1玉=約200g)</div>
+                  <div className="text-xs font-bold text-cyan-300">🍜 ラーメン / うどん / そば (1玉=約200g)</div>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { label: '0.5玉', val: 100 },
@@ -405,7 +405,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
                         }`}
                       >
                         <div>{preset.label}</div>
-                        <div className="text-[10px] opacity-80 font-mono">{preset.val}g</div>
+                        <div className="text-xs opacity-80 font-mono">{preset.val}g</div>
                       </button>
                     ))}
                   </div>
@@ -414,7 +414,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
 
               {carbType === 'pasta' && (
                 <div className="space-y-1.5 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <div className="text-[11px] font-bold text-rose-300">🍝 パスタ / スパゲティ</div>
+                  <div className="text-xs font-bold text-rose-300">🍝 パスタ / スパゲティ</div>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { label: '軽め', val: 150 },
@@ -432,7 +432,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
                         }`}
                       >
                         <div>{preset.label}</div>
-                        <div className="text-[10px] opacity-80 font-mono">{preset.val}g</div>
+                        <div className="text-xs opacity-80 font-mono">{preset.val}g</div>
                       </button>
                     ))}
                   </div>
@@ -441,7 +441,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
 
               {carbType === 'bread' && (
                 <div className="space-y-1.5 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
-                  <div className="text-[11px] font-bold text-yellow-300">🍞 食パン / 惣菜パン (1個=約80g)</div>
+                  <div className="text-xs font-bold text-yellow-300">🍞 食パン / 惣菜パン (1個=約80g)</div>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { label: '1個/枚', val: 80 },
@@ -459,7 +459,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
                         }`}
                       >
                         <div>{preset.label}</div>
-                        <div className="text-[10px] opacity-80 font-mono">{preset.val}g</div>
+                        <div className="text-xs opacity-80 font-mono">{preset.val}g</div>
                       </button>
                     ))}
                   </div>
@@ -498,7 +498,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
             <div className="space-y-3.5">
               <label className="text-xs font-bold text-rose-300 block flex items-center justify-between">
                 <span>🥩 食べたお肉のメニュー・個数・枚数を選択</span>
-                <span className="text-[10px] text-slate-400 font-normal">タップで自動グラム換算！</span>
+                <span className="text-xs text-slate-400 font-normal">タップで自動グラム換算！</span>
               </label>
 
               {/* Preset Meat Presets Grid */}
@@ -506,7 +506,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
                 
                 {/* 1. 唐揚げ (30g/個) */}
                 <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
-                  <div className="text-[11px] font-bold text-amber-300 flex items-center justify-between">
+                  <div className="text-xs font-bold text-amber-300 flex items-center justify-between">
                     <span>🍗 唐揚げ (1個あたり 約30g)</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
@@ -534,7 +534,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
 
                 {/* 2. 生姜焼き (40g/枚) */}
                 <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
-                  <div className="text-[11px] font-bold text-rose-300 flex items-center justify-between">
+                  <div className="text-xs font-bold text-rose-300 flex items-center justify-between">
                     <span>🥩 豚の生姜焼き (1枚あたり 約40g)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -561,7 +561,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
 
                 {/* 3. 鶏ステーキ/チキンソテー (200g/枚) */}
                 <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
-                  <div className="text-[11px] font-bold text-emerald-300 flex items-center justify-between">
+                  <div className="text-xs font-bold text-emerald-300 flex items-center justify-between">
                     <span>🍖 鶏ステーキ / チキンソテー (1枚あたり 約200g)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -588,7 +588,7 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
 
                 {/* 4. 豚・牛ステーキ / ハンバーグ (150g/枚) */}
                 <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
-                  <div className="text-[11px] font-bold text-cyan-300 flex items-center justify-between">
+                  <div className="text-xs font-bold text-cyan-300 flex items-center justify-between">
                     <span>🥩 豚・牛ステーキ / ハンバーグ (1枚あたり 約150g)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">

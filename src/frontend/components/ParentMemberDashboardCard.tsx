@@ -93,7 +93,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-lg font-black text-white">{user.name}</h3>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-slate-700">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-slate-700">
                   {user.grade_level === 'high_3' ? '高3' : user.grade_level === 'junior_1' ? '中1' : 'その他'}
                 </span>
               </div>
@@ -116,7 +116,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
         {/* POINTS SUMMARY (Total & Today) */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+            <div className="text-xs font-bold text-slate-400 flex items-center gap-1">
               <span>所持pt</span>
             </div>
             <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
@@ -125,10 +125,10 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+            <div className="text-xs font-bold text-slate-400 flex items-center justify-between">
               <span>本日の獲得ポイント</span>
               {userTodayLogs.length > 0 && (
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded">
+                <span className="text-xs text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded">
                   {userTodayLogs.length}件の活動
                 </span>
               )}
@@ -136,7 +136,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
             <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
               +{todayTotalPoints.toLocaleString()} <span className="text-xs text-emerald-300">pt</span>
             </div>
-            <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2">
+            <div className="text-xs text-slate-400 font-mono flex items-center gap-2">
               <span>素点: {todayBasePoints}</span>
               <span>ボーナス: {todayBonusPoints}</span>
             </div>
@@ -153,42 +153,42 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
           <div className="grid grid-cols-3 gap-2 text-center">
             {/* 1. Daily Streak */}
             <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1">
+              <div className="text-xs font-bold text-slate-400 flex items-center justify-center gap-1">
                 <Zap className="w-3 h-3 text-amber-400" />
                 <span>通常連続</span>
               </div>
               <div className={`text-base font-black font-mono mt-0.5 ${streakDaily > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                {streakDaily} <span className="text-[10px]">日</span>
+                {streakDaily} <span className="text-xs">日</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">
+              <div className="text-xs text-slate-500 mt-0.5">
                 {diffDaily === 0 ? '本日完了' : diffDaily === 1 ? '昨日活動' : '失効中'}
               </div>
             </div>
 
             {/* 2. Mid Streak */}
             <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1">
+              <div className="text-xs font-bold text-slate-400 flex items-center justify-center gap-1">
                 <Flame className="w-3 h-3 text-orange-400" />
                 <span>{midThreshold}pt連続</span>
               </div>
               <div className={`text-base font-black font-mono mt-0.5 ${streakMid > 0 ? 'text-orange-400' : 'text-slate-500'}`}>
-                {streakMid} <span className="text-[10px]">日</span>
+                {streakMid} <span className="text-xs">日</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">
+              <div className="text-xs text-slate-500 mt-0.5">
                 {diffMid === 0 ? '本日達成' : diffMid === 1 ? '昨日達成' : '未達成'}
               </div>
             </div>
 
             {/* 3. God Streak */}
             <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1">
+              <div className="text-xs font-bold text-slate-400 flex items-center justify-center gap-1">
                 <Trophy className="w-3 h-3 text-purple-400" />
                 <span>{godThreshold}pt連続</span>
               </div>
               <div className={`text-base font-black font-mono mt-0.5 ${streakGod > 0 ? 'text-purple-400' : 'text-slate-500'}`}>
-                {streakGod} <span className="text-[10px]">日</span>
+                {streakGod} <span className="text-xs">日</span>
               </div>
-              <div className="text-[9px] text-slate-500 mt-0.5">
+              <div className="text-xs text-slate-500 mt-0.5">
                 {diffGod === 0 ? '本日達成' : diffGod === 1 ? '昨日達成' : '未達成'}
               </div>
             </div>
@@ -199,7 +199,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
         <div className="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 space-y-2">
           <div className="text-xs font-black text-slate-300 flex items-center justify-between">
             <span>本日のアクティビティ</span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-xs text-slate-400">
               {[quizCount > 0, hasInput, hasTraining, hasHousework, hasMeal].filter(Boolean).length} / 5 カテゴリ
             </span>
           </div>

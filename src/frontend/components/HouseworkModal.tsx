@@ -160,7 +160,7 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
-                    <span className="text-[10px] text-slate-400">基本獲得</span>
+                    <span className="text-xs text-slate-400">基本獲得</span>
                     <span className="text-xs font-black text-amber-400 font-mono">
                       +{menu.default_points} pt
                     </span>
@@ -176,7 +176,7 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
           {/* コメント入力 */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-300">
-              ひとこと感想・メモ <span className="text-slate-500 text-[10px]">(任意)</span>
+              ひとこと感想・メモ <span className="text-slate-500 text-xs">(任意)</span>
             </label>
             <textarea
               rows={2}
@@ -194,7 +194,7 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 font-bold">今回獲得できる基本素点</div>
+                <div className="text-xs text-slate-400 font-bold">今回獲得できる基本素点</div>
                 <div className="text-xl font-black text-amber-400 font-mono">
                   {earnedPoints} <span className="text-xs text-slate-300">pt</span>
                 </div>

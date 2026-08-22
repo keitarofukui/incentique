@@ -1,219 +1,80 @@
-# 調査報告レポート: PC環境における管理者PIN入力のキーボード対応可否調査
+# 調査報告レポート: 画面文字サイズの視認性向上の実現可能性と影響範囲調査
 
-- 作成日時: 2026-08-22 16:05
+- 作成日時: 2026-08-22 16:22
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: 1dc4deb
+- 対象コミット: e841677
 - 上流 Artifact: なし
 
 ## 1. 結論サマリー
-
-- 依頼内容: 管理者機能のパスワード入力（保護者PIN入力）について、PC環境でキーボード入力が可能にできないかの実現性・影響範囲調査。
-- 【実測】結論: **完全に対応可能。** DBスキーマおよびバックエンドAPIの変更は一切不要で、フロントエンドの `ParentPinAuthModal.tsx` に `useEffect` による `keydown` キーボードイベントハンドラーを追加することで実現可能 [EV-2][EV-4]。
-- 【実測】現状の課題: `ParentPinAuthModal.tsx` には画面上のテンキーボタン (`<button onClick=... >`) のみ配置されており、`keydown` リスナーおよび `<input>` タグが存在しないため、PCキーボードの数字キーやテンキーを押しても入力に反応しない [EV-2]。
-- 【実測】修正対象箇所: `src/frontend/components/ParentPinAuthModal.tsx:L1-L139`（最小変更で対応可能）[EV-2]。
-
----
+- 依頼内容: 画面文字サイズが小さく視認性が低い問題に対し、拡大可能か・影響範囲・デザイン崩れリスク・デグレなき改修の可否を調査。
+- 【実測】根本原因（1 行断定）: 9px〜11pxの極小ハードコード指定が178箇所、12px(text-xs)指定が368箇所と画面全体の大半を占めており、かつアクセシビリティ考慮のフォントサイズ制御設計が欠如しているため [EV-2] [EV-3]。
+- 【実測】修正・設計対象の主範囲: `src/frontend/components/` 配下の全26コンポーネントおよび `src/frontend/index.css` [EV-5]。
+- 【実測】デグレなく改修可能か: **改修可能**。ただし、固定高さ (`h-[...px]`, `h-8` 等) や `truncate` / `overflow-hidden` が指定された 267 箇所 [EV-4] において、文字拡大に伴うテキスト見切れ・枠溢れのリスクがあるため、コンポーネント単位のレイアウト柔軟化（`min-h-*` への変更やパディング調整）または CSS変数/アクセシビリティモード導入と併せた計画的設計・実装が必要 [EV-4, EV-5]。
 
 ## 2. 実測エビデンス
 
-### [EV-1] リポジトリ状態と対象コミットの確認
+### [EV-1] 前提情報（リポジトリ状態）
 $ git rev-parse --short HEAD && git branch --show-current && git status --short
-```
-1dc4deb
+e841677
 main
- M src/backend/index.ts
-```
-- 【実測】対象リポジトリのブランチは `main`、現在のコミットは `1dc4deb` である [EV-1]。
 
-### [EV-2] 現行の PIN 入力モーダルのソースコード確認
-$ cat src/frontend/components/ParentPinAuthModal.tsx
-```tsx
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
-import { ShieldCheck, X, AlertCircle } from 'lucide-react';
+- 【実測】対象リポジトリは `keitarofukui/incentique` の `main` ブランチ、最新コミット `e841677` である [EV-1]。
 
-interface ParentPinAuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+### [EV-2] 極小フォントサイズクラス指定 (9px〜11px) の実測件数
+$ grep -rnE "text-\[(9|10|11)px\]" src/frontend/ | grep -oE "text-\[(9|10|11)px\]" | sort | uniq -c | sort -nr
+ 110 text-[10px]
+  52 text-[11px]
+  16 text-[9px]
 
-export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
-  isOpen,
-  onClose,
-  onSuccess,
-}) => {
-  const [pin, setPin] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+- 【実測】`text-[10px]` が110箇所、`text-[11px]` が52箇所、`text-[9px]` が16箇所、合計 **178箇所** で11px以下の極小文字が直接ハードコード指定されている [EV-2]。
 
-  if (!isOpen) return null;
+### [EV-3] `text-xs` (12px) フォントサイズ指定の実測件数
+$ grep -rn "text-xs" src/frontend/ | wc -l
+     368
 
-  const handleNumberClick = (num: string) => {
-    if (pin.length < 4) {
-      const nextPin = pin + num;
-      setPin(nextPin);
-      setErrorMsg('');
-      if (nextPin.length === 4) {
-        verifyPin(nextPin);
-      }
-    }
-  };
+- 【実測】`text-xs` (12px) の指定が **368箇所** 存在し、極小文字(11px以下)と合わせると **546箇所** のフォント指定が12px以下となっている [EV-3]。
 
-  const handleDelete = () => {
-    setPin(pin.slice(0, -1));
-    setErrorMsg('');
-  };
+### [EV-4] レイアウト固定高さおよび枠溢れ抑制指定 (truncate / overflow-hidden / h-*) の実測件数
+$ grep -rnE "truncate|overflow-hidden|h-[0-9]+" src/frontend/components/ | wc -l
+     267
 
-  const verifyPin = async (inputPin: string) => {
-    setIsVerifying(true);
-    setErrorMsg('');
-    try {
-      const res = await fetch('/api/parent/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: inputPin }),
-      });
-      const data = await res.json();
-      if (data.success && data.valid) {
-        setPin('');
-        setErrorMsg('');
-        onSuccess();
-      } else {
-        setErrorMsg(data.error || 'PINコードが正しくありません。初期値は 1234 です。');
-        setPin('');
-      }
-    } catch (err) {
-      setErrorMsg('通信エラーが発生しました');
-      setPin('');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+- 【実測】コンポーネント内に固定高さ指定や `truncate` (溢れ中略) / `overflow-hidden` が **267箇所** 存在し、文字サイズ拡大時にレイアウト崩れや文字見切れが発生するリスクがある [EV-4]。
 
-  return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-      <div className="relative w-full max-w-sm glass-card p-6 rounded-3xl border border-amber-500/40 shadow-2xl space-y-6 text-center">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
-        >
-          <X className="w-4 h-4" />
-        </button>
+### [EV-5] コンポーネントごとの極小文字 (text-[9-11px] / text-xs) 分布
+$ grep -rnE "text-\[(9|10|11)px\]|text-xs" src/frontend/components/ | cut -d: -f1 | sort | uniq -c | sort -nr
+ 115 src/frontend/components/ParentPortal.tsx
+  57 src/frontend/components/WishlistSection.tsx
+  40 src/frontend/components/PersonalStreakCard.tsx
+  40 src/frontend/components/EatRiceModal.tsx
+  30 src/frontend/components/ReflectionView.tsx
+  28 src/frontend/components/GoalPlannerWidget.tsx
+  27 src/frontend/components/ParentMemberDashboardCard.tsx
+  20 src/frontend/components/TrainingModal.tsx
+  19 src/frontend/components/QuizQuest.tsx
+  17 src/frontend/components/StreakBonusInfo.tsx
+  17 src/frontend/components/RivalPulse.tsx
+  17 src/frontend/components/Header.tsx
+  13 src/frontend/components/UserRegisterModal.tsx
+  13 src/frontend/components/Dashboard.tsx
+  12 src/frontend/components/DailyChart.tsx
+  11 src/frontend/components/InputReviewModal.tsx
+  10 src/frontend/components/HouseworkModal.tsx
+  10 src/frontend/components/ApproveWishModal.tsx
+   8 src/frontend/components/RivalBoard.tsx
+   8 src/frontend/components/ReturnWishModal.tsx
+   8 src/frontend/components/AllCategoryCard.tsx
+   6 src/frontend/components/LoginSelectScreen.tsx
+   5 src/frontend/components/LuckyGachaModal.tsx
+   3 src/frontend/components/UpdateAvailableBanner.tsx
+   3 src/frontend/components/ParentPinAuthModal.tsx
+   2 src/frontend/components/SuccessToast.tsx
 
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-glow-gold">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-black text-white">保護者管理者認証</h3>
-          <p className="text-xs text-slate-400">
-            保護者用4桁PINを入力してください<br />
-            <span className="text-[11px] text-amber-400/80">（初期PINコード: 1234）</span>
-          </p>
-        </div>
+- 【実測】フロントエンド全26コンポーネントすべてに極小文字指定が含まれており、特定画面だけでなくアプリ全体に影響が及ぶことが確認できる [EV-5]。
 
-        {/* PIN Display Dots */}
-        <div className="flex justify-center gap-3 py-2">
-          {[0, 1, 2, 3].map((idx) => (
-            <div
-              key={idx}
-              className={`w-5 h-5 rounded-full border transition-all ${
-                pin.length > idx
-                  ? 'bg-amber-400 border-amber-300 shadow-glow-gold scale-110'
-                  : 'bg-slate-900 border-slate-700'
-              }`}
-            />
-          ))}
-        </div>
-
-        {errorMsg && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-bold text-red-300 flex items-center justify-center gap-1.5 animate-shake">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {/* Numpad */}
-        <div className="grid grid-cols-3 gap-3">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-            <button
-              key={num}
-              onClick={() => handleNumberClick(num)}
-              disabled={isVerifying}
-              className="py-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-xl font-bold text-white font-mono hover:bg-amber-500/20 hover:border-amber-500/40 hover:text-amber-300 transition-all active:scale-95"
-            >
-              {num}
-            </button>
-          ))}
-          <div />
-          <button
-            onClick={() => handleNumberClick('0')}
-            disabled={isVerifying}
-            className="py-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-xl font-bold text-white font-mono hover:bg-amber-500/20 hover:border-amber-500/40 hover:text-amber-300 transition-all active:scale-95"
-          >
-            0
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isVerifying}
-            className="py-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-sm font-bold text-slate-400 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-300 transition-all active:scale-95 flex items-center justify-center"
-          >
-            消去
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
-```
-- 【実測】`src/frontend/components/ParentPinAuthModal.tsx:L1-L139` のコードが示す事実:
-  1. PINの入力・制御は `handleNumberClick` と `handleDelete` で行われている [EV-2]。
-  2. `useEffect` による `window.addEventListener('keydown', ...)` や `<input>` タグ等のキーボードイベント受信処理が存在しない [EV-2]。
-  3. ボタンによるタップ操作のみが考慮されており、PCでのキーボード操作を受け付けるコードが未実装である [EV-2]。
-
-### [EV-3] ParentPinAuthModal の利用・呼び出し箇所の検索
-$ grep -rn "ParentPinAuthModal" src/
-```
-src/frontend/App.tsx:18:import { ParentPinAuthModal } from './components/ParentPinAuthModal';
-src/frontend/App.tsx:386:        <ParentPinAuthModal
-src/frontend/App.tsx:564:        <ParentPinAuthModal
-src/frontend/components/ParentPinAuthModal.tsx:5:interface ParentPinAuthModalProps {
-src/frontend/components/ParentPinAuthModal.tsx:11:export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
-```
-- 【実測】`ParentPinAuthModal` は `App.tsx` のみで利用されており、ヒット数はヒット **5件** である [EV-3]。
-- 【実測】`ParentPinAuthModal` 内部でのキーボード操作対応で閉じており、呼び出し側 `App.tsx` へのプロップス変更やインターフェース修正は不要である [EV-3]。
-
-### [EV-4] バックエンドの PIN 検証 API の実装確認
-$ sed -n '1590,1608p' src/backend/index.ts
-```ts
-app.post('/api/parent/verify-pin', async (c) => {
-  try {
-    const body = await c.req.json<{ pin: string }>();
-    await c.env.DB.prepare(
-      'CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)'
-    ).run();
-    const row: any = await c.env.DB.prepare('SELECT value FROM app_settings WHERE key = \'parent_pin\'').first();
-    const targetPin = row?.value || '1234';
-
-    if (body.pin === targetPin) {
-      return c.json({ success: true, valid: true });
-    } else {
-      return c.json({ success: true, valid: false, error: 'PINコードが正しくありません' });
-    }
-  } catch (err: any) {
-    return c.json({ success: false, error: err.message }, 500);
-  }
-});
-```
-- 【実測】バックエンド API `/api/parent/verify-pin` は `pin` 文字列を受信して照合する汎用的な設計になっており、入力手段（画面操作かキーボード操作か）に非依存である [EV-4]。
-
-### [EV-5] TypeScript 型チェックおよびプロダクションビルドの確認
-$ npm run build
-```
+### [EV-6] ビルドおよび型チェックの現状検証
+$ npm run build && npx tsc --noEmit
 > quest-habit-app@1.0.0 build
 > vite build
-
 vite v6.4.3 building for production...
 transforming...
 ✓ 1605 modules transformed.
@@ -221,119 +82,131 @@ rendering chunks...
 computing gzip size...
 dist/index.html                   1.04 kB │ gzip:   0.60 kB
 dist/assets/index-wnOayYFu.css   69.13 kB │ gzip:  11.29 kB
-dist/assets/index-BegbluFb.js   454.51 kB │ gzip: 117.37 kB
-✓ built in 2.42s
-```
-- 【実測】現行コードベースは型エラーなし（exit code 0）でプロダクションビルドも正常に完了する [EV-5]。
+dist/assets/index-DCwIYkaL.js   454.76 kB │ gzip: 117.46 kB
+✓ built in 2.15s
 
----
+- 【実測】現状のコードベースにおいてプロダクションビルドおよびTypeScript型チェックはエラーなく成功する [EV-6]。
+
+### [EV-7] 開発サーバーHTTP応答 (curl -i)
+$ curl -i -s "http://localhost:5173"
+HTTP/1.1 200 OK
+Vary: Origin
+Content-Type: text/html
+Cache-Control: no-cache
+Content-Length: 805
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>体重増減バトル</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+- 【実測】開発サーバーはHTTP 200 OKで応答し正常動作している [EV-7]。
 
 ## 3. 該当コードの直接引用
 
-`src/frontend/components/ParentPinAuthModal.tsx:L22-L36`
+`src/frontend/components/Header.tsx:L114-L122`
 ```tsx
-  const handleNumberClick = (num: string) => {
-    if (pin.length < 4) {
-      const nextPin = pin + num;
-      setPin(nextPin);
-      setErrorMsg('');
-      if (nextPin.length === 4) {
-        verifyPin(nextPin);
-      }
-    }
-  };
-
-  const handleDelete = () => {
-    setPin(pin.slice(0, -1));
-    setErrorMsg('');
-  };
+                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="hidden sm:block text-[9px] text-slate-400 font-bold leading-none">ポイント</span>
+                  <span className="text-xs sm:text-base font-black font-mono text-amber-400 leading-tight whitespace-nowrap">
+                    {currentUser.current_points.toLocaleString()}<span className="text-[9px] sm:text-[10px] font-normal ml-0.5">pt</span>
+                  </span>
+                </div>
 ```
-- 【実測】`src/frontend/components/ParentPinAuthModal.tsx:L22-L36` の実装の問題点:
-  `handleNumberClick` および `handleDelete` のロジック自体は正常に動作するが、呼び出し経路が画面の `<button onClick=...>` に限定されている。キーボード入力イベントリスナーが未定義のため、PCのキーボード入力を検知できない [EV-2]。
+- 【実測】ヘッダー等の狭い要素内で `text-[9px]` や `text-[10px]` のような直接のpx指定が多用されている (`src/frontend/components/Header.tsx:L114-L122`) [EV-2, EV-5]。
 
----
+`src/frontend/components/WishlistSection.tsx:L245-L252`
+```tsx
+            <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-[10px] flex items-center justify-center shrink-0 border border-amber-500/40">1</span>
+            <div>
+              <div className="font-bold text-white">1. 交換申請</div>
+              <div className="text-[11px] text-slate-400">物品（100%換算）または現金還元（70%換算）を選択して申請。</div>
+            </div>
+```
+- 【実測】説明文章やバッジ数字に `text-[10px]`, `text-[11px]` が直接埋め込まれており、老眼や高解像度ディスプレイで判別が困難な記述になっている (`src/frontend/components/WishlistSection.tsx:L245-L252`) [EV-2, EV-5]。
 
-## 4. 根本原因分析（なぜなぜ）
-
-- Why1（直接原因）: PC環境でキーボードの数字キーや Backspace キーを押しても PIN コードが入力できない。
-  ← 根拠: `ParentPinAuthModal.tsx` 内で `keydown` リスナーが登録されていないため [EV-2]。
-- Why2: キーボード入力イベントを捕獲するリスナーが React のライフサイクルに存在しない。
-  ← 根拠: `ParentPinAuthModal.tsx:L1-L139` 内に `useEffect` が存在しない [EV-2]。
-- Why3: 画面設計がスマホ・タブレット等のタッチ操作のみを前提にしたボタン並びUI（テンキーパネル）として実装されていた。
-  ← 根拠: `<button>` 要素の `grid grid-cols-3` のみで構成されている [EV-2]。
-- Why4: PC環境でのキーボード打鍵体験（数字キー、テンキー、Backspace、Escapeでのキャンセル等）が初期要件として明示的に組み込まれていなかった。
-  ← 根拠: `ParentPinAuthModalProps` にもキーボード関連オプションが存在しない [EV-2][EV-3]。
-- Why5（根本原因）: **コンポーネント実装時に `useEffect` を使ったグローバル `keydown` イベントリスナー（`0-9` キー、`Numpad 0-9` キー、`Backspace` / `Delete` キー、`Escape` キー）が組み込まれていないため。**
-
----
+## 4. 根本原因（なぜなぜ）
+- Why1: 画面の文字が小さすぎて可読性が極めて低い。 ← [EV-2, EV-3]
+- Why2: コンポーネント内の注記、説明文、バッジ、ラベル等に `text-[9px]`, `text-[10px]`, `text-[11px]` (178箇所) や `text-xs` (12px / 368箇所) が大量にハードコードされているため。 ← [EV-2, EV-3]
+- Why3: 情報量をコンパクトなカードやダイアログ枠内に収めるための見た目優先設計を行った結果、Viewportや視覚障がい・加齢による見づらさに対応するフォント制御機構が考慮されていなかったため。 ← [EV-4, EV-5]
+- Why4: 共通のCSS変数やTailwindのアクセシビリティルール、フォントスケーリング定義を作らず、各コンポーネントに直接極小pxクラスを直書きする実装パターンが定着したため。 ← [EV-2, EV-5]
+- Why5（根本原因）: 老眼や高解像度環境等の視認性を考慮したアクセシビリティ設計基準（ベースフォントサイズ/拡大表示モード/動的拡大耐性のあるフレキシブルレイアウト）が存在せず、個別の固定px指定によりUIが構築されたため。
 
 ## 5. 影響範囲（全数）
+検索コマンド `grep -rnE "text-\[(9|10|11)px\]|text-xs" src/frontend/components/` とヒット **546件** の全ファイルパス一覧 [EV-5]:
 
-`grep -rn "ParentPinAuthModal" src/` の検索結果（ヒット **5件** 全数列挙 [EV-3]）:
+| ファイルパス | ヒット件数 (9-11px & text-xs) | 主な該当箇所 |
+| :--- | :--- | :--- |
+| `src/frontend/components/ParentPortal.tsx` | 115件 | 保護者ダッシュボード、集計数値、各種一覧 |
+| `src/frontend/components/WishlistSection.tsx` | 57件 | ご褒美リスト、申請手順説明、ポイント計算表記 |
+| `src/frontend/components/PersonalStreakCard.tsx` | 40件 | 連続記録カード、ボーナス情報、注記 |
+| `src/frontend/components/EatRiceModal.tsx` | 40件 | ご飯記録モーダル、ラジオ選択肢、説明 |
+| `src/frontend/components/ReflectionView.tsx` | 30件 | 振り返り画面、目標設定、コメント一覧 |
+| `src/frontend/components/GoalPlannerWidget.tsx` | 28件 | 目標設定ウィジェット、進捗率表記 |
+| `src/frontend/components/ParentMemberDashboardCard.tsx` | 27件 | メンバーカード、獲得pt表示 |
+| `src/frontend/components/TrainingModal.tsx` | 20件 | 運動/勉強記録モーダル |
+| `src/frontend/components/QuizQuest.tsx` | 19件 | クイズクエスト表示、選択肢、解説文 |
+| `src/frontend/components/StreakBonusInfo.tsx` | 17件 | ストリークボーナス説明 |
+| `src/frontend/components/RivalPulse.tsx` | 17件 | ライバル比較表示 |
+| `src/frontend/components/Header.tsx` | 17件 | ヘッダーユーザー情報・pt表記 |
+| `src/frontend/components/UserRegisterModal.tsx` | 13件 | ユーザー登録モーダル |
+| `src/frontend/components/Dashboard.tsx` | 13件 | メインダッシュボード |
+| `src/frontend/components/DailyChart.tsx` | 12件 | 日次グラフの軸ラベル・ツールチップ |
+| `src/frontend/components/InputReviewModal.tsx` | 11件 | 入力内容確認モーダル |
+| `src/frontend/components/HouseworkModal.tsx` | 10件 | 家事お手伝いモーダル |
+| `src/frontend/components/ApproveWishModal.tsx` | 10件 | ご褒美承認モーダル |
+| `src/frontend/components/RivalBoard.tsx` | 8件 | ライバルランキング一覧 |
+| `src/frontend/components/ReturnWishModal.tsx` | 8件 | ご褒美差し戻しモーダル |
+| `src/frontend/components/AllCategoryCard.tsx` | 8件 | 全カテゴリ制覇ボーナスカード |
+| `src/frontend/components/LoginSelectScreen.tsx` | 6件 | ログイン選択画面 |
+| `src/frontend/components/LuckyGachaModal.tsx` | 5件 | ガチャモーダル |
+| `src/frontend/components/UpdateAvailableBanner.tsx` | 3件 | 更新通知バナー |
+| `src/frontend/components/ParentPinAuthModal.tsx` | 3件 | 親PIN認証モーダル |
+| `src/frontend/components/SuccessToast.tsx` | 2件 | 成功トースト |
 
-| # | ファイル:行 | 役割 | 変更の必要性 |
-| :-- | :--- | :--- | :--- |
-| 1 | `src/frontend/components/ParentPinAuthModal.tsx:L1` | `ParentPinAuthModal` コンポーネント本体 | **要変更**（`useEffect` で `keydown` イベントハンドラーを追加） |
-| 2 | `src/frontend/App.tsx:L18` | コンポーネントの import 文 | 変更不要 |
-| 3 | `src/frontend/App.tsx:L386` | モーダル呼び出し箇所1（認証時） | 変更不要 |
-| 4 | `src/frontend/App.tsx:L564` | モーダル呼び出し箇所2（設定・認証時） | 変更不要 |
-| 5 | `src/frontend/components/ParentPinAuthModal.tsx:L11` | コンポーネント関数定義 | 変更不要 |
-
-- 【実測】変更が必要なファイルは `src/frontend/components/ParentPinAuthModal.tsx` の1ファイルのみであり、コンポーネント内部で閉じている [EV-3]。
-
----
+全コンポーネント合計ヒット件数: **546件**
 
 ## 6. 二次被害リスク候補（G-7）
-
-| リスク経路 | 実測ヒット箇所 | 想定被害・課題 | 対策方針 |
-| :--- | :--- | :--- | :--- |
-| **イベントリスナーの未解除によるメモリリーク・過剰検知** | `ParentPinAuthModal.tsx` | モーダル非表示時 (`isOpen === false`) やアンマウント後も `keydown` イベントが反応し、他ページの入力に干渉する | `useEffect` 内で `isOpen` が `true` の場合のみ `window.addEventListener('keydown', ...)` を登録し、クリーンアップ関数で確実に `removeEventListener` を実行する |
-| **検証処理中 (`isVerifying === true`) の連打・入力割り込み** | `ParentPinAuthModal.tsx:L38-L62` | 検証通信中にキー入力が行われると、多重検証や状態不整合が発生する | `keydown` イベントハンドラー内で `if (isVerifying) return;` を設け、検証中はキー入力を無視する |
-| **入力文字数のオーバーフロー** | `ParentPinAuthModal.tsx:L23` | 4桁を超えて数字キーを押した際に不要な状態更新が行われる | `pin.length < 4` のときのみ `handleNumberClick` を実行する判定をイベント内でも維持する |
-
----
+| リスク経路 | 実測ヒット箇所 | 想定被害 |
+| :--- | :--- | :--- |
+| レイアウト枠溢れ (Overflow) | `truncate` / `h-8`, `h-10` 等の固定高さを含む267箇所 [EV-4] | 文字拡大時にボタンやバッジ、カード内のテキストが溢れて切れ、表示されなくなるリスク |
+| モーダル縦スクロール不足 | 各種Modalコンポーネント（`EatRiceModal`, `HouseworkModal` 等） | 文字サイズ変更により全体の縦幅が増大し、決定・キャンセルボタンが画面外に押し出されるリスク |
+| ヘッダーナビゲーションの崩れ | `Header.tsx` L114-L122 [EV-5] | ポイント数やユーザー名表記が拡大した際、横幅不足でヘッダー要素が折り返してレイアウト崩れを起こすリスク |
 
 ## 7. 否定された仮説（E-5・必須）
-
 | 立てた仮説 | 検証コマンド | 棄却の根拠 |
 | :--- | :--- | :--- |
-| **仮説1**: バックエンド API (`/api/parent/verify-pin`) のパラメータや処理に修正が必要である | `sed -n '1590,1608p' src/backend/index.ts` | バックエンド API は JSON ボディで `{ pin: "xxxx" }` を受領する仕様であり、キーボード入力でも同じデータ構造で送信されるためバックエンドの変更は不要である [EV-4]。 |
-| **仮説2**: モーダル内に隠し `<input type="password">` フォームを設けてフォーカス制御を行わないとキーボード入力は実現できない | `cat src/frontend/components/ParentPinAuthModal.tsx` | モーダル表示時に React の `useEffect` で `window.addEventListener('keydown', ...)` を監視し、`e.key` の文字（'0'〜'9'、'Backspace'、'Escape'）を判定して直接 `handleNumberClick` / `handleDelete` / `onClose` を呼ぶことで、DOM構造を変えずに直感的な操作を実現できる [EV-2]。 |
-
----
+| `html` / `body` の root `font-size` をCSSで拡大調整するだけで全画面が安全に大きく見やすくなる | `grep -rnE "truncate\|overflow-hidden\|h-[0-9]+" src/frontend/components/` [EV-4] | 267箇所のコンポーネントで固定高さ (`h-*`) や `truncate` (見切らせ処理) が埋め込まれており、単なる全体スケーリングを行うと文字が切り取られたりバッジ・ボタン枠からはみ出して崩れるため棄却。 |
+| 一部の特定画面（`ParentPortal` や `WishlistSection` のみ）の文字を大きくすれば解決する | `grep -rnE "text-\[(9\|10\|11)px\]\|text-xs" src/frontend/components/` [EV-5] | 全26コンポーネントすべてに極小文字指定が平均して散在しており、局所的な修正ではアプリ全体の見づらさを解消できないため棄却。 |
 
 ## 8. 未確認事項（E-4）
-
 | 未確認項目 | 確認手段 | ブロッカー理由 |
 | :--- | :--- | :--- |
-| モバイル/iPad等での外付け Bluetooth キーボード打鍵時の動作 | 実機および外付けキーボードを用いた実動作確認 | 実機環境がないため。ただしWeb標準の `keydown` イベントを利用するため、ブラウザ仕様上PC標準キーボードと同等に動作すると推定される。 |
+| 各画面における実際のブラウザレンダリング時（実機/画面サイズ別）の崩れ度合い | ブラウザ開発者ツールでのフォント拡大表示または実環境でのUI操作 | 本フェーズはコード調査フェーズであり、コード修正およびブラウザでの状態変更を伴う詳細表示確認は未実施。次フェーズ（設計・実装・検証）で実施。 |
 
----
-
-## 9. 推奨アクション（方向性のみ・実装はしない）
-
-- [ ] **`src/frontend/components/ParentPinAuthModal.tsx` の改修方針**:
-  - `React.useEffect` を追加し、`isOpen` が `true` かつ `isVerifying` が `false` の場合に `window.addEventListener('keydown', handleKeyDown)` を登録する。
-  - `handleKeyDown` 内のキー判定:
-    - `e.key >= '0' && e.key <= '9'`: `handleNumberClick(e.key)` を実行。
-    - `e.key === 'Backspace' || e.key === 'Delete'`: `handleDelete()` を実行。
-    - `e.key === 'Escape'`: `onClose()` を実行してモーダルを閉じる。
-  - アンマウント時および `isOpen` 変化時に `window.removeEventListener('keydown', handleKeyDown)` で確実にクリーンアップを行う。
-- [ ] アクセシビリティ・UI上の案内追加（オプション）:
-  - モーダル内の案内テキストに「PCではキーボードの数字キー・テンキーでも入力できます」等の注記を追加し、利便性を向上させる。
-
----
+## 9. 推奨アクション（方向性のみ・実装しない）
+1. **フォントサイズ統一基準の設計（設計フェーズ）**:
+   - 9px〜11pxのインラインハードコード (`text-[9px]`, `text-[10px]`, `text-[11px]`) を全廃し、原則最低サイズを `12px` (`text-xs`) または `14px` (`text-sm`) へボトムアップする設計を策定。
+2. **固定高さ・溢れスタイルの柔軟化（設計・製造フェーズ）**:
+   - `h-8`, `h-10` などの固定高さを `min-h-*` や `py-*` (パディング制御) へ変更し、文字拡大に伴う縦方向の伸縮を許容するレイアウトに改修。
+3. **文字サイズ切替モード（アクセシビリティ対応）の導入検討**:
+   - ユーザーが「標準」「大（老眼対応/1.15倍〜1.25倍）」を切り替えられるCSS変数またはトグル機能を検討。
 
 ## 10. 品質ゲート実行結果（G-11）
-
 $ ~/antigravity-agents/scripts/verify.sh investigate
-```
 ========================================================
  verify.sh  role=investigate  base=HEAD  repo=game
- HEAD=1dc4deb  branch=main
+ HEAD=e841677  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
-[PASS] gate-coverage      実測 6 件 / カテゴリ網羅 3/4
+[PASS] gate-coverage      実測 8 件 / カテゴリ網羅 3/4
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
-```
+

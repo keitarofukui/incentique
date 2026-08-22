@@ -99,7 +99,7 @@ export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
           <h3 className="text-xl font-black text-white">保護者管理者認証</h3>
           <p className="text-xs text-slate-400">
             保護者用4桁PINを入力してください<br />
-            <span className="text-[11px] text-amber-400/80">（初期PINコード: 1234）</span>
+            <span className="text-xs text-amber-400/80">（初期PINコード: 1234）</span>
           </p>
         </div>
 

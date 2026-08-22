@@ -88,11 +88,11 @@ export const ReturnWishModal: React.FC<ReturnWishModalProps> = ({
         </div>
 
         <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
-          <div className="text-[10px] font-bold text-slate-400">
+          <div className="text-xs font-bold text-slate-400">
             {item.user_name ? `${item.user_name} さんのリクエスト` : 'リクエスト内容'}
           </div>
           <div className="text-sm font-bold text-white break-words">{item.title}</div>
-          <div className="text-[11px] text-slate-400 font-mono">
+          <div className="text-xs text-slate-400 font-mono">
             申請 {item.required_points.toLocaleString()} pt ／ 所持 {availablePoints.toLocaleString()} pt
             {shortfall > 0 && (
               <span className="text-rose-300"> ／ {shortfall.toLocaleString()} pt 不足</span>
@@ -116,7 +116,7 @@ export const ReturnWishModal: React.FC<ReturnWishModalProps> = ({
                 key={preset}
                 type="button"
                 onClick={() => { setComment(preset); setErrorMsg(''); }}
-                className="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-[10px] font-bold text-slate-300 hover:border-rose-400 hover:text-white transition-all text-left"
+                className="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:border-rose-400 hover:text-white transition-all text-left"
               >
                 {preset}
               </button>
@@ -131,7 +131,7 @@ export const ReturnWishModal: React.FC<ReturnWishModalProps> = ({
           </div>
         )}
 
-        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-[11px] text-slate-300">
+        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-slate-300">
           ポイントは引かれていないので、返却は発生しません。項目は交換所に残るので、
           子どもはコメントを読んでから出し直せます。
         </div>

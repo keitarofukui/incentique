@@ -6,6 +6,16 @@ export default {
   ],
   theme: {
     extend: {
+      fontSize: {
+        xs: ['0.9375rem', { lineHeight: '1.35rem' }],   /* 15.0px (12px * 1.25) */
+        sm: ['1.09375rem', { lineHeight: '1.55rem' }],  /* 17.5px (14px * 1.25) */
+        base: ['1.25rem', { lineHeight: '1.75rem' }],  /* 20.0px (16px * 1.25) */
+        lg: ['1.40625rem', { lineHeight: '1.95rem' }],  /* 22.5px (18px * 1.25) */
+        xl: ['1.5625rem', { lineHeight: '2.15rem' }],   /* 25.0px (20px * 1.25) */
+        '2xl': ['1.875rem', { lineHeight: '2.5rem' }],   /* 30.0px (24px * 1.25) */
+        '3xl': ['2.34375rem', { lineHeight: '3.0rem' }], /* 37.5px (30px * 1.25) */
+        '4xl': ['2.8125rem', { lineHeight: '3.5rem' }],  /* 45.0px (36px * 1.25) */
+      },
       colors: {
         cyber: {
           dark: '#0B0F19',

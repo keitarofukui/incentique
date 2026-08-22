@@ -78,7 +78,7 @@ export const UpdateAvailableBanner: React.FC = () => {
         <RefreshCw className="w-5 h-5 shrink-0 text-cyber-neonCyan" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-black text-white">新しいバージョンがあります</p>
-          <p className="text-[10px] text-slate-400">タップすると最新の画面に更新されます</p>
+          <p className="text-xs text-slate-400">タップすると最新の画面に更新されます</p>
         </div>
         <button
           type="button"

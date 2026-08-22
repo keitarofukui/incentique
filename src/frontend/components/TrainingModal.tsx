@@ -236,7 +236,7 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
           <div className="flex items-center justify-between">
             <label className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5">
               <span>メニューを選択</span>
-              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono font-bold">
+              <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono font-bold">
                 +{selectedMenu?.default_points || 50} pt
               </span>
             </label>
@@ -319,12 +319,12 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                    <span className="text-xs font-mono font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
                       +{menu.default_points || 50} pt
                     </span>
                     <div className="flex items-center gap-1">
                       {menu.video_url && (
-                        <span className="text-[10px] bg-red-500/20 text-red-400 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <span className="text-xs bg-red-500/20 text-red-400 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
                           <Play className="w-2.5 h-2.5 fill-red-400" /> 動画
                         </span>
                       )}
@@ -357,7 +357,7 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
                   href={selectedMenu.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1"
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
                 >
                   <span>YouTubeで開く</span>
                   <ExternalLink className="w-3 h-3" />

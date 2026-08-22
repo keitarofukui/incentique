@@ -73,7 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="space-y-1">
               <div className="text-xs sm:text-sm font-black text-amber-200 flex items-center gap-2 flex-wrap">
-                <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                <span className="bg-amber-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   【✨ 新機能追加】
                 </span>
                 <span>「🧹 家事で稼ぐ」コーナーが新登場！</span>
@@ -109,7 +109,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="space-y-1">
               <div className="text-xs sm:text-sm font-black text-emerald-300 flex items-center gap-2 flex-wrap">
-                <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                   【新機能】ポイント現金還元スタート！
                 </span>
                 <span>ポイントを現金（お小遣い）に還元できるようになりました！</span>
@@ -175,11 +175,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               >
                 <div className="space-y-1 min-w-0">
                   <div className="font-bold text-white truncate flex items-center gap-2">
-                    <span className="text-slate-400 text-[11px]">{log.category}</span>
+                    <span className="text-slate-400 text-xs">{log.category}</span>
                     <span>{log.title_or_menu}</span>
                   </div>
                   {log.review_text && (
-                    <p className="text-slate-300 text-[11px] line-clamp-1">{log.review_text}</p>
+                    <p className="text-slate-300 text-xs line-clamp-1">{log.review_text}</p>
                   )}
                 </div>
                 <div className="text-right shrink-0">

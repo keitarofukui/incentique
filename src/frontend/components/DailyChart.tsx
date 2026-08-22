@@ -207,7 +207,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-lg font-black text-white">過去{chartPeriod}日間の獲得ポイント推移</h3>
               {streak > 0 && chartPeriod === 7 && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-500/40 flex items-center gap-1">
+                <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-500/40 flex items-center gap-1">
                   <Flame className="w-3 h-3 text-amber-400 fill-amber-400 animate-bounce" />
                   {streak}日連続達成中！
                 </span>
@@ -239,14 +239,14 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
 
           {/* Quick Stats Pills */}
           <div className="flex items-center gap-2">
-            <div className="bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 text-center min-w-[80px]">
-              <span className="text-[9px] text-slate-400 block font-semibold">{chartPeriod}日合計</span>
+            <div className="bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 text-center min-w-[5rem]">
+              <span className="text-xs text-slate-400 block font-semibold">{chartPeriod}日合計</span>
               <span className="text-xs font-black text-amber-400 font-mono transition-all duration-500">
                 +{totalPeriodPoints.toLocaleString()} pt
               </span>
             </div>
-            <div className="bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 text-center min-w-[80px]">
-              <span className="text-[9px] text-slate-400 block font-semibold">1日平均</span>
+            <div className="bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 text-center min-w-[5rem]">
+              <span className="text-xs text-slate-400 block font-semibold">1日平均</span>
               <span className="text-xs font-black text-cyan-300 font-mono transition-all duration-500">
                 +{avgDailyPoints.toLocaleString()} pt
               </span>
@@ -405,7 +405,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
           {/* Detailed Hover Tooltip Overlay with 5-Category Breakdown */}
           {hoverIndex !== null && stackedPoints[hoverIndex] && (
             <div
-              className="absolute -top-20 bg-slate-950/95 border border-cyan-500/60 text-white text-[10px] font-mono p-2.5 rounded-2xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200 min-w-[145px]"
+              className="absolute -top-20 bg-slate-950/95 border border-cyan-500/60 text-white text-xs font-mono p-2.5 rounded-2xl shadow-2xl pointer-events-none z-30 transform -translate-x-1/2 transition-all duration-200 min-w-[9.0625rem]"
               style={{
                 left: `${Math.max(10, Math.min(90, (stackedPoints[hoverIndex].x / chartWidth) * 100))}%`,
               }}
@@ -456,7 +456,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
         </div>
 
         {/* X-Axis Dates Labels Row */}
-        <div className="flex justify-between border-t border-slate-800 pt-2 px-1 text-[9px] text-slate-500 font-mono">
+        <div className="flex justify-between border-t border-slate-800 pt-2 px-1 text-xs text-slate-500 font-mono">
           {days.map((d, idx) => {
             const showLabel =
               chartPeriod === 7

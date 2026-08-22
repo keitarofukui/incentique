@@ -113,9 +113,9 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                 <div className="flex flex-col">
-                  <span className="hidden sm:block text-[9px] text-slate-400 font-bold leading-none">ポイント</span>
+                  <span className="hidden sm:block text-xs text-slate-400 font-bold leading-none">ポイント</span>
                   <span className="text-xs sm:text-base font-black font-mono text-amber-400 leading-tight whitespace-nowrap">
-                    {currentUser.current_points.toLocaleString()}<span className="text-[9px] sm:text-[10px] font-normal ml-0.5">pt</span>
+                    {currentUser.current_points.toLocaleString()}<span className="text-xs font-normal ml-0.5">pt</span>
                   </span>
                 </div>
               </div>

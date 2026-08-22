@@ -73,7 +73,7 @@ export const RivalBoard: React.FC<RivalBoardProps> = ({ users, currentUser, acti
                     <span className="text-xs font-black text-amber-400 font-mono">{rankBadge}</span>
                     <span className="text-sm font-bold text-white">{user.name}</span>
                     {isMe && (
-                      <span className="text-[10px] bg-cyber-neonCyan/20 text-cyber-neonCyan font-bold px-2 py-0.5 rounded-full border border-cyber-neonCyan/30">
+                      <span className="text-xs bg-cyber-neonCyan/20 text-cyber-neonCyan font-bold px-2 py-0.5 rounded-full border border-cyber-neonCyan/30">
                         YOU
                       </span>
                     )}

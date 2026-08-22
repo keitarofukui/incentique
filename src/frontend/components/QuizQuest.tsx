@@ -201,7 +201,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             <div className="text-xs font-black text-amber-300 flex items-center gap-1.5">
               <span>【夏休み限定企画】全アクション対象！ガチャボーナス確率 2倍キャンペーン開催中！🍧</span>
             </div>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-xs text-slate-300">
               8月31日まで、<strong className="text-amber-300 font-bold">全てのポイント獲得（クイズ・読書・映画・運動など）</strong>でラッキーガチャボーナス（2倍・3倍・10倍）発生確率が <strong className="text-amber-300 font-bold">2倍（当選率60%）</strong> に超大幅アップ中！
             </p>
           </div>
@@ -226,7 +226,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
           <div className="flex items-center gap-2 bg-cyan-500/10 px-4 py-2 rounded-2xl border border-cyan-500/30 text-cyan-300 shrink-0">
             <Award className="w-5 h-5 text-cyan-400" />
             <div className="text-right">
-              <div className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider">現在プールされている問題数</div>
+              <div className="text-xs text-cyan-300 font-bold uppercase tracking-wider">現在プールされている問題数</div>
               <div className="text-xl font-black text-white font-mono">
                 全 <span className="text-cyber-neonCyan">{totalCount}</span> 問
               </div>

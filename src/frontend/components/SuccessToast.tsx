@@ -21,7 +21,7 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({ message }) => {
         <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold leading-snug text-emerald-200 break-words">{message}</p>
-          <p className="mt-1 text-[10px] font-bold text-emerald-400/80">
+          <p className="mt-1 text-xs font-bold text-emerald-400/80">
             画面をリセットしました。そのまま次の記録を入力できます！
           </p>
         </div>

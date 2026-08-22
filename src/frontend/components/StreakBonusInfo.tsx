@@ -100,7 +100,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
 
         {/* 中級ストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-rose-500/30 bg-gradient-to-b from-rose-900/40 to-transparent space-y-5 relative overflow-hidden">
-          <div className="absolute top-4 right-4 bg-rose-500 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-rose rotate-12">
+          <div className="absolute top-4 right-4 bg-rose-500 text-white text-xs font-black px-2 py-1 rounded-full uppercase shadow-glow-rose rotate-12">
             Super Bonus!
           </div>
           <div className="flex items-center gap-3 border-b border-rose-500/30 pb-4">
@@ -136,7 +136,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
 
         {/* 神ストリーク */}
         <div className="glass-card p-6 rounded-3xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-900/40 to-transparent space-y-5 md:col-span-2 relative overflow-hidden">
-          <div className="absolute top-4 right-4 bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-1 rounded-full uppercase shadow-glow-gold rotate-12">
+          <div className="absolute top-4 right-4 bg-amber-500 text-slate-900 text-xs font-black px-2 py-1 rounded-full uppercase shadow-glow-gold rotate-12">
             Legendary!
           </div>
           <div className="flex items-center gap-3 border-b border-amber-500/30 pb-4">
@@ -195,7 +195,7 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
           </div>
         </div>
 
-        <div className="p-3 rounded-2xl bg-slate-950/80 border border-fuchsia-500/25 text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+        <div className="p-3 rounded-2xl bg-slate-950/80 border border-fuchsia-500/25 text-xs sm:text-xs text-slate-300 leading-relaxed">
           <strong className="text-fuchsia-300">判定に使うのは「素点」です。</strong>
           ラッキーガチャの倍率（2倍・3倍・10倍）で増えた分と、突破ボーナス自体は
           この合計に含めません。運ではなく、実際にやった量で決まります。

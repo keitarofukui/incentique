@@ -156,7 +156,7 @@ export const UserRegisterModal: React.FC<UserRegisterModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-300 block">🎁 欲しいご褒美アイテム名</label>
+                <label className="text-xs font-bold text-slate-300 block">🎁 欲しいご褒美アイテム名</label>
                 <input
                   type="text"
                   required
@@ -168,7 +168,7 @@ export const UserRegisterModal: React.FC<UserRegisterModalProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-300 block">🎯 必要ポイント(pt)</label>
+                <label className="text-xs font-bold text-slate-300 block">🎯 必要ポイント(pt)</label>
                 <input
                   type="number"
                   required
@@ -182,7 +182,7 @@ export const UserRegisterModal: React.FC<UserRegisterModalProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-300 block">📅 達成目標日</label>
+              <label className="text-xs font-bold text-slate-300 block">📅 達成目標日</label>
               <input
                 type="date"
                 required
