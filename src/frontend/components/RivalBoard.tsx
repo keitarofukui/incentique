@@ -86,7 +86,7 @@ export const RivalBoard: React.FC<RivalBoardProps> = ({ users, currentUser, acti
               </div>
 
               <div className="text-right shrink-0">
-                <div className="text-xs text-slate-400">通算ポイント</div>
+                <div className="text-xs text-slate-400">所持pt</div>
                 <div className="text-xl font-black text-amber-400 font-mono">
                   {user.current_points.toLocaleString()} <span className="text-xs text-amber-300">pt</span>
                 </div>

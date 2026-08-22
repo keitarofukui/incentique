@@ -102,7 +102,15 @@ export interface ActionLog {
 }
 
 export interface UserSummary {
+  /** 所持pt（= users.current_points）。交換承認で減る。既存キー名・意味は変更しない */
   totalPoints: number;
+  /**
+   * 累計獲得pt。status='approved' の action_logs.earned_points 合計。
+   * 交換では減らない（ログ削除時のみ減る）。ガチャ倍率適用後の実付与額とボーナスを含む。
+   */
+  lifetimeEarnedPoints: number;
+  /** 交換に使ったpt = lifetimeEarnedPoints - totalPoints（0 未満は 0 にクランプ） */
+  spentPoints: number;
   todayEarnedPoints: number;
   quizTotalCount: number;
   todayCategories: { [key: string]: boolean };

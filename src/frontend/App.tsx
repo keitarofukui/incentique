@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, WishItem, ActionLog, UserGoal } from './types';
+import { User, WishItem, ActionLog, UserGoal, UserSummary, DailyStatItem } from './types';
 import { LoginSelectScreen } from './components/LoginSelectScreen';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -258,6 +258,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
       fetchUserGoal(currentUser.id);
+      // ログイン直後・ユーザー切替時にサマリーを取得する。
+      // これが無いと userSummary は「何かを記録した直後」(handleActionSuccess)
+      // まで null のままで、累計獲得ptもクイズ累計正解数も画面に出せない。
+      fetchUserSummary(currentUser.id);
     }
   }, [currentUser?.id]);
 

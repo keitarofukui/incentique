@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ActionLog } from '../types';
+import { ActionLog, DailyStatItem } from '../types';
 import { TrendingUp, Flame, Calendar } from 'lucide-react';
 import { logLocalDateStr, toLocalDateStr } from '../dateUtils';
 

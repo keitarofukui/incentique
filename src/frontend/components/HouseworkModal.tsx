@@ -92,8 +92,8 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
             bonusTier: data.bonusTier,
             bonusLabel: data.bonusLabel,
             basePoints: data.basePoints,
-            finalPoints: data.finalEarnedPoints,
-            menuTitle: selectedMenu.menu_name,
+            finalEarnedPoints: data.finalEarnedPoints,
+            actionTitle: selectedMenu.menu_name,
           });
         }
 
@@ -112,7 +112,7 @@ export const HouseworkModal: React.FC<HouseworkModalProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-8 animate-fade-in">
-      <SuccessToast message={successMsg} onClose={() => setSuccessMsg('')} />
+      <SuccessToast message={successMsg} />
 
       {/* ヘッダーカード */}
       <div className="glass-card p-6 rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900/90 to-transparent space-y-4 shadow-2xl relative overflow-hidden">

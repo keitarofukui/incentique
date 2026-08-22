@@ -153,6 +153,24 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
   const reachedMilestone = !doneToday && dynamicMilestones.includes(streakIfRecorded) ? streakIfRecorded : undefined;
   const upcomingMilestone = dynamicMilestones.find((m) => m > streakIfRecorded);
 
+  // これまでの累計獲得pt。交換承認で減る current_points とは別指標で、
+  // 「これまでどれくらい稼いだか」を示す（サーバ側で action_logs から集計）。
+  //
+  // summary 未取得（500 / 通信断 / 初回ロード中）のときは 0 へフォールバックせず
+  // バー自体を出さない。累計 0pt の表示は事実と異なるうえ、「今まで何も稼げて
+  // いない」という最も強い逆モチベーションになるため。
+  const lifetimeEarned = typeof userSummary?.lifetimeEarnedPoints === 'number' ? userSummary.lifetimeEarnedPoints : undefined;
+  const lifetimeSpent = typeof userSummary?.spentPoints === 'number' ? userSummary.spentPoints : undefined;
+  const lifetimeBalance = typeof userSummary?.totalPoints === 'number' ? userSummary.totalPoints : undefined;
+  // 3 値すべてが同一レスポンス由来なので、揃って揃わないときは表示しない。
+  // こうしておけば「累計 - 使った = 使える」が画面上で必ず成立する。
+  const hasLifetime = lifetimeEarned !== undefined && lifetimeSpent !== undefined && lifetimeBalance !== undefined;
+
+  // 節目の到達表示（大きい方を優先）。演出は既存クラスのみで、新規アニメは足さない。
+  const lifetimeMilestone = lifetimeEarned !== undefined
+    ? [100000, 50000, 10000].find((m) => lifetimeEarned >= m)
+    : undefined;
+
   return (
     <div className="glass-card p-5 sm:p-6 rounded-3xl border-2 border-orange-500/40 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/60 space-y-5 shadow-2xl relative overflow-hidden">
       {/* Background glow decoration */}
@@ -179,6 +197,42 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 🏆 これまでの累計獲得: 本日バーが「今日」、こちらが「これまで」。
+          時間軸が違うので同じバーに混ぜず、上下に並べて対比させる */}
+      {hasLifetime && (
+        <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <span className="text-lg">🏆</span>
+            <span className="text-xs font-black text-slate-300">これまでの累計獲得</span>
+            {lifetimeMilestone !== undefined && (
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
+                🎖️ {(lifetimeMilestone / 10000).toLocaleString()}万pt達成
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
+            <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-center shadow-glow-gold">
+              <span className="text-[9px] font-bold text-amber-300 block">💰 累計獲得</span>
+              <span className="text-lg font-mono font-black text-amber-300 leading-tight whitespace-nowrap">
+                {lifetimeEarned.toLocaleString()} pt
+              </span>
+            </div>
+            <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+              <span className="text-[9px] font-semibold text-slate-400 block">🎁 交換に使った</span>
+              <span className="text-xs font-mono font-black text-slate-300 whitespace-nowrap">
+                {lifetimeSpent.toLocaleString()} pt
+              </span>
+            </div>
+            <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+              <span className="text-[9px] font-semibold text-slate-400 block">👛 いま使える</span>
+              <span className="text-xs font-mono font-black text-amber-400 whitespace-nowrap">
+                {lifetimeBalance.toLocaleString()} pt
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
@@ -382,7 +436,8 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         </div>
       )}
 
-      {/* 全カテゴリ制覇ウィジェット（4カテゴリの達成チェック） */}
+      {/* 全カテゴリ制覇ウィジェット（5カテゴリの達成チェック。件数は categories から導出し、
+          カテゴリを増減しても表記がズレないようにする） */}
       <div className={`p-3.5 rounded-2xl border space-y-2.5 transition-all ${
         allCategoryAwarded ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-slate-900/80 border-slate-800'
       }`}>
@@ -396,11 +451,11 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
               : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
           }`}>
-            {allCategoryAwarded ? '🏆 本日制覇完了！' : `達成: ${completedCategoriesCount} / 4 カテゴリ`}
+            {allCategoryAwarded ? '🏆 本日制覇完了！' : `達成: ${completedCategoriesCount} / ${categories.length} カテゴリ`}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {categories.map((c) => (
             <div
               key={c.key}
@@ -419,7 +474,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
 
         <p className="text-[11px] text-slate-300 leading-relaxed">
           {allCategoryAwarded ? (
-            <span className="text-emerald-300 font-bold">✨ すばらしい！本日全4カテゴリを達成し、制覇ボーナスを獲得しました！</span>
+            <span className="text-emerald-300 font-bold">✨ すばらしい！本日全{categories.length}カテゴリを達成し、制覇ボーナスを獲得しました！</span>
           ) : (
             <>
               残りを埋めると全制覇ボーナス！ あと{' '}

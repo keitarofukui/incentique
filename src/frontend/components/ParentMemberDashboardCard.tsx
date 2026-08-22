@@ -35,6 +35,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
   let quizCount = 0;
   let hasInput = false;
   let hasTraining = false;
+  let hasHousework = false;
   let hasMeal = false;
 
   userTodayLogs.forEach((log) => {
@@ -56,6 +57,8 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
       hasInput = true;
     } else if (log.category === 'training') {
       hasTraining = true;
+    } else if (log.category === 'housework') {
+      hasHousework = true;
     } else if (['eat_rice', 'eat_meat'].includes(log.category)) {
       hasMeal = true;
     }
@@ -114,7 +117,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
             <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-              <span>通算所持ポイント</span>
+              <span>所持pt</span>
             </div>
             <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
               {(user.current_points || 0).toLocaleString()} <span className="text-xs text-amber-300">pt</span>
@@ -197,11 +200,11 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
           <div className="text-xs font-black text-slate-300 flex items-center justify-between">
             <span>本日のアクティビティ</span>
             <span className="text-[10px] text-slate-400">
-              {[quizCount > 0, hasInput, hasTraining, hasMeal].filter(Boolean).length} / 4 カテゴリ
+              {[quizCount > 0, hasInput, hasTraining, hasHousework, hasMeal].filter(Boolean).length} / 5 カテゴリ
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             <div className={`p-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
               quizCount > 0
                 ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
@@ -227,6 +230,15 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
             }`}>
               <Dumbbell className={`w-3.5 h-3.5 shrink-0 ${hasTraining ? 'text-emerald-400' : 'text-slate-600'}`} />
               <span className="truncate">🏃 運動</span>
+            </div>
+
+            <div className={`p-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+              hasHousework
+                ? 'bg-purple-500/10 border-purple-500/30 text-purple-300'
+                : 'bg-slate-900/40 border-slate-800/60 text-slate-500'
+            }`}>
+              <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${hasHousework ? 'text-purple-400' : 'text-slate-600'}`} />
+              <span className="truncate">🧹 家事</span>
             </div>
 
             <div className={`p-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${

@@ -410,7 +410,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 <span>全メンバーの活動 & ポイントダッシュボード</span>
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                登録メンバーの通算ポイント、当日の獲得ポイント、連続達成日数（補正済）、アクティビティを一括参照できます。
+                登録メンバーの所持pt、当日の獲得ポイント、連続達成日数（補正済）、アクティビティを一括参照できます。
               </p>
             </div>
             <div className="text-xs font-bold text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 shrink-0">

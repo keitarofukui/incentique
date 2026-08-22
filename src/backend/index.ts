@@ -351,7 +351,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
     newLast1000ptBonusDate = tierState.last_1000pt_bonus_date;
 
     // --- 全カテゴリ制覇ボーナス（1日1回）---
-    // 素点の多寡は問わない。4カテゴリすべてに手を出したこと自体を評価する。
+    // 素点の多寡は問わない。ALL_CATEGORY_GROUPS の全カテゴリ（現在5種）に手を出したこと自体を評価する。
     const coveredAll = ALL_CATEGORY_GROUPS.every(
       (g) => Number((todayPointsResult as any)?.[`has_${g.key}`]) === 1
     );
@@ -432,6 +432,21 @@ app.get('/api/users/:id/summary', async (c) => {
       "SELECT COUNT(*) as total FROM action_logs WHERE user_id = ? AND category = 'quiz' AND status = 'approved'"
     ).bind(userId).first();
 
+    // 累計獲得pt（交換で減らない「これまで稼いだ総額」）。
+    // current_points は交換承認で減算されるため残高しか表せない。稼いだ総額の
+    // 台帳は action_logs 側にあるので、そこから毎回集計する（累計用カラムは持たない）。
+    // status='approved' で絞るのは必須: pending は current_points にも加算されて
+    // いないため、混ぜると未加算分だけ累計が過大になる。
+    const lifetimeResult: any = await c.env.DB.prepare(
+      "SELECT COALESCE(SUM(earned_points), 0) as lifetime FROM action_logs WHERE user_id = ? AND status = 'approved'"
+    ).bind(userId).first();
+
+    const currentPoints = Number(user.current_points) || 0;
+    const lifetimeEarnedPoints = Number(lifetimeResult?.lifetime) || 0;
+    // 交換に使った分は wish_items から別集計せず差分で出す。そうすれば
+    // 「累計 - 使用 = 所持」が画面上で必ず成立し、2 系統の集計がズレる余地がない。
+    const spentPoints = Math.max(0, lifetimeEarnedPoints - currentPoints);
+
     // 本日の完了カテゴリ一覧
     const categoriesResult: any = await c.env.DB.prepare(
       "SELECT DISTINCT category FROM action_logs WHERE user_id = ? AND date(datetime(created_at, '+5 hours')) = ?"
@@ -443,13 +458,18 @@ app.get('/api/users/:id/summary', async (c) => {
       study: categoryList.includes('quiz') || categoryList.includes('study'),
       input_book: categoryList.includes('input_book') || categoryList.includes('input_manga') || categoryList.includes('input_movie') || categoryList.includes('input_drama'),
       training: categoryList.includes('training'),
+      // 家事は全カテゴリ制覇の5カテゴリの1つ。ここに無いと
+      // PersonalStreakCard:72 が常に false を読み、家事が未達成扱いになる
+      housework: categoryList.includes('housework'),
       eat_rice: categoryList.includes('eat_rice') || categoryList.includes('eat_meat'),
     };
 
     return c.json({
       success: true,
       summary: {
-        totalPoints: user.current_points || 0,
+        totalPoints: currentPoints,
+        lifetimeEarnedPoints,
+        spentPoints,
         todayEarnedPoints: todayResult?.total || 0,
         quizTotalCount: quizResult?.total || 0,
         todayCategories,
