@@ -2,18 +2,18 @@
 
 - 作成日時: 2026-08-22 16:54
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: e841677
-- 上流 Artifact: docs/design-spec.md（対象コミット: e841677）
+- 対象コミット: a3276dc
+- 上流 Artifact: docs/design-spec.md（対象コミット: a3276dc）
 - **判定: APPROVED**
 
 ## 0. 上流の抜き取り再実測（§2-3）
 
 ### [EV-1] 上流 [EV-1] リポジトリ状態の再実行 — 一致
 $ git rev-parse --short HEAD && git branch --show-current && git status --short
-e841677
+a3276dc
 main
 
-- 【実測】対象コミット `e841677` / ブランチ `main` であり、上流 `docs/design-spec.md` の記録 [EV-1] と完全に一致することを確認した [EV-1]。
+- 【実測】対象コミット `a3276dc` / ブランチ `main` であり、上流 `docs/design-spec.md` の記録 [EV-1] と完全に一致することを確認した [EV-1]。
 
 ### [EV-2] 上流 [EV-2] 極小フォントサイズ (9px〜11px) 出現数の再実行 — 一致
 $ grep -roE "text-\[(9|10|11)px\]" src/frontend/ | sort | uniq -c | sort -nr
@@ -87,7 +87,7 @@ dist/index.html                   1.04 kB │ gzip:   0.60 kB
 $ ~/antigravity-agents/scripts/verify.sh design-review
 ========================================================
  verify.sh  role=design-review  base=HEAD  repo=game
- HEAD=e841677  branch=main
+ HEAD=a3276dc  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------

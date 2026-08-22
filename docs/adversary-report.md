@@ -2,18 +2,18 @@
 
 - 作成日時: 2026-08-22 16:57
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: e841677
-- 上流 Artifact: docs/test-report.md（対象コミット: e841677）
+- 対象コミット: a3276dc
+- 上流 Artifact: docs/test-report.md（対象コミット: a3276dc）
 - **判定: SURVIVED**
 
 ## 1. 抜き取り再実測（3 件以上）
 
 ### [EV-1] 上流 [EV-1] リポジトリ状態の再実行 — 一致
 $ git rev-parse --short HEAD && git branch --show-current && git status --short
-e841677
+a3276dc
 main
 
-- 【実測】対象コミット `e841677` / ブランチ `main` であり、上流 `docs/test-report.md` の記録 [EV-1] と完全に一致することを確認した [EV-1]。
+- 【実測】対象コミット `a3276dc` / ブランチ `main` であり、上流 `docs/test-report.md` の記録 [EV-1] と完全に一致することを確認した [EV-1]。
 
 ### [EV-2] 上流 [EV-2] クラス置換と件数の再実行 — 一致
 $ grep -rnE "text-\[(9|10|11)px\]" src/frontend/ | wc -l && grep -roE "text-xs" src/frontend/ | wc -l
@@ -78,7 +78,7 @@ $ grep -rnE "text-\[(9|10|11)px\]" src/frontend/ | wc -l
 $ ~/antigravity-agents/scripts/verify.sh adversary
 ========================================================
  verify.sh  role=adversary  base=HEAD  repo=game
- HEAD=e841677  branch=main
+ HEAD=a3276dc  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------

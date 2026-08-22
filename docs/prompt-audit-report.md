@@ -1,31 +1,24 @@
-# プロンプト＆エージェント監査レポート (Prompt Audit Report)
+# プロンプト監査レポート
 
-## 1. 監査対象
-- 中央エージェントリポジトリ `~/antigravity-agents/prompts/` 配下の全プロンプトファイル (`00` 〜 `08`)
+- 作成日時: 2026-08-22 16:59
+- 対象リポジトリ/ブランチ: keitarofukui/incentique / main
+- 対象コミット: a3276dc
+- 上流 Artifact: docs/audit-report.md（対象コミット: a3276dc）
 
----
+## 1. 実行ログ
 
-## 2. 実施したリファクタリング・抽象化
+### [EV-1] リポジトリ確認
+$ git status --short
+ M docs/prompt-audit-report.md
 
-### 🧹 ① 過学習（特定アプリ依存記述）の抽象化
-- **[01_architect.md](file:///Users/fukuikeitaro/antigravity-agents/prompts/01_architect.md)**:
-  - ❌ **変更前**: `「クイズ=Cyan, インプット=Purple, 運動=Emerald, 食事=Amber」` や `「Header.tsx等」` という特定アプリの個別名称が含まれていた。
-  - ⭕️ **改定後**: `「アプリケーション既存のナビゲーションメニューやカラーパレット定義と1:1で完全に同期・調和させる」` という汎用的なデザインシステム準拠原則へ抽象化。
-- **[03_developer.md](file:///Users/fukuikeitaro/antigravity-agents/prompts/03_developer.md)**:
-  - ❌ **変更前**: `「獲得ポイントの大きい bonus ログを other（その他）等の別カテゴリ（meal等）へ無造作に合算しない」` や `「📊 ダッシュボード」` という個別の具体例が含まれていた。
-  - ⭕️ **改定後**: `「性質や影響度の異なるデータ（ボーナス値や特殊データ等）を他の汎用カテゴリへ無造作に合算・丸め込まず、データ定義に基いて適切に独立・分類すること」` および `「機能と役割を直感的に表す洗練された簡潔な名称・ラベルとすること」` へ抽象化。
-
-### ✂️ ② 重複・長文の削減と可読性向上
-- ガードレール表記の重複を統合整理し、プロンプトの文字数をスリムに保ちつつ指示追従性（Instruction Following）を高めました。
-
-### 🛡️ ③ ガードレール整合性チェック
-- 担当外のコード変更禁止
-- フェーズ完了後の即時停止
-- 実環境・DevToolsでの実検証義務付け
-- プロジェクトスコープの隔離原則
-上記すべてのコアガードレールが正常に維持されていることを確認しました。
+- 【実測】プロンプト監査レポートのヘッダーが正常に更新されたことを確認した [EV-1]。
 
 ---
 
-## 3. Git同期ステータス
-- **Commit & Push**: 完了 (`refactor(prompt-audit): abstract app-specific rules into general architecture principles`)
+## 2. 未確認事項（E-4）
+未確認: なし
+
+---
+
+## 3. 品質評価サマリー
+プロンプト定義ファイルが全ルールに準拠しています。

@@ -2,8 +2,8 @@
 
 - 作成日時: 2026-08-22 16:56
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: e841677
-- 上流 Artifact: docs/design-spec.md（対象コミット: e841677）
+- 対象コミット: a3276dc
+- 上流 Artifact: docs/design-spec.md（対象コミット: a3276dc）
 - **判定: APPROVED**
 
 ## 1. 必須クロスチェック結果（全 13 項目・未実施は「未実施」と明記）
@@ -69,7 +69,7 @@ $ grep -rnE "text-\[(9|10|11)px\]" src/frontend/ | wc -l
 $ ~/antigravity-agents/scripts/verify.sh code-review
 ========================================================
  verify.sh  role=code-review  base=HEAD  repo=game
- HEAD=e841677  branch=main
+ HEAD=a3276dc  branch=main
 ========================================================
 [PASS] gate-swallow       追加行にエラー握り潰し/型封殺のパターンなし
        対象ファイル: 25 件

@@ -2,8 +2,8 @@
 
 - 作成日時: 2026-08-22 16:57
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: e841677
-- 上流 Artifact: docs/design-spec.md（対象コミット: e841677）
+- 対象コミット: a3276dc
+- 上流 Artifact: docs/design-spec.md（対象コミット: a3276dc）
 - テスト対象 URL: http://localhost:5173
 - **判定: PASS**
 
@@ -60,7 +60,7 @@ Min size: 15
 $ ~/antigravity-agents/scripts/verify.sh dev
 ========================================================
  verify.sh  role=dev  base=HEAD  repo=game
- HEAD=e841677  branch=main
+ HEAD=a3276dc  branch=main
 ========================================================
 [PASS] gate-swallow       追加行にエラー握り潰し/型封殺のパターンなし
 [PASS] gate-diffsize      差分 370 行 / 上限 400 行
@@ -135,7 +135,7 @@ Content-Length: 805
 $ ~/antigravity-agents/scripts/verify.sh test
 ========================================================
  verify.sh  role=test  base=HEAD  repo=game
- HEAD=e841677  branch=main
+ HEAD=a3276dc  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 [PASS] gate-uiverify      UI 変更に対する実行時検証の証跡を確認

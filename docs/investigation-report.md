@@ -2,7 +2,7 @@
 
 - 作成日時: 2026-08-22 16:22
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: e841677
+- 対象コミット: a3276dc
 - 上流 Artifact: なし
 
 ## 1. 結論サマリー
@@ -15,10 +15,10 @@
 
 ### [EV-1] 前提情報（リポジトリ状態）
 $ git rev-parse --short HEAD && git branch --show-current && git status --short
-e841677
+a3276dc
 main
 
-- 【実測】対象リポジトリは `keitarofukui/incentique` の `main` ブランチ、最新コミット `e841677` である [EV-1]。
+- 【実測】対象リポジトリは `keitarofukui/incentique` の `main` ブランチ、最新コミット `a3276dc` である [EV-1]。
 
 ### [EV-2] 極小フォントサイズクラス指定 (9px〜11px) の実測件数
 $ grep -rnE "text-\[(9|10|11)px\]" src/frontend/ | grep -oE "text-\[(9|10|11)px\]" | sort | uniq -c | sort -nr
@@ -203,7 +203,7 @@ Content-Length: 805
 $ ~/antigravity-agents/scripts/verify.sh investigate
 ========================================================
  verify.sh  role=investigate  base=HEAD  repo=game
- HEAD=e841677  branch=main
+ HEAD=a3276dc  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 [PASS] gate-coverage      実測 8 件 / カテゴリ網羅 3/4
