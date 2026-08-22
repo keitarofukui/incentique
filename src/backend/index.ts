@@ -984,7 +984,7 @@ ${gradeTitle}向けの「${catLabel}」科目に関する4択学習クイズを$
     let generatedQuestions: any[] = [];
 
     if (apiKey) {
-      const model = c.env.GEMINI_MODEL || 'gemini-2.5-flash';
+      const model = c.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const res = await fetch(endpoint, {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { ShieldCheck, X, AlertCircle } from 'lucide-react';
 
@@ -17,8 +17,6 @@ export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
-  if (!isOpen) return null;
-
   const handleNumberClick = (num: string) => {
     if (pin.length < 4) {
       const nextPin = pin + num;
@@ -34,6 +32,29 @@ export const ParentPinAuthModal: React.FC<ParentPinAuthModalProps> = ({
     setPin(pin.slice(0, -1));
     setErrorMsg('');
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isVerifying) return;
+
+      if (e.key >= '0' && e.key <= '9') {
+        handleNumberClick(e.key);
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        handleDelete();
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isVerifying, pin, onClose]);
+
+  if (!isOpen) return null;
 
   const verifyPin = async (inputPin: string) => {
     setIsVerifying(true);
