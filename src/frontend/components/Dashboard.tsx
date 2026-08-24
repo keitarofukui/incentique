@@ -183,7 +183,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="font-mono font-black text-amber-400 text-sm">+{log.earned_points} pt</span>
+                  <span className={`font-mono font-black text-sm ${
+                    log.earned_points > 0
+                      ? 'text-amber-400'
+                      : log.earned_points < 0
+                      ? 'text-rose-400'
+                      : 'text-slate-400'
+                  }`}>
+                    {log.earned_points > 0 ? `+${log.earned_points}` : `${log.earned_points}`} pt
+                  </span>
                 </div>
               </div>
             ))}

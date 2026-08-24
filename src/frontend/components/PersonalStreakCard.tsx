@@ -82,7 +82,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       const earned = Number(log.earned_points || 0);
       const cat = log.category || '';
 
-      if (cat === 'bonus') {
+      if (cat === 'bonus' || cat === 'parent_adjustment') {
         bonusSum += earned;
       } else {
         const base = Number(log.base_points ?? log.earned_points) || 0;

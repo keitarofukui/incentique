@@ -10,6 +10,7 @@ interface ParentMemberDashboardCardProps {
   midThreshold?: number;
   godThreshold?: number;
   onSelectUserFilter: (userId: string, targetSubTab: 'requests_logs') => void;
+  onOpenAdjustPoints?: (user: User) => void;
 }
 
 export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps> = ({
@@ -19,6 +20,7 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
   midThreshold = 100,
   godThreshold = 250,
   onSelectUserFilter,
+  onOpenAdjustPoints,
 }) => {
   const todayStr = todayLogicalDateStr();
 
@@ -263,6 +265,18 @@ export const ParentMemberDashboardCard: React.FC<ParentMemberDashboardCardProps>
           <span>活動履歴・申請を見る</span>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
         </button>
+
+        {onOpenAdjustPoints && (
+          <button
+            type="button"
+            onClick={() => onOpenAdjustPoints(user)}
+            className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+            title="ポイントを手動で付与・引き落とし"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <span>ポイント調整</span>
+          </button>
+        )}
       </div>
     </div>
   );

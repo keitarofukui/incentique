@@ -90,8 +90,8 @@ export interface ActionLog {
   user_id: string;
   user_name?: string;
   // 'quiz' is written by POST /api/quizzes/answer, 'bonus' by the streak /
-  // volume milestone payouts in updateStreaks; 'study' is legacy data
-  category: 'quiz' | 'bonus' | 'study' | 'input_book' | 'input_manga' | 'input_movie' | 'input_drama' | 'training' | 'housework' | 'eat_rice' | 'eat_meat';
+  // volume milestone payouts in updateStreaks; 'study' is legacy data; 'parent_adjustment' is parent manual adjustment
+  category: 'quiz' | 'bonus' | 'study' | 'input_book' | 'input_manga' | 'input_movie' | 'input_drama' | 'training' | 'housework' | 'eat_rice' | 'eat_meat' | 'parent_adjustment';
   title_or_menu: string;
   review_text?: string;
   earned_points: number;

@@ -326,8 +326,14 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
-                  <span className="text-base font-black text-amber-400 font-mono">
-                    +{log.earned_points} pt
+                  <span className={`text-base font-black font-mono ${
+                    log.earned_points > 0
+                      ? 'text-amber-400'
+                      : log.earned_points < 0
+                      ? 'text-rose-400'
+                      : 'text-slate-400'
+                  }`}>
+                    {log.earned_points > 0 ? `+${log.earned_points}` : `${log.earned_points}`} pt
                   </span>
                   {/* アイコンだけだと二重登録に気づいても消し方が分からないので、
                       文字を添えて押せると分かるようにしておく */}

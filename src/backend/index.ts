@@ -1625,6 +1625,53 @@ app.put('/api/parent/set-pin', async (c) => {
   }
 });
 
+app.post('/api/parent/adjust-points', async (c) => {
+  try {
+    const body = await c.req.json<{ userId?: string; amount?: number; reason?: string; type?: 'add' | 'deduct' }>();
+    const { userId, reason, type } = body;
+    const rawAmount = Number(body.amount);
+
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') return c.json({ success: false, error: '対象ユーザーIDを指定してください' }, 400);
+    if (!Number.isInteger(rawAmount) || rawAmount === 0) return c.json({ success: false, error: '調整ポイントは0以外の整数を指定してください' }, 400);
+    if (!reason || typeof reason !== 'string' || reason.trim() === '') return c.json({ success: false, error: '調整理由を入力してください' }, 400);
+
+    const finalAmount = (type === 'deduct' || rawAmount < 0) ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+    const user = await c.env.DB.prepare('SELECT id, name, current_points FROM users WHERE id = ?').bind(userId).first<{ id: string; name: string; current_points: number }>();
+    if (!user) return c.json({ success: false, error: '指定されたユーザーが見つかりません' }, 404);
+
+    const currentPoints = Number(user.current_points) || 0;
+    if (finalAmount < 0 && currentPoints < Math.abs(finalAmount)) {
+      return c.json({ success: false, error: `ポイントが不足しているため引き落とせません（所持: ${currentPoints.toLocaleString()}pt, 減算希望: ${Math.abs(finalAmount).toLocaleString()}pt）` }, 400);
+    }
+
+    if (finalAmount < 0) {
+      const updateResult = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?').bind(Math.abs(finalAmount), userId, Math.abs(finalAmount)).run();
+      if (!updateResult.meta?.changes) return c.json({ success: false, error: 'ポイントの引き落としに失敗しました（残高不足または競合）' }, 400);
+    } else {
+      await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?').bind(finalAmount, userId).run();
+    }
+
+    const logId = 'log_adj_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    const title = finalAmount > 0 ? `保護者ボーナス (+${finalAmount}pt)` : `保護者ポイント調整 (${finalAmount}pt)`;
+    await c.env.DB.prepare('INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime(\'now\'))').bind(logId, userId, 'parent_adjustment', title, reason.trim(), finalAmount, 'approved').run();
+
+    const updatedUser = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?').bind(userId).first<{ current_points: number }>();
+    const newTotal = updatedUser ? Number(updatedUser.current_points) : currentPoints + finalAmount;
+
+    return c.json({
+      success: true,
+      message: finalAmount > 0 ? `${finalAmount}pt を付与しました！` : `${Math.abs(finalAmount)}pt を引き落としました`,
+      newTotalPoints: newTotal,
+      adjustedPoints: finalAmount,
+      logId
+    });
+  } catch (err) {
+    const errorText = err instanceof Error ? err.message : String(err);
+    console.error('[/api/parent/adjust-points] error:', errorText);
+    return c.json({ success: false, error: errorText || 'ポイント調整処理に失敗しました' }, 500);
+  }
+});
+
 /**
  * 交換リクエストの差し戻し。
  * 申請時点ではポイントを引いていないので返却処理は不要で、申請状態を解除して

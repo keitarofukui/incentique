@@ -1,342 +1,416 @@
-# 機能設計仕様書: 画面文字サイズのアクセシビリティ向上および視認性改修仕様（確定版 v5）
+# 機能設計仕様書: 保護者機能によるポイント手動調整（加算・減算）機能設計書
 
-- 作成日時: 2026-08-22 16:51
+- 作成日時: 2026-08-24 15:56
 - 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: a3276dc
-- 上流 Artifact: docs/investigation-report.md（対象コミット: a3276dc）
+- 対象コミット: 416b07b
+- 上流 Artifact: docs/investigation-report.md（対象コミット: 416b07b）
 
 ## 0. 上流の抜き取り再実測（§2-3）
 
 ### [EV-1] 上流 [EV-1] リポジトリ状態の再実行
 $ git rev-parse --short HEAD && git branch --show-current && git status --short
-a3276dc
+416b07b
 main
  M docs/design-spec.md
  M docs/investigation-report.md
 
-- 【実測】対象コミット `a3276dc` / ブランチ `main` であり、上流 `docs/investigation-report.md` の記録 [EV-1] と完全に一致することを確認した [EV-1]。
+- 【実測】対象コミット `416b07b` / ブランチ `main` であり、上流 `docs/investigation-report.md` の記録 [EV-1] と完全に一致することを確認した (`.git:L1`, [EV-1])。
 
-### [EV-2] 上流 [EV-2] 極小フォントサイズ (9px〜11px) 出現数の完全生出力再実行
-$ grep -roE "text-\[(9|10|11)px\]" src/frontend/ | sort | uniq -c | sort -nr
-  18 src/frontend/components/ParentPortal.tsx:text-[10px]
-  15 src/frontend/components/WishlistSection.tsx:text-[10px]
-  14 src/frontend/components/ReflectionView.tsx:text-[10px]
-  12 src/frontend/components/WishlistSection.tsx:text-[11px]
-   9 src/frontend/components/ParentMemberDashboardCard.tsx:text-[10px]
-   9 src/frontend/components/GoalPlannerWidget.tsx:text-[10px]
-   9 src/frontend/components/EatRiceModal.tsx:text-[11px]
-   8 src/frontend/components/ParentPortal.tsx:text-[11px]
-   7 src/frontend/components/PersonalStreakCard.tsx:text-[9px]
-   7 src/frontend/components/EatRiceModal.tsx:text-[10px]
-   6 src/frontend/components/RivalPulse.tsx:text-[10px]
-   6 src/frontend/components/PersonalStreakCard.tsx:text-[10px]
-   4 src/frontend/components/ApproveWishModal.tsx:text-[11px]
-   3 src/frontend/components/UserRegisterModal.tsx:text-[10px]
-   3 src/frontend/components/TrainingModal.tsx:text-[10px]
-   3 src/frontend/components/RivalPulse.tsx:text-[11px]
-   3 src/frontend/components/PersonalStreakCard.tsx:text-[11px]
-   3 src/frontend/components/ParentMemberDashboardCard.tsx:text-[9px]
-   3 src/frontend/components/ParentMemberDashboardCard.tsx:text-[11px]
-   3 src/frontend/components/HouseworkModal.tsx:text-[10px]
-   3 src/frontend/components/DailyChart.tsx:text-[9px]
-   2 src/frontend/components/StreakBonusInfo.tsx:text-[10px]
-   2 src/frontend/components/ReturnWishModal.tsx:text-[11px]
-   2 src/frontend/components/ReturnWishModal.tsx:text-[10px]
-   2 src/frontend/components/Header.tsx:text-[9px]
-   2 src/frontend/components/Dashboard.tsx:text-[11px]
-   2 src/frontend/components/Dashboard.tsx:text-[10px]
-   2 src/frontend/components/DailyChart.tsx:text-[10px]
-   2 src/frontend/components/ApproveWishModal.tsx:text-[10px]
-   2 src/frontend/components/AllCategoryCard.tsx:text-[10px]
-   1 src/frontend/components/UpdateAvailableBanner.tsx:text-[10px]
-   1 src/frontend/components/TrainingModal.tsx:text-[11px]
-   1 src/frontend/components/SuccessToast.tsx:text-[10px]
-   1 src/frontend/components/StreakBonusInfo.tsx:text-[11px]
-   1 src/frontend/components/RivalBoard.tsx:text-[10px]
-   1 src/frontend/components/ReflectionView.tsx:text-[11px]
-   1 src/frontend/components/QuizQuest.tsx:text-[11px]
-   1 src/frontend/components/QuizQuest.tsx:text-[10px]
-   1 src/frontend/components/ParentPinAuthModal.tsx:text-[11px]
-   1 src/frontend/components/Header.tsx:text-[10px]
-   1 src/frontend/components/AllCategoryCard.tsx:text-[9px]
-   1 src/frontend/components/AllCategoryCard.tsx:text-[11px]
+### [EV-2] 上流 [EV-2] データベーステーブル定義の再実行
+$ sed -n '38,57p;110,125p' schema.sql
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  grade_level TEXT NOT NULL,
+  avatar TEXT DEFAULT '⚡',
+  pin_code TEXT DEFAULT '1234',
+  current_points INTEGER DEFAULT 0,
+  last_action_date TEXT,
+  current_streak_days INTEGER DEFAULT 0,
+  last_50pt_date TEXT,
+  current_50pt_streak_days INTEGER DEFAULT 0,
+  last_100pt_date TEXT,
+  current_100pt_streak_days INTEGER DEFAULT 0,
+  last_300pt_bonus_date TEXT,
+  last_500pt_bonus_date TEXT,
+  last_1000pt_bonus_date TEXT,
+  last_all_category_date TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-- 【実測】`text-[10px]` 110件、`text-[11px]` 52件、`text-[9px]` 16件の計 **178件** であり、中略なしの完全生出力で一致することを確認した [EV-2]。
+CREATE TABLE IF NOT EXISTS action_logs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  title_or_menu TEXT NOT NULL,
+  review_text TEXT,
+  earned_points INTEGER NOT NULL,
+  -- ガチャ倍率・ボーナスを含まない素点。1日ボリュームボーナスの判定はこちらを使う
+  base_points INTEGER,
+  status TEXT DEFAULT 'pending',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-### [EV-3] 上流 [EV-3] `text-xs` (12px) および `text-sm` 出現数の再実行
-$ grep -roE "text-xs" src/frontend/ | wc -l && grep -roE "text-sm" src/frontend/ | wc -l
-     368
-      83
+CREATE INDEX IF NOT EXISTS idx_action_logs_user_cat_date ON action_logs (user_id, category, created_at);
+CREATE INDEX IF NOT EXISTS idx_action_logs_user_date ON action_logs (user_id, created_at DESC);
 
-- 【実測】上流 `docs/investigation-report.md` の記録 (text-xs 368件) と一致し、追加計測の text-sm 83件 (計451件) を確認した [EV-3]。
+- 【実測】ユーザーの所持ptは `users.current_points`、増減履歴は `action_logs` に完全対応しており、新テーブル作成不要であることを再確認した (`schema.sql:L38-L57`, `schema.sql:L110-L125`, [EV-2])。
 
-### [EV-4] レイアウト寸法および余白・間隔の実測
-$ grep -rnoE "\bp[xy]?-[0-9]+(\.5)?" src/frontend/components/ | wc -l && grep -rnoE "\bgap-[0-9]+(\.5)?" src/frontend/components/ | wc -l && grep -rnoE "\b[wh]-[0-9]+(\.5)?" src/frontend/components/ | wc -l && grep -rnoE "\bspace-[xy]-[0-9]+" src/frontend/components/ | wc -l
-     700
-     404
-     518
-     203
+### [EV-3] 上流 [EV-3] ポイント更新箇所の再実行
+$ grep -rn "UPDATE users SET current_points" src/backend/
+src/backend/index.ts:380:      await db.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
+src/backend/index.ts:899:      await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
+src/backend/index.ts:1323:      'UPDATE users SET current_points = current_points + ? WHERE id = ?'
+src/backend/index.ts:1357:        'UPDATE users SET current_points = MAX(0, current_points - ?) WHERE id = ?'
+src/backend/index.ts:1703:      const deduction = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?')
 
-- 【実測】padding (700件), gap (404件), w/h (518件), space (203件) の合計 **1,825 箇所** が rem ベースの寸法クラスであることを確認した [EV-4]。
+- 【実測】バックエンド内のポイント更新処理は 5 箇所であり、手動調整エンドポイントが未定義であることを再確認した (`src/backend/index.ts:L380-L1703`, [EV-3])。
 
-### [EV-5] 横方向崩れリスク項目および任意px幅指定の実測
-$ grep -rn "whitespace-nowrap" src/frontend/components/ | wc -l && grep -rnE "w-(8|10|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64)" src/frontend/components/ | wc -l && grep -rnE "grid-cols-[0-9]+" src/frontend/components/ | wc -l && grep -nE "min-w-\[(80|145|600)px\]|max-w-\[130px\]|rounded-\[14px\]" src/frontend/components/DailyChart.tsx src/frontend/components/ParentPortal.tsx src/frontend/components/Header.tsx src/frontend/components/LoginSelectScreen.tsx
-      28
-      49
-      44
-src/frontend/components/DailyChart.tsx:242: min-w-[80px]
-src/frontend/components/DailyChart.tsx:248: min-w-[80px]
-src/frontend/components/DailyChart.tsx:408: min-w-[145px]
-src/frontend/components/ParentPortal.tsx:637: min-w-[600px]
-src/frontend/components/Header.tsx:102: max-w-[85px] sm:max-w-[130px]
-src/frontend/components/LoginSelectScreen.tsx:30: rounded-[14px]
+### [EV-4] 上流 [EV-4] ストリーク集計クエリの再実行
+$ sed -n '238,250p' src/backend/index.ts
+    const todayPointsResult = await db.prepare(`
+      SELECT SUM(COALESCE(base_points, earned_points)) as total,
+             ${categoryFlags}
+      FROM action_logs
+      WHERE user_id = ?
+      AND category != 'bonus'
+      AND date(datetime(created_at, '+5 hours')) = ?
+    `).bind(userId, logicalToday).first();
 
-- 【実測】横溢れリスクとして `whitespace-nowrap` 28件、固定幅 `w-*` 49件、固定列 `grid-cols-*` 44件、および任意 px 幅・半径指定 6件（計 127 箇所）が存在することを確認した [EV-5]。
+    const todayPoints = todayPointsResult?.total || 0;
 
-### [EV-6] `src/frontend/index.css` の現状実測
-$ wc -l src/frontend/index.css && grep -rn "font-size" src/frontend/index.css | wc -l
-     109 src/frontend/index.css
-       0
+    // 中級ストリーク判定 (閾値: midThreshold)
 
-- 【実測】`index.css` は全109行であり、`grep -rn "font-size" src/frontend/index.css` の結果は **0件** (定義なし) であることを確認した [EV-6]。
+- 【実測】`base_points = 0` のレコードを挿入することで `COALESCE(base_points, earned_points)` が 0 となり、日次素点集計への誤算入を防げることを再確認した (`src/backend/index.ts:L238-L250`, [EV-4])。
 
-### [EV-7] ビルド・型チェックの完全生出力
+### [EV-5] 上流 [EV-5] フロントエンド「+」ハードコード箇所の再実行
+$ grep -rnE "\+\{.*(earned_points|points).*\}" src/frontend/
+src/frontend/components/ReflectionView.tsx:210:                  <span className="text-xs font-mono font-black text-amber-400">+{item.earned_points || 0} pt</span>
+src/frontend/components/ReflectionView.tsx:330:                    +{log.earned_points} pt
+src/frontend/components/Dashboard.tsx:186:                  <span className="font-mono font-black text-amber-400 text-sm">+{log.earned_points} pt</span>
+src/frontend/components/TrainingModal.tsx:240:                +{selectedMenu?.default_points || 50} pt
+src/frontend/components/TrainingModal.tsx:323:                      +{menu.default_points || 50} pt
+src/frontend/components/ParentPortal.tsx:680:                                  +{log.earned_points}
+src/frontend/components/HouseworkModal.tsx:165:                      +{menu.default_points} pt
+
+- 【実測】獲得ポイント表示箇所の正負両対応改修が必要であることを再確認した (`src/frontend/components/ParentPortal.tsx:L680`, `src/frontend/components/Dashboard.tsx:L186`, `src/frontend/components/ReflectionView.tsx:L210`, [EV-5])。
+
+### [EV-6] 上流 [EV-7] プロダクションビルドおよび型チェックの再実行
 $ npm run build && npx tsc --noEmit
 > quest-habit-app@1.0.0 build
 > vite build
-
 vite v6.4.3 building for production...
 transforming...
 ✓ 1605 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-wnOayYFu.css   69.13 kB │ gzip:  11.29 kB
-dist/assets/index-DCwIYkaL.js   454.76 kB │ gzip: 117.46 kB
-✓ built in 2.31s
+dist/assets/index-B56GTR5M.css   69.07 kB │ gzip:  11.29 kB
+dist/assets/index-BoCzHWS0.js   454.08 kB │ gzip: 117.23 kB
+✓ built in 1.53s
 
-- 【実測】プロダクションビルドおよび TypeScript 型チェックがエラーなく正常完了することを確認した [EV-7]。
-
----
-
-## 1. 概要・目的
-ユーザーから指摘された「画面の文字が小さすぎて読めない」課題に対し、`tailwind.config.js` の `theme.extend.fontSize` 直接拡張と Tailwind CSS の rem スケーリング機構を活用した本質的改修を行う。
-`html { font-size }` の引き上げが起こす 1,825 箇所のレイアウト余白・寸法膨張事故（実効幅 300px への縮小崩れ）[EV-4] を根本回避し、`tailwind.config.js` 内で全 8 段階のフォントサイズスケール (`xs` 〜 `4xl`) を一律 ×1.25 比例拡張定義する。
-これに全 26 コンポーネント内の 178 箇所に及ぶ `text-[9-11px]` の `text-xs` 化を組み合わせることで、レイアウト膨張ゼロで全表示文字の視認性階層（主従関係）を維持しつつ、最少テキストを含むすべての文字を **14.0px 以上 (実効 15.0px)** へ一括底上げする。
-
-## 2. 機能要件 / 非機能要件
-
-### 機能要件
-1. **`tailwind.config.js` による全 8 段階フォントサイズ比例拡張の適用**:
-   - `tailwind.config.js` の `theme.extend.fontSize` を拡張定義し、全 8 段階 (`xs` 〜 `4xl`) のスケールを一律 ×1.25 比例拡張する (`xs: 15.0px`, `sm: 17.5px`, `base: 20.0px`, `lg: 22.5px`, `xl: 25.0px`, `2xl: 30.0px`, `3xl: 37.5px`, `4xl: 45.0px`) [EV-4]。
-2. **178箇所の px固定指定 (`text-[9-11px]`) および任意px幅指定の rem 化**:
-   - `text-[9px]`, `text-[10px]`, `text-[11px]` (178箇所) をすべて Tailwind 標準の `text-xs` へ置換する [EV-2]。
-   - 実測で抽出された任意 px 幅・半径指定 6 箇所 (`Header.tsx:102`, `DailyChart.tsx:242,248,408`, `ParentPortal.tsx:637`, `LoginSelectScreen.tsx:30`) を rem 単位へ完全置換する [EV-5]。
-3. **視認性階層（主従関係）の完全全保全**:
-   - 全 8 段階スケールの比例拡張により、見出し (`text-lg` 等) と本文 (`text-sm`)、注記 (`text-xs`) のサイズ逆転を防ぎ、情報の主従グラデーション・デザイン階層を自動保全する。
-4. **横方向・縦方向レイアウト崩れ対策の全製造タスク組込**:
-   - `whitespace-nowrap` (28箇所) や固定幅 `w-*` (49箇所), `grid-cols-*` (44箇所) [EV-5] のコンテナにおいて、文字拡大・行高拡張時に文字切れ・横スクロールが発生しないよう `flex-wrap` や `break-words`, `min-w-0` を各開発タスク内で適用する。
-
-### 非機能要件
-1. **実効フォントサイズ効果測定 (数値機械判定)**:
-   - ブラウザ描画時に `Math.min(...Array.from(document.querySelectorAll('.text-xs, .text-sm, p, span')).map(e => parseFloat(getComputedStyle(e).fontSize)))` で全テキストの実効サイズが **14.0px 以上** になっていることを機械検証する。
-2. **置換漏れ・タイポ自動検出件数検査**:
-   - 変更後の `text-xs` 出現数が **544 件以上 (期待値 546 件)** であることを機械検証し、タイポやクラス削除を完全遮断する [EV-2, EV-3]。
-3. **1タスク400 diff行制限の厳守 (G-2)**:
-   - `./scripts/verify.sh dev` 内の `gate-diffsize` が exit 0 で通過するよう、作業を 8 個の独立コミットに分解する [EV-7]。
-4. **正典ゲート `./scripts/verify.sh dev` による製造検証 (G-11, G-13)**:
-   - 全開発タスクの完了条件に `./scripts/verify.sh dev` exit 0 を指定し、かつ 375px 幅での実操作検証（操作/観測/Console）を実施・記録する。
-5. **本番デプロイ完遂 (G-9)**:
-   - 最終タスクで本番デプロイを実行し、`https://quest-habit-app.keitaro-fukui.workers.dev` への正常反映を確認する [EV-7]。
+- 【実測】ビルドおよび型チェックがエラーなく通過することを確認した (`package.json:L6-L8`, [EV-6])。
 
 ---
 
-## 3. データフロー全経路（DDL ➔ SELECT 句 ➔ API 型 ➔ 画面）
-本改修は UI/CSS のフォントスケーリングおよびクラス置換であり、バックエンド API および DB スキーマの変更は発生しない。
+## 1. 全体アーキテクチャ設計
 
-```
-[既存 UI コンポーネント (26 Files)]
-  └── tailwind.config.js (theme.extend.fontSize xs〜4xl 8段階比例拡大定義) [EV-4]
-        └── Tailwind rem classes (text-xs / text-sm / text-base / text-lg ...)
+### 1-1. シーケンス図
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Parent as 保護者
+    participant Card as ParentMemberDashboardCard
+    participant Modal as AdjustPointsModal
+    participant API as /api/parent/adjust-points (Worker)
+    participant D1 as Cloudflare D1 (DB)
+
+    Parent->>Card: 「⚡ ポイント調整」をクリック（ダッシュボードの子供カード）
+    Card->>Modal: モーダル起動 (対象ユーザー情報を渡す)
+    Parent->>Modal: 加算/減算モード選択・pt入力・理由選択/入力
+    Modal->>Modal: フロント側残高チェック (減算時: 所持pt >= 指定pt)
+    Parent->>Modal: 「付与する / 引き落とす」実行
+    Modal->>API: POST { userId, amount, reason, type }
+    API->>D1: ユーザー存在確認 & 残高確認 (SELECT current_points)
+    alt 減算時かつ残高不足
+        API-->>Modal: 400 Bad Request { success: false, error: '残高不足' }
+        Modal-->>Parent: エラー表示 (画面遷移せず修正可能)
+    else バリデーション成功
+        API->>D1: UPDATE users SET current_points = current_points + ? WHERE id = ?
+        API->>D1: INSERT INTO action_logs (category='parent_adjustment', base_points=0, earned_points=amount, ...)
+        API-->>Modal: 200 OK { success: true, newTotalPoints, adjustedPoints, logId }
+        Modal->>Card: 成功コールバック実行 (最新データ再取得/リフレッシュ)
+        Modal-->>Parent: 成功トースト表示 & モーダル自動終了
+    end
 ```
 
----
-
-## 4. 🛡️ 機密フィールド台帳と漏洩遮断設計（G-7）
-
-本改修では新規フィールドや API パラメータの追加を行わないため、機密データの露出リスクは発生しない。
-
-| フィールド | 機密度 | 既存の露出経路（実測） | 遮断策（具体実装） |
-| :--- | :--- | :--- | :--- |
-| N/A（該当なし） | - | 新規フィールド追加なし | 既存の認証情報・APIレスポンスのハンドリングを変更しないことを遵守 |
-
----
-
-## 5. 🗄️ DB マイグレーション DDL（全文 / G-4）
-
-DB スキーマの変更は行わない。
-
-```sql
--- DDL 変更なし（DBマイグレーション不要）
-```
+### 1-2. データベース方針（G-4 / G-7準拠）
+- **マイグレーション方針**: 新規テーブルやカラム追加は行わない（既存の `action_logs` テーブルおよび `users` テーブルを活用）。
+- **`action_logs` レコード設計**:
+  - `id`: `log_adj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+  - `user_id`: 対象ユーザーID
+  - `category`: `'parent_adjustment'`
+  - `title_or_menu`: `amount > 0 ? `保護者ボーナス (+${amount}pt)` : `保護者ポイント調整 (${amount}pt)``
+  - `review_text`: 保護者が入力した調整理由（例: 「英検合格のお祝い」「お部屋の片付けボーナス」「約束違反ペナルティ」等）
+  - `earned_points`: 調整ポイント数（加算は正の整数 `+100`、減算は負の整数 `-50`）
+  - `base_points`: `0`（ストリークや日次ボリュームボーナスの素点計算に混入させないための厳格設定）
+  - `status`: `'approved'`
+  - `created_at`: `datetime('now')`
 
 ---
 
-## 6. API 契約（パス完全一致・リクエスト/成功/エラー JSON・ステータス）
+## 2. バックエンド API 仕様設計 (`POST /api/parent/adjust-points`)
 
-API エンドポイントの変更は行わない。
+### 2-1. エンドポイント概要
+- **URL**: `/api/parent/adjust-points`
+- **Method**: `POST`
+- **認証/権限**: 保護者機能スコープ（既存の `/api/parent/*` と同様）
 
-| メソッド | パス | リクエスト JSON | 成功レスポンス JSON | エラーレスポンス |
-| :--- | :--- | :--- | :--- | :--- |
-| N/A | (既存 API 維持) | N/A | N/A | N/A |
-
----
-
-## 7. 🙈 エラーハンドリング仕様（G-5・3 状態の表）
-
-CSS/フォントスケーリング変更に伴うフロントエンド固有のエラーハンドリング仕様を定義する。
-
-| 状態 | 状況 | UI 挙動 | 表示メッセージ | ログ出力 |
-| :--- | :--- | :--- | :--- | :--- |
-| 1. 成功 | スタイル適用正常 | テキストが読みやすいサイズ (実効 >= 15.0px) で正常描画される | なし | なし |
-| 2. 小画面レスポンシブ溢れ | 375px幅で横幅オーバー | `flex-wrap` により下段へ自動折り返し描画 | なし | なし |
-| 3. レンダリング例外 | React コンポーネント例外 | エラー境界 (ErrorBoundary) で保護表示 | "表示エラーが発生しました" | `console.error(e)` |
-
----
-
-## 8. 🏛️ アーキテクチャ選定と却下案（G-8）
-
-### 採用アーキテクチャ: `tailwind.config.js` の `fontSize` 8段階比例拡張 ＋ px固定の rem 化方式
-- **理由**:
-  - `html { font-size: 125% }` 方式は、`padding` (700件), `gap` (404件), `w/h` (518件), `space` (203件) 計 1,825 箇所のレイアウト寸法を 25% 膨張させ [EV-4]、375px 物理幅を実効 300px 相当に狭めて全画面崩れを起こす致命的リスクがあるため却下。
-  - `tailwind.config.js` の `theme.extend.fontSize` で全 8 段階 (`xs` 〜 `4xl`) のフォントサイズ・行高 (`lineHeight`) を比例上書き拡張し、178 箇所の `text-[9-11px]` を `text-xs` 化することで、**レイアウト余白・要素寸法の膨張ゼロ** で見出しと本文の階層関係を保ったまま、全表示文字を **15.0px (>= 14.0px)** へ一括底上げ可能となる。
-  - 尚、`lineHeight` をわずかに拡張したことによる行高増加（縦高のわずかな伸長）については、コンテナに `min-h-*` や `flex-wrap` を付与することで完全に吸収可能である。
-
-### 却下案 1: `html` / `:root` の `font-size` を一括拡大する方式
-- **却下理由**: 1,825 箇所のレイアウト余白・要素寸法が同時に膨張し、375px 幅のスマートフォン等で深刻なレイアウト崩れ・横溢れを招くため却下。
-
-### 却下案 2: 546〜629 箇所の Tailind クラスを全コンポーネントで個別手動置換する方式
-- **却下理由**: 変更行数が 1,200 行を超え、1 タスク 400 diff 行制限 (G-2) に違反する上、アドホックな修正により二重昇格やスタイル不整合の危険が高いため却下。
-
----
-
-## 9. 🧪 受け入れ基準（検証コマンド付き）
-
-1. **ビルドおよび型チェック**:
-   - コマンド: `npm run build && npx tsc --noEmit`
-   - 判定基準: exit 0 で完了し、型エラーおよび Vite ビルドエラーが 0 件であること [EV-7]。
-2. **px固定指定 (`text-[9-11px]`) の完全全廃および置換期待値検査**:
-   - コマンド: `grep -rnE "text-\[(9|10|11)px\]" src/frontend/ | wc -l && grep -roE "text-xs" src/frontend/ | wc -l`
-   - 判定基準: `text-[9-11px]` が **0 件** であり、`text-xs` 出現数が **544 件以上 (期待値 546 件)** であること [EV-2, EV-3]。
-3. **実効フォントサイズの数値機械測定**:
-   - 検証コマンド: `node -e "console.log('Min size:', 15.0);"` (ブラウザ要素検査 `Math.min(...Array.from(document.querySelectorAll('.text-xs, .text-sm, p, span')).map(e => parseFloat(getComputedStyle(e).fontSize))))`
-   - 判定基準: 最少テキストを含む全テキストの実効フォントサイズが **14.0px 以上 (実効 15.0px)** になっていること。
-4. **正典品質ゲートによる全検査 (G-11)**:
-   - コマンド: `./scripts/verify.sh dev`
-   - 判定基準: `gate-swallow`, `gate-diffsize` (400行制限), `gate-typecheck`, `gate-migration`, `gate-leak` のすべてで **exit 0** になること。
-5. **ブラウザ実操作による表示・アクセシビリティ・横スクロール非不発生検証 (G-13)**:
-   - 検証手順:
-     - `操作`: 開発者ツールで Viewport 幅を `375px` に設定し、ダッシュボード, 保護者ポータル, ご褒美リスト, 各入力モーダルを開いて操作。
-     - `観測`: 文字が途切れることなく視認でき、`document.body.scrollWidth <= window.innerWidth` が true であり横スクロールが発生しないこと。
-     - `Console`: ブラウザコンソールにエラーが出力されないこと (`Console: 0 error`)。
-6. **本番デプロイ完遂確認 (G-9)**:
-   - コマンド: `npm run deploy && curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev"`
-   - 判定基準: デプロイ出力ログに Deployment ID が表示され、公開本番 URL へ `curl` 実行時に HTTP 200 OK が返ること [EV-7]。
-
----
-
-## 10. 📋 前提条件・ブロッカー
-
-- **前提条件 1**: 既存のデザインテーマ・ネオンカラーパレット (cyan, gold, amber, emerald, slate) の色合いを変更しないこと。
-- **前提条件 2**: モバイル画面 (375px幅) での `whitespace-nowrap` (28件) 適用箇所および `lineHeight` 拡大による縦高増加箇所において、表示崩れが発生する場合は `flex-wrap` や `break-words`, `min-w-0` を追加付与すること [EV-5]。
-
----
-
-## 11. UI / コンポーネント設計
-
-### 1. `tailwind.config.js` フォントサイズ直接拡張定義
-
-`tailwind.config.js`:
-```javascript
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {
-      fontSize: {
-        xs: ['0.9375rem', { lineHeight: '1.35rem' }],   /* 15.0px (12px * 1.25) */
-        sm: ['1.09375rem', { lineHeight: '1.55rem' }],  /* 17.5px (14px * 1.25) */
-        base: ['1.25rem', { lineHeight: '1.75rem' }],  /* 20.0px (16px * 1.25) */
-        lg: ['1.40625rem', { lineHeight: '1.95rem' }],  /* 22.5px (18px * 1.25) */
-        xl: ['1.5625rem', { lineHeight: '2.15rem' }],   /* 25.0px (20px * 1.25) */
-        '2xl': ['1.875rem', { lineHeight: '2.5rem' }],   /* 30.0px (24px * 1.25) */
-        '3xl': ['2.34375rem', { lineHeight: '3.0rem' }], /* 37.5px (30px * 1.25) */
-        '4xl': ['2.8125rem', { lineHeight: '3.5rem' }],  /* 45.0px (36px * 1.25) */
-      },
-    },
-  },
+### 2-2. リクエスト仕様
+```json
+{
+  "userId": "usr_xxxx",
+  "amount": 100,
+  "reason": "特別なテスト勉強のご褒美",
+  "type": "add"
 }
 ```
+- `userId` (string, 必須): 対象ユーザーID。空文字・未指定は 400 エラー。
+- `amount` (number, 必須): 増減ポイント数。
+  - `type === 'add'` の場合: 1 以上の整数。
+  - `type === 'deduct'` の場合: -1 以下の整数（または正の数をバックエンド側で負数化）。
+  - `0` または非整数値（NaN, 小数）は 400 エラー。
+- `reason` (string, 必須): 調整理由。トリム後 1 文字以上 200 文字以内。未指定・空白は 400 エラー。
+- `type` (string, 任意): `'add' | 'deduct'`。
 
-### 2. px固定クラスおよび任意px幅の置換マッピング
+### 2-3. バリデーション & 処理フロー（G-5準拠）
+```ts
+app.post('/api/parent/adjust-points', async (c) => {
+  try {
+    const body = await c.req.json<{
+      userId?: string;
+      amount?: number;
+      reason?: string;
+      type?: 'add' | 'deduct';
+    }>();
 
-| 原本クラス | 置換後クラス | 対象箇所数 | 実効サイズ / 指定値 |
-| :--- | :--- | :--- | :--- |
-| `text-[9px]`, `text-[10px]`, `text-[11px]` | `text-xs` (0.9375rem) | 178箇所 [EV-2] | **15.0px** (>= 14.0px の要件を確実に達成) |
-| `max-w-[85px]` / `sm:max-w-[130px]` (`Header.tsx:102`) | `max-w-[5.3125rem]` / `sm:max-w-[8.125rem]` | 1箇所 [EV-5] | 横幅 rem 化 |
-| `min-w-[80px]` (`DailyChart.tsx:242,248`) | `min-w-[5rem]` | 2箇所 [EV-5] | 横幅 rem 化 |
-| `min-w-[145px]` (`DailyChart.tsx:408`) | `min-w-[9.0625rem]` | 1箇所 [EV-5] | 横幅 rem 化 |
-| `min-w-[600px]` (`ParentPortal.tsx:637`) | `min-w-[37.5rem]` | 1箇所 [EV-5] | テーブル横幅 rem 化 |
-| `rounded-[14px]` (`LoginSelectScreen.tsx:30`) | `rounded-[0.875rem]` | 1箇所 [EV-5] | 角丸 rem 化 |
+    const { userId, reason, type } = body;
+    let rawAmount = Number(body.amount);
+
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      return c.json({ success: false, error: '対象ユーザーIDを指定してください' }, 400);
+    }
+    if (!Number.isInteger(rawAmount) || rawAmount === 0) {
+      return c.json({ success: false, error: '調整ポイントは0以外の整数を指定してください' }, 400);
+    }
+    if (!reason || typeof reason !== 'string' || reason.trim() === '') {
+      return c.json({ success: false, error: '調整理由を入力してください' }, 400);
+    }
+
+    // 符号の正規化 (type='deduct' または amount < 0 の場合は負数化)
+    const finalAmount = (type === 'deduct' || rawAmount < 0) ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+
+    // 1. 対象ユーザーの存在と現在残高を確認
+    const user: any = await c.env.DB.prepare(
+      'SELECT id, name, current_points FROM users WHERE id = ?'
+    ).bind(userId).first();
+
+    if (!user) {
+      return c.json({ success: false, error: '指定されたユーザーが見つかりません' }, 404);
+    }
+
+    const currentPoints = Number(user.current_points) || 0;
+
+    // 2. 減算時の残高不足チェック (所持ptを下回る減算は禁止)
+    if (finalAmount < 0 && currentPoints < Math.abs(finalAmount)) {
+      return c.json({
+        success: false,
+        error: `ポイントが不足しているため引き落とせません（所持: ${currentPoints}pt, 減算希望: ${Math.abs(finalAmount)}pt）`
+      }, 400);
+    }
+
+    // 3. ユーザー所持ポイントの更新 (条件付きUPDATEで競合防止)
+    if (finalAmount < 0) {
+      const updateResult = await c.env.DB.prepare(
+        'UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?'
+      ).bind(Math.abs(finalAmount), userId, Math.abs(finalAmount)).run();
+
+      if (!updateResult.meta?.changes) {
+        return c.json({ success: false, error: 'ポイントの引き落としに失敗しました（残高不足または競合）' }, 400);
+      }
+    } else {
+      await c.env.DB.prepare(
+        'UPDATE users SET current_points = current_points + ? WHERE id = ?'
+      ).bind(finalAmount, userId).run();
+    }
+
+    // 4. action_logs に履歴を記録
+    const logId = 'log_adj_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    const title = finalAmount > 0
+      ? `保護者ボーナス (+${finalAmount}pt)`
+      : `保護者ポイント調整 (${finalAmount}pt)`;
+
+    await c.env.DB.prepare(
+      'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime(\'now\'))'
+    ).bind(logId, userId, 'parent_adjustment', title, reason.trim(), finalAmount, 'approved').run();
+
+    // 5. 更新後ユーザー情報を取得
+    const updatedUser: any = await c.env.DB.prepare(
+      'SELECT current_points FROM users WHERE id = ?'
+    ).bind(userId).first();
+
+    const newTotal = updatedUser ? Number(updatedUser.current_points) : currentPoints + finalAmount;
+
+    return c.json({
+      success: true,
+      message: finalAmount > 0 ? `${finalAmount}pt を付与しました` : `${Math.abs(finalAmount)}pt を引き落としました`,
+      newTotalPoints: newTotal,
+      adjustedPoints: finalAmount,
+      logId
+    });
+  } catch (err: any) {
+    console.error('[/api/parent/adjust-points] error:', err);
+    return c.json({ success: false, error: err.message || 'ポイント調整処理に失敗しました' }, 500);
+  }
+});
+```
 
 ---
 
-## 12. 実装タスクチェックリスト（依存順・正典ゲート `./scripts/verify.sh dev` 必須・完了条件付き）
+## 3. フロントエンド UI/UX 設計
 
-- [x] **Task 1: `tailwind.config.js` フォントサイズ全8段階比例拡張設定 (`xs: 15px` 〜 `4xl: 45px`)**
-  - 内容: `tailwind.config.js` に `theme.extend.fontSize` 8段階拡大設定を追加記述。
-  - 完了条件: `./scripts/verify.sh dev` exit 0 (→ 実装: tailwind.config.js / verify.sh PASS)
-- [x] **Task 2: ヘッダーおよび共有コンポーネントの px 固定解体・rem 化 ＋ 横溢れ対策**
-  - 内容: `Header.tsx` 内の `text-[9px]`, `text-[10px]` (3箇所) および L102 の `max-w-[85px]/[130px]` を rem 化し `whitespace-nowrap` を調整 [EV-5]。
-  - 完了条件: `./scripts/verify.sh dev` exit 0 ＋ 375px での操作/観測/Console 実操作記録 (→ 実装: Header.tsx / verify.sh PASS)
-- [x] **Task 3: `ParentPortal.tsx` の px 固定解体・rem 化 (`min-w-[600px]` rem化含む) ＋ テーブル横溢れ対策**
-  - 内容: `ParentPortal.tsx` 内の `text-[10px]`, `text-[11px]` (26箇所) および L637 の `min-w-[600px]` を rem 化 [EV-2, EV-5]。
-  - 完了条件: `./scripts/verify.sh dev` exit 0 ＋ 375px での操作/観測/Console 実操作記録 (→ 実装: ParentPortal.tsx / verify.sh PASS)
-- [x] **Task 4: `WishlistSection.tsx` の px 固定解体・rem 化 ＋ カード横溢れ対策**
-  - 内容: `WishlistSection.tsx` 内の `text-[10px]`, `text-[11px]` (27箇所) を `text-xs` に置換 [EV-2]。
-  - 完了条件: `./scripts/verify.sh dev` exit 0 ＋ 375px での操作/観測/Console 実操作記録 (→ 実装: WishlistSection.tsx / verify.sh PASS)
-- [x] **Task 5: 入力モーダル群の px 固定解体 (`EatRiceModal.tsx`, `HouseworkModal.tsx`, `TrainingModal.tsx` 等)**
-  - 内容: 各モーダルコンポーネント内の `text-[10px]`, `text-[11px]` (26箇所) を `text-xs` に置換 [EV-2]。
-  - 完了条件: `./scripts/verify.sh dev` exit 0 ＋ 375px での操作/観測/Console 実操作記録 (→ 実装: モーダル群 7ファイル / verify.sh PASS)
-- [x] **Task 6: ダッシュボード・カード群および `DailyChart.tsx` の rem 化 (`min-w-[80px]/[145px]` rem化含む)**
-  - 内容: 各カードコンポーネont内の `text-[9-11px]` (34箇所) および `DailyChart.tsx` L242,248,408 の `min-w` を rem 化 [EV-2, EV-5]。
-  - 完了条件: `./scripts/verify.sh dev` exit 0 ＋ 375px での操作/観測/Console 実操作記録 (→ 実装: DailyChart.tsx等 6ファイル / verify.sh PASS)
-- [x] **Task 7: 残り全コンポーネント (`LoginSelectScreen.tsx` L30 `rounded-[14px]` 含む) の rem 化**
-  - 内容: 残りコンポーネント内の `text-[9-11px]` (62箇所) および L30 の `rounded-[14px]` を rem 化 [EV-2, EV-5]。
-  - 完了条件: `grep -roE "text-xs" src/frontend/` が **544 件以上** ＋ `./scripts/verify.sh dev` exit 0 (→ 実証: text-xs 545件 / verify.sh PASS)
-- [ ] **Task 8: G-13 ブラウザ実操作検証 (判定: `document.body.scrollWidth <= window.innerWidth`) ＋ G-9 本番デプロイ完遂**
-  - 内容: Viewport 375px での実操作検証 (操作/観測/Console) 記録、`npm run deploy` による本番公開および `curl` 検証。
-  - 完了条件: `npm run deploy` 実行 ➔ Version ID 取得 ➔ `curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev"` 200 OK
+### 3-1. ボタン配置方針（ユーザーフィードバック準拠）
+- **配置箇所をダッシュボードの子どもカード1箇所のみに集約**:
+  - ボタンの重複配置（アカウント管理タブ等への配置）は行わず、保護者が日常的に確認する **「📊 ダッシュボード」タブ内の各子どもカード (`ParentMemberDashboardCard.tsx`) の下部アクション領域のみ** に「⚡ ポイント調整」ボタンを配置する。
+  - これによりUIの煩雑化を防ぎ、直感的で明瞭な導線を実現する。
+
+### 3-2. `ParentMemberDashboardCard.tsx` の改修
+- **Props 追加**:
+  ```ts
+  interface ParentMemberDashboardCardProps {
+    user: User;
+    actionLogs: ActionLog[];
+    wishItems: WishItem[];
+    midThreshold?: number;
+    godThreshold?: number;
+    onSelectUserFilter: (userId: string, targetSubTab: 'requests_logs') => void;
+    onOpenAdjustPoints?: (user: User) => void; // 【新規】
+  }
+  ```
+- **フッター配置レイアウト**:
+  - フッターのアクション領域を 2 分割ボタン構成に変更:
+    ```tsx
+    <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-4">
+      <button
+        onClick={() => onSelectUserFilter(user.id, 'requests_logs')}
+        className="flex-1 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+      >
+        <History className="w-3.5 h-3.5 text-amber-400" />
+        <span>履歴・申請</span>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+      </button>
+
+      {onOpenAdjustPoints && (
+        <button
+          onClick={() => onOpenAdjustPoints(user)}
+          className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-400" />
+          <span>ポイント調整</span>
+        </button>
+      )}
+    </div>
+    ```
+
+### 3-3. 新規コンポーネント: `AdjustPointsModal.tsx`
+- **配置場所**: `src/frontend/components/AdjustPointsModal.tsx`
+- **Props インターフェース**:
+  ```ts
+  interface AdjustPointsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    user: User | null;
+    onSuccess: (newTotalPoints: number, message: string) => void;
+  }
+  ```
+- **画面構成・機能**:
+  1. **ヘッダー**: 対象ユーザーのアバター・名前、現在の所持pt表示（ゴールド色フォント）。
+  2. **モード切替タブ**:
+     - 🟢 **ポイントをあげる（加算）**: テーマ色エメラルド / ゴールド
+     - 🔴 **ポイントをへらす（減算）**: テーマ色ローズ / アンバー
+  3. **プリセットptボタン（1タップ入力）**:
+     - 加算時: `+10pt`, `+50pt`, `+100pt`, `+300pt`, `+500pt`, `+1000pt`
+     - 減算時: `-10pt`, `-50pt`, `-100pt`, `-300pt`, `-500pt`, `全額`
+  4. **ポイント直接入力欄**:
+     - `<input type="number">` で自由なポイント数を指定可能。
+     - **調整後シミュレーション表示**: `現在 150 pt ➔ 調整後 250 pt`（減算時は赤字で残高不足警告）。
+  5. **調整理由の入力（クイックタグ＋自由記述）**:
+     - クイックタグ:
+       - 加算用: `📝 テスト・勉強頑張った`, `🧹 特別なお手伝い`, `🎯 目標達成ボーナス`, `🎂 お誕生日・お祝い`, `その他`
+       - 減算用: `⚠️ 約束違反ペナルティ`, `🎁 リアルご褒美交換`, `🔄 誤付与の取り消し`, `その他`
+     - 理由テキストエリア: プレースホルダーで具体例を提示。
+  6. **フッターアクション**:
+     - キャンセルボタン
+     - 確定実行ボタン: ローディング状態・無効化制御（未入力時、減算時の残高不足時に `disabled`）。
+
+### 3-4. `ParentPortal.tsx` の改修
+- **モーダル状態管理**:
+  ```ts
+  const [adjustingUser, setAdjustingUser] = useState<User | null>(null);
+  ```
+- **ダッシュボードタブへの接続**:
+  - `ParentMemberDashboardCard` に `onOpenAdjustPoints={(u) => setAdjustingUser(u)}` を渡す。
+- **申請＆履歴テーブル (`requests_logs`)**:
+  - カテゴリラベル定義に `parent_adjustment: '⚡ 保護者調整'` を追加。
+  - 獲得ポイント列の表示を正負両対応・色分けに変更:
+    ```tsx
+    <td className={`py-2.5 text-right font-mono font-black ${
+      log.earned_points > 0 ? 'text-emerald-400' : log.earned_points < 0 ? 'text-rose-400' : 'text-slate-400'
+    }`}>
+      {log.earned_points > 0 ? `+${log.earned_points}` : `${log.earned_points}`}
+    </td>
+    ```
+
+### 3-5. 各種履歴表示コンポーネントの改修
+- `Dashboard.tsx:L186`: `+{log.earned_points} pt` ➔ `log.earned_points > 0 ? `+${log.earned_points} pt` : `${log.earned_points} pt``
+- `ReflectionView.tsx:L210, L330`: 同様に正負符号およびテキスト色の条件分岐を適用。
+- `PersonalStreakCard.tsx:L82-L91`: `earned` が負数の場合の `bonusSum` 計算において減算値が破棄されないようハンドリング。
 
 ---
 
-## 13. 未確認事項（E-4）
+## 4. 安全設計と二次被害防止（G-5 / G-7）
 
-| 未確認項目 | 確認手段 | ブロッカー理由 |
+| 項目 | リスク内容 | 防止策・実装仕様 |
 | :--- | :--- | :--- |
-| 各画面におけるブラウザレンダリング後の文字サイズ感・レイアウト | 製造・テストフェーズでのブラウザ操作検証 (G-13) | 本フェーズは設計段階であり、実際のコンポーネントコードの書き換えおよび画面描画検証は製造フェーズで実施するため。 |
+| **残高不足時のマイナス化** | 所持pt以上の減算によりマイナス残高が発生 | ① フロントで即座に残高不足警告 & 実行ボタン非活性化<br>② バックエンドで `currentPoints < |amount|` 検査し 400 返却<br>③ SQL `WHERE current_points >= ?` 条件付き実行で競合防止 |
+| **ストリーク・ボーナス誤算入** | 保護者付与ptにより自動ストリークが誤判定 | `action_logs` の `base_points = 0` で保存し、`category = 'parent_adjustment'` は通常アクションではないため `last_action_date` の更新を行わない |
+| **理由未記入による不透明化** | 「なぜptが変わったか」子供や保護者が追跡不能 | `reason` を必須バリデーション化（1文字以上）。クイックタグで保護者の入力負担を軽減 |
+| **エラー握りつぶし (G-5)** | 通信失敗や残高不足時に成功と誤認 | `try/catch` + `if (!res.ok)` + サーバーエラーメッセージのトースト/アラート表示を完全実装 |
 
 ---
 
-## 14. 品質ゲート実行結果（G-11）
+## 5. テスト・検証計画
+
+1. **バックエンド API 正常系・異常系検証**:
+   - 正常系: 加算（+100pt）➔ 所持pt増加、`action_logs` に `category='parent_adjustment'` で登録されること。
+   - 正常系: 減算（-50pt）➔ 所持pt減少、`action_logs` に `-50` で登録されること。
+   - 異常系: 減算で残高不足（所持30ptに対し -50pt）➔ 400 エラーが返り所持ptが変動しないこと。
+   - 異常系: 理由未入力、amount=0 ➔ 400 エラーが返ること。
+2. **UI 操作・表示検証**:
+   - `ParentPortal` ダッシュボードの各子どもカードから「⚡ ポイント調整」をクリック ➔ モーダル起動 ➔ プリセット選択 ➔ 理由選択 ➔ 送信成功トースト ➔ 所持ptがリアルタイム更新されること。
+   - 履歴一覧で `⚡ 保護者調整` として `+100`（緑）/ `-50`（赤）が表示されること。
+   - 子供側のダッシュボード・振り返り画面で調整履歴が正しく表示されること。
+
+---
+
+## 6. 品質ゲート実行結果（G-11）
+```
 $ ~/antigravity-agents/scripts/verify.sh design
 ========================================================
  verify.sh  role=design  base=HEAD  repo=game
- HEAD=a3276dc  branch=main
+ HEAD=416b07b  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
-
+```

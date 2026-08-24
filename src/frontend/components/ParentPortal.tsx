@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, WishItem, PointRule, ActionLog, HouseworkMenu } from '../types';
-import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame, LayoutDashboard, Sparkles } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Gift, Settings, Save, Trash2, Dumbbell, Plus, Mail, RefreshCw, ExternalLink, ShoppingCart, Undo2, Flame, LayoutDashboard, Sparkles, X } from 'lucide-react';
 import { formatLogDateTime } from '../dateUtils';
 import { ApproveWishModal } from './ApproveWishModal';
 import { ReturnWishModal } from './ReturnWishModal';
+import { AdjustPointsModal } from './AdjustPointsModal';
 import { ParentMemberDashboardCard } from './ParentMemberDashboardCard';
 
 interface ParentPortalProps {
@@ -28,6 +29,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   // 承認は引き落とし額を入力させるためモーダルで行う
   const [approvingItem, setApprovingItem] = useState<WishItem | null>(null);
   const [returningItem, setReturningItem] = useState<WishItem | null>(null);
+  const [adjustingUser, setAdjustingUser] = useState<User | null>(null);
+  const [adjustSuccessMessage, setAdjustSuccessMessage] = useState<string>('');
 
   const [pointRules, setPointRules] = useState<PointRule[]>([
     { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
@@ -90,6 +93,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       alert('通信エラーが発生しました');
     }
   };
+
+
 
   useEffect(() => {
     fetch('/api/settings')
@@ -439,6 +444,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                     midThreshold={midThreshold}
                     godThreshold={godThreshold}
                     onSelectUserFilter={handleSelectUserFilterFromCard}
+                    onOpenAdjustPoints={(u) => setAdjustingUser(u)}
                   />
                 );
               })}
@@ -654,6 +660,11 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                               input_drama: '📺 ドラマ',
                               input_manga: '💬 漫画',
                               training: '🏋️‍♂️ 運動',
+                              housework: '🧹 家事',
+                              eat_rice: '🍚 ご飯',
+                              eat_meat: '🥩 お肉',
+                              bonus: '🎁 ボーナス',
+                              parent_adjustment: '⚡ 保護者調整',
                             };
                             const catLabel = categoryLabels[log.category] || log.category;
 
@@ -676,8 +687,14 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                                     <p className="text-xs text-slate-400 mt-1 line-clamp-1">{log.review_text}</p>
                                   )}
                                 </td>
-                                <td className="py-2.5 text-right font-mono font-black text-emerald-400">
-                                  +{log.earned_points}
+                                <td className={`py-2.5 text-right font-mono font-black ${
+                                  log.earned_points > 0
+                                    ? 'text-emerald-400'
+                                    : log.earned_points < 0
+                                    ? 'text-rose-400'
+                                    : 'text-slate-400'
+                                }`}>
+                                  {log.earned_points > 0 ? `+${log.earned_points}` : `${log.earned_points}`}
                                 </td>
                                 <td className="py-2.5 text-center">
                                   <button
@@ -1248,6 +1265,27 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
         onClose={() => setReturningItem(null)}
         onReturned={onRefresh}
       />
+
+      <AdjustPointsModal
+        isOpen={!!adjustingUser}
+        user={adjustingUser}
+        onClose={() => setAdjustingUser(null)}
+        onSuccess={(_newPts, msg) => {
+          setAdjustSuccessMessage(msg);
+          onRefresh();
+          fetchAllLogs(currentPage, selectedUserIdFilter);
+        }}
+      />
+
+      {adjustSuccessMessage && (
+        <div className="fixed bottom-6 right-6 z-50 p-3.5 px-4 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs sm:text-sm shadow-2xl flex items-center gap-2.5 border border-emerald-400/50 animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 text-slate-950 shrink-0" />
+          <span>{adjustSuccessMessage}</span>
+          <button type="button" onClick={() => setAdjustSuccessMessage('')} className="ml-2 text-slate-950 hover:opacity-75">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
     </div>
   );
