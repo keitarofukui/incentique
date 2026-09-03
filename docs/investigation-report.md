@@ -1,266 +1,222 @@
-# 調査報告レポート: 保護者機能によるポイント手動調整（加算・減算）機能の実現可能性と影響範囲調査
+# 調査報告レポート: 運動メニュー選択時のYouTubeサムネイル（動画枠）自動スクロール機能の実現可否
 
-- 作成日時: 2026-08-24 15:48
-- 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: 416b07b
-- 上流 Artifact: なし
+- 作成日時: 2026-09-03 09:20
+- 対象リポジトリ/ブランチ: game / main
+- 対象コミット: 3eec0f9
 
 ## 1. 結論サマリー
-- 依頼内容: 保護者機能でポイント調整（ポイントをあげたり、減らしたり）ができるようにしたい。実現可能性・影響範囲・安全な設計案を調査。
-- 【実測】現状の課題（1 行断定）: 保護者画面およびバックエンドに手動でポイントを加算・減算する機能・APIが存在せず、ポイント操作は自動処理のみに限定されている (`src/backend/index.ts:L398-L406`, [EV-2, EV-3, EV-6])。
-- 【実測】修正・設計対象の主範囲: バックエンド新規API (`src/backend/index.ts:L1680-L1730`)、ポイント調整モーダル新規作成 (`src/frontend/components/AdjustPointsModal.tsx`)、保護者ポータル連携 (`src/frontend/components/ParentPortal.tsx:L640-L680`, `src/frontend/components/ParentMemberDashboardCard.tsx:L116-L126`)、およびログ表示・集計処理 (`src/frontend/components/PersonalStreakCard.tsx:L82-L91`, `src/frontend/components/Dashboard.tsx:L186`, `src/frontend/components/ReflectionView.tsx:L210`) [EV-3, EV-4, EV-5, EV-6]。
-- 【実測】デグレなく改修可能か: **安全に実現可能**。新テーブル追加は不要で既存の `action_logs` テーブル（`category: 'parent_adjustment'`）と `users.current_points` を活用して監査性（理由と日時の記録）を担保しつつ、ストリーク・日次ボリュームボーナス計算に誤算入しない設計（`base_points = 0`）により既存ロジックへの副作用なく実装できる (`src/backend/index.ts:L238-L250`, [EV-2, EV-4, EV-7])。
+- 依頼内容: 運動のメニューを選んだときに、YouTubeのサムネまで自動的にスクロールするようにできるか？
+- 【実測】結論（1 行断定）: **完全に実現可能**である [EV-3] [EV-4]。
+- 【実測】修正すべき箇所: `src/frontend/components/TrainingModal.tsx:L61-L65` および `src/frontend/components/TrainingModal.tsx:L348-L376`
 
 ## 2. 実測エビデンス
 
-### [EV-1] 前提情報（リポジトリ状態）
-$ git rev-parse --short HEAD && git branch --show-current && git status --short
-416b07b
+### [EV-1] 前提情報とGitコミットの確認
+$ git rev-parse --short HEAD && git branch --show-current
+3eec0f9
 main
+- 【実測】対象リポジトリは `game`、ブランチは `main`、HEADコミットは `3eec0f9` である [EV-1]。
 
-- 【実測】対象リポジトリは `keitarofukui/incentique` の `main` ブランチ、最新コミット `416b07b` である (`.git:L1`, [EV-1])。
+### [EV-2] handleSelectMenu 呼び出し箇所の調査
+$ grep -rn "handleSelectMenu" src/frontend/components/TrainingModal.tsx
+src/frontend/components/TrainingModal.tsx:61:  const handleSelectMenu = (menu: TrainingMenu) => {
+src/frontend/components/TrainingModal.tsx:102:        handleSelectMenu(created);
+src/frontend/components/TrainingModal.tsx:111:        handleSelectMenu(custom);
+src/frontend/components/TrainingModal.tsx:121:      handleSelectMenu(custom);
+src/frontend/components/TrainingModal.tsx:140:          handleSelectMenu(data.menus[0]);
+src/frontend/components/TrainingModal.tsx:314:                  onClick={() => handleSelectMenu(menu)}
+- 【実測】メニュー選択ハンドラ `handleSelectMenu` は 61 行目に定義され、カード選択時（314行目）やメニュー追加/削除時に呼び出されている [EV-2]。
 
-### [EV-2] データベーススキーマ（users テーブルおよび action_logs テーブル定義）
-$ sed -n '38,57p;110,125p' schema.sql
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  grade_level TEXT NOT NULL,
-  avatar TEXT DEFAULT '⚡',
-  pin_code TEXT DEFAULT '1234',
-  current_points INTEGER DEFAULT 0,
-  last_action_date TEXT,
-  current_streak_days INTEGER DEFAULT 0,
-  last_50pt_date TEXT,
-  current_50pt_streak_days INTEGER DEFAULT 0,
-  last_100pt_date TEXT,
-  current_100pt_streak_days INTEGER DEFAULT 0,
-  last_300pt_bonus_date TEXT,
-  last_500pt_bonus_date TEXT,
-  last_1000pt_bonus_date TEXT,
-  last_all_category_date TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+### [EV-3] メニュー選択ハンドラとYouTube埋め込みURL生成の実装確認
+$ sed -n '61,79p' src/frontend/components/TrainingModal.tsx
+  const handleSelectMenu = (menu: TrainingMenu) => {
+    setSelectedMenu(menu);
+    setEarnedPoints(menu.default_points || 50);
+  };
 
-CREATE TABLE IF NOT EXISTS action_logs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  category TEXT NOT NULL,
-  title_or_menu TEXT NOT NULL,
-  review_text TEXT,
-  earned_points INTEGER NOT NULL,
-  -- ガチャ倍率・ボーナスを含まない素点。1日ボリュームボーナスの判定はこちらを使う
-  base_points INTEGER,
-  status TEXT DEFAULT 'pending',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+  const getYouTubeEmbedUrl = (url?: string) => {
+    if (!url) return null;
+    let videoId = '';
 
-CREATE INDEX IF NOT EXISTS idx_action_logs_user_cat_date ON action_logs (user_id, category, created_at);
-CREATE INDEX IF NOT EXISTS idx_action_logs_user_date ON action_logs (user_id, created_at DESC);
+    if (url.includes('youtu.be/')) {
+      const parts = url.split('youtu.be/')[1];
+      videoId = parts.split('?')[0];
+    } else if (url.includes('watch?v=')) {
+      const parts = url.split('watch?v=')[1];
+      videoId = parts.split('&')[0];
+    }
 
-- 【実測】ユーザーの所持ポイントは `users.current_points` に保持され、ポイント履歴・増減明細は `action_logs` テーブルで管理されている (`schema.sql:L38-L57`, `schema.sql:L110-L125`, [EV-2])。
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  };
+- 【実測】`handleSelectMenu` ではステート更新（`selectedMenu`, `earnedPoints`）のみを行っており、スクロール制御のコードは存在しない [EV-3]。
 
-### [EV-3] バックエンドにおける現在のポイント更新箇所
-$ grep -rn "UPDATE users SET current_points" src/backend/
-src/backend/index.ts:380:      await db.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
-src/backend/index.ts:899:      await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
-src/backend/index.ts:1323:      'UPDATE users SET current_points = current_points + ? WHERE id = ?'
-src/backend/index.ts:1357:        'UPDATE users SET current_points = MAX(0, current_points - ?) WHERE id = ?'
-src/backend/index.ts:1703:      const deduction = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?')
+### [EV-4] YouTube動画プレーヤー表示領域のJSX確認
+$ sed -n '348,376p' src/frontend/components/TrainingModal.tsx
+          {/* Embedded YouTube Player */}
+          {selectedMenu && embedUrl ? (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                <span className="flex items-center gap-1.5 text-red-400">
+                  <Play className="w-4 h-4 fill-red-500 text-red-500" />
+                  <span>動画を見ながらその場でトレーニング！</span>
+                </span>
+                <a
+                  href={selectedMenu.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                >
+                  <span>YouTubeで開く</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
 
-- 【実測】現在のポイント更新は「ストリークボーナス付与 (L380)」「クイズ正解 (L899)」「行動承認 (L1323)」「ログ削除取消 (L1357)」「ご褒美交換承認 (L1703)」の5箇所のみであり、保護者が任意の理由と数値で直接調整するエンドポイントは存在しない (`src/backend/index.ts:L380-L1703`, [EV-3])。
-
-### [EV-4] ストリーク・日次素点集計ロジックにおける action_logs 参照クエリ
-$ sed -n '238,250p' src/backend/index.ts
-    const todayPointsResult = await db.prepare(`
-      SELECT SUM(COALESCE(base_points, earned_points)) as total,
-             ${categoryFlags}
-      FROM action_logs
-      WHERE user_id = ?
-      AND category != 'bonus'
-      AND date(datetime(created_at, '+5 hours')) = ?
-    `).bind(userId, logicalToday).first();
-
-    const todayPoints = todayPointsResult?.total || 0;
-
-    // 中級ストリーク判定 (閾値: midThreshold)
-
-- 【実測】デイリー判定・中級/神ストリークの判定は `COALESCE(base_points, earned_points)` を合計して算出している (`src/backend/index.ts:L238-L250`, [EV-4])。保護者手動調整を `category = 'parent_adjustment'` かつ `base_points = 0` で記録すれば、子供の日次素点目標に誤って加算されることを防止できる (`src/backend/index.ts:L240-L246`, [EV-4])。
-
-### [EV-5] フロントエンドにおけるログ表示の「+」記号ハードコード箇所
-$ grep -rnE "\+\{.*(earned_points|points).*\}" src/frontend/
-src/frontend/components/ReflectionView.tsx:210:                  <span className="text-xs font-mono font-black text-amber-400">+{item.earned_points || 0} pt</span>
-src/frontend/components/ReflectionView.tsx:330:                    +{log.earned_points} pt
-src/frontend/components/Dashboard.tsx:186:                  <span className="font-mono font-black text-amber-400 text-sm">+{log.earned_points} pt</span>
-src/frontend/components/TrainingModal.tsx:240:                +{selectedMenu?.default_points || 50} pt
-src/frontend/components/TrainingModal.tsx:323:                      +{menu.default_points || 50} pt
-src/frontend/components/ParentPortal.tsx:680:                                  +{log.earned_points}
-src/frontend/components/HouseworkModal.tsx:165:                      +{menu.default_points} pt
-
-- 【実測】`ParentPortal.tsx` (L680), `Dashboard.tsx` (L186), `ReflectionView.tsx` (L210, L330) において獲得ポイント表示に `+` 記号が直接ハードコードされており、ポイント減算（マイナス値）時に `+-50` や不自然な表示になる課題が存在する (`src/frontend/components/ParentPortal.tsx:L680`, [EV-5])。
-
-### [EV-6] 保護者ポータルのメンバーカードおよびUI現状
-$ sed -n '116,126p;256,268p' src/frontend/components/ParentMemberDashboardCard.tsx
-        {/* POINTS SUMMARY (Total & Today) */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-1">
-            <div className="text-xs font-bold text-slate-400 flex items-center gap-1">
-              <span>所持pt</span>
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-700 bg-black shadow-2xl">
+                <iframe
+                  src={embedUrl}
+                  title={selectedMenu.menu_name}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                ></iframe>
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
-              {(user.current_points || 0).toLocaleString()} <span className="text-xs text-amber-300">pt</span>
-            </div>
-          </div>
+- 【実測】YouTube動画は iframe による埋め込みプレーヤーとして表示されており、コンテナ要素に `ref` は付与されていない [EV-4]。
 
-      {/* QUICK ACTION FOOTER */}
-      <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-4">
-        <button
-          onClick={() => onSelectUserFilter(user.id, 'requests_logs')}
-          className="flex-1 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
-        >
-          <History className="w-3.5 h-3.5 text-amber-400" />
-          <span>活動履歴・申請を見る</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        </button>
-      </div>
-    </div>
-  );
+### [EV-5] TypeScript 型チェックの実行確認
+$ npx tsc --noEmit
+(出力なし: 終了コード 0)
+- 【実測】現在の型チェックはエラーなしで通過している [EV-5]。
 
-- 【実測】保護者ダッシュボードの各メンバーカードには「所持pt」と「活動履歴・申請を見る」ボタンのみが存在し、ポイントを調整するための導線が存在しない (`src/frontend/components/ParentMemberDashboardCard.tsx:L116-L126`, [EV-6])。
+### [EV-6] 本番APIの登録済みトレーニングメニュー実応答
+$ curl -s -i "https://quest-habit-app.keitaro-fukui.workers.dev/api/training-menus"
+HTTP/2 200 
+date: Thu, 03 Sep 2026 00:17:01 GMT
+content-type: application/json
+content-length: 1599
+access-control-allow-origin: *
+server: cloudflare
 
-### [EV-7] プロダクションビルドおよび型チェック検証
-$ npm run build && npx tsc --noEmit
-> quest-habit-app@1.0.0 build
-> vite build
-vite v6.4.3 building for production...
-transforming...
-✓ 1605 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-B56GTR5M.css   69.07 kB │ gzip:  11.29 kB
-dist/assets/index-BoCzHWS0.js   454.08 kB │ gzip: 117.23 kB
-✓ built in 1.47s
+{"success":true,"menus":[{"id":"menu_hiit","menu_name":"🔥 HIIT 全身トレーニング","default_points":70,"video_url":"https://youtu.be/VFywKvvNuWE?si=_BKuQ94p88T8i26q","created_at":"2026-07-22 05:14:18"},{"id":"menu_plank","menu_name":"🧘 体幹プランク","default_points":50,"video_url":"https://youtu.be/4scc_lxw6L8?si=BtuMJBGMZF9OvqO4","created_at":"2026-07-22 05:14:18"},{"id":"menu_pushup","menu_name":"💪 腕立て・自重トレーニング","default_points":70,"video_url":"https://youtu.be/kUNR0pDlOok?si=RPgNQsqO17vWCBnB","created_at":"2026-07-22 05:14:18"},{"id":"menu_1784705566930","menu_name":"💪4分間の残酷なほどきつい腹筋","default_points":50,"video_url":"https://youtu.be/vluAGiavi-M?si=YFKv-sFhyUdi_BQX","created_at":"2026-07-22 07:32:47"},{"id":"menu_1784705644215","menu_name":"9分間だけ頑張れば全身の脂肪が燃える。痩せるHIIT","default_points":100,"video_url":"https://youtu.be/QjEqO4STI3w?si=rZlyrPBX8diyiuhx","created_at":"2026-07-22 07:34:04"},{"id":"menu_1784705700008","menu_name":"【地獄の7分】超高強度の下半身筋トレ","default_points":60,"video_url":"https://youtu.be/1AkhUNS4Yhw?si=Wcczo7uIys8TsLX6","created_at":"2026-07-22 07:35:00"},{"id":"menu_1784705790509","menu_name":"🧘骨盤強制ヨガ","default_points":50,"video_url":"https://youtu.be/KmWGt7VK2DM?si=v9uDJc50yH_9DloD","created_at":"2026-07-22 07:36:30"},{"id":"menu_1785416253138","menu_name":"初級腕立て伏せ","default_points":60,"video_url":"https://youtu.be/lyk8sgY8NDg?si=HAfEv3SxZ0QSOo8U","created_at":"2026-07-30 12:57:33"}]}
+- 【実測】本番環境に登録されている全8件のメニューすべてに有効な YouTube `video_url` が設定されている [EV-6]。
 
-- 【実測】現状のコードベースにおいてビルド・TypeScript型チェックともに正常に通過する (`package.json:L6-L8`, [EV-7])。
-
-### [EV-8] 開発サーバーHTTP応答 (curl -i)
-$ curl -i -s "http://localhost:5173" | head -n 15
-HTTP/1.1 200 OK
-Vary: Origin
-Content-Type: text/html
-Cache-Control: no-cache
-Etag: W/"325-sW0Uvoamb6TjT6sqDTEHc4YSVZM"
-Date: Mon, 24 Aug 2026 06:48:08 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-Content-Length: 805
-
-<!doctype html>
-<html lang="ja">
-  <head>
-    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
-injectIntoGlobalHook(window);
-
-- 【実測】開発サーバーはHTTP 200 OKで応答している (`index.html:L1-L15`, [EV-8])。
+### [EV-7] TrainingModal の利用箇所とレイアウト構造
+$ grep -rn "TrainingModal" src/
+src/frontend/App.tsx:8:import { TrainingModal } from './components/TrainingModal';
+src/frontend/App.tsx:411:          onOpenTrainingModal={() => handleSetActiveTab('training')}
+src/frontend/App.tsx:491:                <TrainingModal
+src/frontend/components/TrainingModal.tsx:8:interface TrainingModalProps {
+src/frontend/components/TrainingModal.tsx:14:export const TrainingModal: React.FC<TrainingModalProps> = ({
+src/frontend/components/Header.tsx:12:  onOpenTrainingModal: () => void;
+src/frontend/components/Header.tsx:25:  onOpenTrainingModal,
+src/frontend/components/Header.tsx:203:              onClick={onOpenTrainingModal}
+- 【実測】`TrainingModal` は独立したモーダルポップアップではなく、`App.tsx` のタブコンテンツとしてメインビュー（`<main>`）内に展開されている [EV-7]。
 
 ## 3. 該当コードの直接引用
 
-`src/backend/index.ts:L1702-L1715`
-```ts
-    if (deductPoints > 0) {
-      const deduction = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?')
-        .bind(deductPoints, wish.user_id, deductPoints)
-        .run();
-
-      if (!deduction.meta?.changes) {
-        return c.json({ success: false, error: 'ポイントが不足しているため引き落とせませんでした' }, 400);
-      }
-    }
-
-    // 実際に引いた額と日時を残す。残高の突き合わせと承認履歴の両方でこれを使う。
-    await c.env.DB.prepare(
-      "UPDATE wish_items SET is_approved = 1, is_claimed = 1, approved_points = ?, approved_at = datetime('now') WHERE id = ?"
-    ).bind(deductPoints, id).run();
-```
-- 【実測】ご褒美交換承認時と同様に、残高チェックを伴う条件付き更新 (`current_points >= ?`) と整合性ログ記録が実装パターンとして確立されている (`src/backend/index.ts:L1702-L1715`) [EV-3]。
-
-`src/frontend/components/ParentPortal.tsx:L678-L682`
+### `src/frontend/components/TrainingModal.tsx:L61-L64`
 ```tsx
-                                <td className="py-2.5 text-right font-mono font-black text-emerald-400">
-                                  +{log.earned_points}
-                                </td>
+  const handleSelectMenu = (menu: TrainingMenu) => {
+    setSelectedMenu(menu);
+    setEarnedPoints(menu.default_points || 50);
+  };
 ```
-- 【実測】保護者ポータルの履歴一覧で `+{log.earned_points}` が固定されており、正負符号に応じた色分け（プラス: 緑、マイナス: 赤）とフォーマットが必要である (`src/frontend/components/ParentPortal.tsx:L678-L682`) [EV-5]。
+- 【実測】この実装ではメニュー選択時にReactの状態（`selectedMenu` と `earnedPoints`）を更新するのみであり、画面のスクロール位置を移動する命令が一切記述されていない [EV-3]。
+
+### `src/frontend/components/TrainingModal.tsx:L349-L375`
+```tsx
+          {/* Embedded YouTube Player */}
+          {selectedMenu && embedUrl ? (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                <span className="flex items-center gap-1.5 text-red-400">
+                  <Play className="w-4 h-4 fill-red-500 text-red-500" />
+                  <span>動画を見ながらその場でトレーニング！</span>
+                </span>
+                <a
+                  href={selectedMenu.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                >
+                  <span>YouTubeで開く</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-700 bg-black shadow-2xl">
+                <iframe
+                  src={embedUrl}
+                  title={selectedMenu.menu_name}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                ></iframe>
+              </div>
+            </div>
+```
+- 【実測】YouTube埋め込みプレーヤー要素には DOM 参照用の `ref` がなく、メニューカード群（8件）の下に配置されている [EV-4] [EV-6]。
 
 ## 4. 根本原因（なぜなぜ）
-- Why1: 保護者が子供に任意のポイントをあげたり減らしたりできない。 ← [EV-3, EV-6]
-- Why2: システムが「クイズ正解」「定型メニュー行動」「ご褒美申請承認」という自動計算フローのみを前提に組まれており、保護者主導の手動調整APIおよびUIが未実装なため。 ← [EV-2, EV-3]
-- Why3: 特別なお手伝いやリアルのご褒美手渡し、ペナルティ等の柔軟な運用を想定した設計が初期仕様に含まれていなかったため。 ← [EV-3, EV-6]
-- Why4: 手動調整時の監査ログ（いつ・誰が・何の理由で・何pt増減させたか）を残すデータ設計およびUIコンポーネントが用意されていなかったため。 ← [EV-2, EV-4]
-- Why5（根本原因）: 保護者権限による「手動ポイント増減操作」のエンドポイント (`/api/parent/adjust-points`)、理由入力を含むモーダルUI (`AdjustPointsModal`)、および正負両対応の履歴表示基盤が未構築であったため。
+- Why1: なぜメニューを選択した際にYouTubeのサムネイル/プレーヤーまでスクロールしないのか？
+  - `handleSelectMenu`（`src/frontend/components/TrainingModal.tsx:L61-L64`）[EV-3] でステートの変更のみが行われ、DOM要素をスクロール対象とする制御が実装されていないため。
+- Why2: なぜスクロールしないとYouTubeが見えないのか？
+  - メニュー選択肢カードが8件並んでおり [EV-6]、縦方向の表示高さを占有するため、スマートフォンや一般的なノートPCの画面ではプレーヤー部分が画面外（下部）に押し出されるため。
+- Why3: なぜYouTube動画エリアへのスクロール参照がなかったのか？
+  - コンポーネント開発時に `useRef` を用いた要素スクロール（`scrollIntoView`）の連携が設計・実装されていなかったため。
 
 ## 5. 影響範囲（全数）
-検索コマンド `grep -rnE "UPDATE users SET current_points|\+\{.*(earned_points|points).*\}" src/` によるヒット 12 件の全対象ファイル一覧 [EV-3, EV-5]:
+$ grep -rn "TrainingModal" src/
+- ヒット **8 件**（全3ファイル）:
+  - `src/frontend/App.tsx`: 3 件
+  - `src/frontend/components/TrainingModal.tsx`: 2 件（内部定義）
+  - `src/frontend/components/Header.tsx`: 3 件
 
-| ファイルパス | ヒット件数 | 主な該当箇所と影響内容 |
-| :--- | :--- | :--- |
-| `src/backend/index.ts` | 5件 | 新規API `POST /api/parent/adjust-points` 実装、残高バリデーション、`action_logs` 記録 |
-| `src/frontend/components/AdjustPointsModal.tsx` | 0件 (新規) | 【新規】加算/減算モード切替、プリセットptボタン、理由入力、調整後ptプレビュー機能を持つモーダル |
-| `src/frontend/components/ParentPortal.tsx` | 1件 | モーダル状態管理、履歴テーブルのカテゴリ・正負符号（`+`/`-`）と色分け表示対応 |
-| `src/frontend/components/ParentMemberDashboardCard.tsx` | 0件 | 「⚡ ポイント調整」ボタンの追加、カード内での調整モーダル起動 |
-| `src/frontend/components/Dashboard.tsx` | 1件 | 子供ダッシュボードのアクティビティ履歴での正負符号表示対応 |
-| `src/frontend/components/ReflectionView.tsx` | 2件 | 振り返り画面での履歴表示における正負符号対応 |
-| `src/frontend/components/TrainingModal.tsx` | 2件 | トレーニングpt表示（正値の正常確認） |
-| `src/frontend/components/HouseworkModal.tsx` | 1件 | 家事pt表示（正値の正常確認） |
-| `src/frontend/components/PersonalStreakCard.tsx` | 0件 | 本日のボーナス・獲得pt集計における `parent_adjustment` の正常ハンドリング |
-| `src/frontend/types.ts` | 0件 | APIレスポンス型や調整リクエスト型の定義追加 |
+$ grep -rn "handleSelectMenu" src/
+- ヒット **8 件**（全2ファイル）:
+  - `src/frontend/components/TrainingModal.tsx`: 6 件
+  - `src/frontend/components/HouseworkModal.tsx`: 2 件（無関係: 家事メニュー）
 
-合計ヒット 12 件を全数特定完了。
+$ grep -rn "getYouTubeEmbedUrl" src/
+- ヒット **2 件**（全1ファイル）:
+  - `src/frontend/components/TrainingModal.tsx`: 2 件
 
 ## 6. 二次被害リスク候補（G-7）
-| リスク経路 | 実測ヒット箇所 | 想定被害と対策 |
+本改修はフロントエンドのスクロールUXの改善のみであり、APIエンドポイントやDBスキーマの変更は発生しない。
+
+| リスク経路 | 実測ヒット箇所 | 想定被害 |
 | :--- | :--- | :--- |
-| 残高不足による所持ptマイナス化 | `UPDATE users SET current_points = current_points - ?` [EV-3] | 減算時に所持pt以上のポイントを引くとマイナス残高になり表示崩れや整合性破壊が起きる。対策: SQLの条件句 `AND current_points >= ?` およびバックエンド・フロント両面での残高バリデーションを必須化。 |
-| 日次素点・ストリークへの誤算入 | `src/backend/index.ts:L240-L246` [EV-4] | 保護者が100pt付与したことで、子供が行動していないのに「中級ストリーク達成」や「300pt突破ボーナス」が誤発火する。対策: `action_logs` 記録時に `base_points = 0` とし、`category = 'parent_adjustment'` をストリーク集計除外対象にする。 |
-| 理由不明なポイント変動による混乱 | `action_logs` テーブル [EV-2] | 理由を空で登録できると、後から子供や保護者が「なぜ増えた/減ったか」追跡できない。対策: 理由（メモ）の入力を推奨/必須化し、クイック選択タグ（「お手伝い」「テスト」「ペナルティ」等）を用意。 |
-| 履歴UIでの符号バグ (`+-50pt`) | `ParentPortal.tsx:L680`, `Dashboard.tsx:L186` [EV-5] | `+{earned_points}` と固定されているため、減算時に `+-50` と崩れる。対策: 符号判定関数（`pts > 0 ? `+${pts}` : `${pts}``）を共通適用。 |
+| `SELECT *` / 汎用取得 API | なし | 機密カラムの追加・変更は伴わないため流出リスクなし |
+| トークン・個人情報漏洩 | なし | スクロール位置制御において認証トークンや個人情報は一切扱わない |
+| 外部連携 / リダイレクト | なし | YouTube動画URLは既存のiframe埋め込みと外部リンク（`<a>`）のみで表示され流出経路なし |
+| Git 管理ファイル / ログ | なし | 秘密鍵や環境変数の出力は行わない |
 
 ## 7. 否定された仮説（E-5・必須）
 | 立てた仮説 | 検証コマンド | 棄却の根拠 |
 | :--- | :--- | :--- |
-| 専用の `point_adjustments` 新規DBテーブルを作成・マイグレーションする必要がある | `sed -n '110,125p' schema.sql` [EV-2] | 既存の `action_logs` テーブルに必要な全フィールド（`user_id`, `category`, `title_or_menu`, `review_text`, `earned_points`, `base_points`, `created_at`）が揃っており、新テーブル追加によるマイグレーションリスク（G-4）を冒さずとも既存テーブル活用で完全な履歴管理・整合性担保が可能なため棄却。 |
-| 単に `users.current_points` だけを直接 UPDATE すれば最もシンプルに実現できる | `grep -rn "UPDATE users SET current_points" src/backend/` [EV-3] | 所持ポイント数値を直接書き換えるだけでは「いつ・何のために・何ポイント増減したか」の履歴が一切残らず、子供ダッシュボードや保護者ログに反映されず不透明になるため棄却。 |
+| 仮説1: YouTubeサムネイルは専用の `<img>`（`img.youtube.com` / `i.ytimg.com`）要素として表示されている | `grep -rn "ytimg" src/` | ヒット 0 件。実際は `getYouTubeEmbedUrl` [EV-3] による `<iframe>` 埋め込みプレーヤー内でサムネイル・動画が表示されている [EV-4]。 |
+| 仮説2: `TrainingModal` は独立したモーダルダイアログの内部スクロール要素である | `grep -rn "TrainingModal" src/frontend/App.tsx` | `App.tsx:L491` [EV-7] にてメインビュー（`<main>`）のタブコンテンツとして直列配置されている。ウィンドウ全体のスクロールまたはコンテナの `scrollIntoView` で制御可能である。 |
+| 仮説3: 動画URL（`video_url`）が登録されていないメニューが存在し、スクロール対象が見つからない場合がある | `curl -s -i "https://quest-habit-app.keitaro-fukui.workers.dev/api/training-menus"` | 本番APIの実測で全8件すべてに `video_url` が存在している [EV-6]。ただし将来的なURL未登録メニューを考慮し、オプショナルチェーンガードを設けるべきである。 |
 
 ## 8. 未確認事項（E-4）
 | 未確認項目 | 確認手段 | ブロッカー理由 |
 | :--- | :--- | :--- |
-| 実機ブラウザでのモーダル操作感および誤操作防止確認ダイアログの挙動 | 設計・製造フェーズ後のブラウザ実機検証（G-13） | 本フェーズは調査フェーズであり、コード改変・新規コンポーネント実装は未実施のため。次フェーズにて確認。 |
+| モバイル実機（iOS Safari / Android Chrome）での `scrollIntoView({ behavior: 'smooth' })` 実行時のスクロール位置（上部ヘッダーとの重なり具合） | 実機ブラウザでの操作検証（実装フェーズ） | 調査フェーズ（コード変更禁止 / G-1）のため、実機での視覚的オフセットは設計・実装フェーズで実測する。 |
 
 ## 9. 推奨アクション（方向性のみ・実装しない）
-1. **バックエンド API の設計 (`POST /api/parent/adjust-points`)**:
-   - `userId`, `amount` (正負の整数), `reason` (調整理由), `categoryLabel` を受け取る。
-   - 減算時は `current_points >= |amount|` の残高バリデーションを行い、不足時は 400 エラーを返す。
-   - `action_logs` に `category: 'parent_adjustment'`, `base_points: 0`, `status: 'approved'` で INSERT し、`users.current_points` を増減。
-2. **ポイント調整モーダル (`AdjustPointsModal.tsx`) の新規作成**:
-   - 「あげる（加算 🟢）」と「へらす（減算 🔴）」のタブ切替。
-   - プリセットボタン (`+10`, `+50`, `+100`, `+300`, `+500` / `-10`, `-50`, `-100`, `-300`, `-500`)。
-   - 理由テンプレート（「テスト頑張った」「特別なお手伝い」「ペナルティ」「リアルご褒美交換」等）と自由入力欄。
-   - 調整後の予想所持ptのリアルタイム計算表示。
-3. **保護者画面導線の設置**:
-   - `ParentMemberDashboardCard.tsx` の所持pt表示横またはアクション欄に「⚡ ポイント調整」ボタンを配置。
-4. **フロントエンドログ表示の正負両対応**:
-   - `ParentPortal.tsx`, `Dashboard.tsx`, `ReflectionView.tsx` の `+{pts}` 表記を正負両対応・色分け表示に修正。
+1. `src/frontend/components/TrainingModal.tsx` に `videoSectionRef = useRef<HTMLDivElement>(null)` を導入。
+2. YouTube動画プレーヤー表示領域（L350）のコンテナに `ref={videoSectionRef}` を指定。
+3. `handleSelectMenu` 内で、メニュー選択時に `setTimeout` または `requestAnimationFrame` を介して `videoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })` を実行。
+   ※ 初期レンダリング時（マウント時）は自動スクロールさせず、ユーザーがカードをクリックしたときのみ発火させる設計とする。
 
 ## 10. 品質ゲート実行結果（G-11）
-```
-$ ~/antigravity-agents/scripts/verify.sh investigate
+$ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh investigate
 ========================================================
  verify.sh  role=investigate  base=HEAD  repo=game
- HEAD=416b07b  branch=main
+ HEAD=3eec0f9  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
-[PASS] gate-coverage      実測 8 件 / カテゴリ網羅 4/4
+[PASS] gate-coverage      実測 11 件 / カテゴリ網羅 4/4
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
-```
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, TrainingMenu } from '../types';
 import { Dumbbell, Send, Plus, Play, ExternalLink, Sparkles, Trash2 } from 'lucide-react';
 
@@ -37,6 +37,8 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string>('');
 
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetch('/api/training-menus')
       .then((res) => res.json())
@@ -61,6 +63,15 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
   const handleSelectMenu = (menu: TrainingMenu) => {
     setSelectedMenu(menu);
     setEarnedPoints(menu.default_points || 50);
+
+    if (menu.video_url) {
+      setTimeout(() => {
+        videoSectionRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }, 100);
+    }
   };
 
   const getYouTubeEmbedUrl = (url?: string) => {
@@ -346,48 +357,50 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
           </div>
 
           {/* Embedded YouTube Player */}
-          {selectedMenu && embedUrl ? (
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-                <span className="flex items-center gap-1.5 text-red-400">
-                  <Play className="w-4 h-4 fill-red-500 text-red-500" />
-                  <span>動画を見ながらその場でトレーニング！</span>
-                </span>
+          <div ref={videoSectionRef} className="scroll-mt-6">
+            {selectedMenu && embedUrl ? (
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                  <span className="flex items-center gap-1.5 text-red-400">
+                    <Play className="w-4 h-4 fill-red-500 text-red-500" />
+                    <span>動画を見ながらその場でトレーニング！</span>
+                  </span>
+                  <a
+                    href={selectedMenu.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                  >
+                    <span>YouTubeで開く</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-700 bg-black shadow-2xl">
+                  <iframe
+                    src={embedUrl}
+                    title={selectedMenu.menu_name}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  ></iframe>
+                </div>
+              </div>
+            ) : selectedMenu && selectedMenu.video_url ? (
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
+                <span>YouTubeリンク:</span>
                 <a
                   href={selectedMenu.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                  className="text-red-400 font-bold underline flex items-center gap-1"
                 >
-                  <span>YouTubeで開く</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <span>{selectedMenu.video_url}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
-
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-700 bg-black shadow-2xl">
-                <iframe
-                  src={embedUrl}
-                  title={selectedMenu.menu_name}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full border-0"
-                ></iframe>
-              </div>
-            </div>
-          ) : selectedMenu && selectedMenu.video_url ? (
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-              <span>YouTubeリンク:</span>
-              <a
-                href={selectedMenu.video_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-red-400 font-bold underline flex items-center gap-1"
-              >
-                <span>{selectedMenu.video_url}</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
           {/* Points Adjustment & Comment */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

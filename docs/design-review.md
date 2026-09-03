@@ -1,116 +1,121 @@
 # 設計レビュー結果レポート
 
-- 作成日時: 2026-08-24 17:51
-- 対象リポジトリ/ブランチ: keitarofukui/incentique / main
-- 対象コミット: 416b07b
-- 上流 Artifact: docs/design-spec.md（対象コミット: 416b07b）
+- 作成日時: 2026-09-03 09:35
+- 対象リポジトリ/ブランチ: game / main
+- 対象コミット: 3eec0f9
+- 上流 Artifact: docs/design-spec.md（対象コミット: 3eec0f9）
 - **判定: APPROVED**
 
 ## 0. 上流の抜き取り再実測（§2-3）
 
-### [EV-1] 上流 [EV-1] リポジトリ状態の再実行 — 一致
-$ git rev-parse --short HEAD && git branch --show-current && git status --short
-416b07b
-main
- M docs/design-spec.md
- M docs/investigation-report.md
+### [EV-1] 上流 [EV-1] の再実行
+$ grep -rn "handleSelectMenu" src/frontend/components/TrainingModal.tsx
+src/frontend/components/TrainingModal.tsx:61:  const handleSelectMenu = (menu: TrainingMenu) => {
+src/frontend/components/TrainingModal.tsx:102:        handleSelectMenu(created);
+src/frontend/components/TrainingModal.tsx:111:        handleSelectMenu(custom);
+src/frontend/components/TrainingModal.tsx:121:      handleSelectMenu(custom);
+src/frontend/components/TrainingModal.tsx:140:          handleSelectMenu(data.menus[0]);
+src/frontend/components/TrainingModal.tsx:314:                  onClick={() => handleSelectMenu(menu)}
+- 【実測】上流と完全一致。`handleSelectMenu` はメニュー選択時（314行目）に発火している [EV-1]。
 
-- 【実測】対象コミット `416b07b` / ブランチ `main` であり、上流 `docs/design-spec.md` の記録 [EV-1] と完全に一致することを確認した (`.git:L1`, [EV-1])。
+### [EV-2] 上流 [EV-2] の再実行
+$ sed -n '61,79p' src/frontend/components/TrainingModal.tsx
+  const handleSelectMenu = (menu: TrainingMenu) => {
+    setSelectedMenu(menu);
+    setEarnedPoints(menu.default_points || 50);
+  };
 
-### [EV-2] 上流 [EV-3] ポイント更新箇所の再実行 — 一致
-$ grep -rn "UPDATE users SET current_points" src/backend/
-src/backend/index.ts:380:      await db.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
-src/backend/index.ts:899:      await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
-src/backend/index.ts:1323:      'UPDATE users SET current_points = current_points + ? WHERE id = ?'
-src/backend/index.ts:1357:        'UPDATE users SET current_points = MAX(0, current_points - ?) WHERE id = ?'
-src/backend/index.ts:1703:      const deduction = await c.env.DB.prepare('UPDATE users SET current_points = current_points - ? WHERE id = ? AND current_points >= ?')
+  const getYouTubeEmbedUrl = (url?: string) => {
+    if (!url) return null;
+    let videoId = '';
 
-- 【実測】バックエンド内のポイント更新処理は 5 箇所であり、手動調整エンドポイントが未定義であることを再確認した (`src/backend/index.ts:L380-L1703`, [EV-2])。
+    if (url.includes('youtu.be/')) {
+      const parts = url.split('youtu.be/')[1];
+      videoId = parts.split('&')[0];
+    } else if (url.includes('watch?v=')) {
+      const parts = url.split('watch?v=')[1];
+      videoId = parts.split('&')[0];
+    }
 
-### [EV-3] 上流 [EV-4] ストリーク集計クエリの再実行 — 一致
-$ sed -n '238,250p' src/backend/index.ts
-    const todayPointsResult = await db.prepare(`
-      SELECT SUM(COALESCE(base_points, earned_points)) as total,
-             ${categoryFlags}
-      FROM action_logs
-      WHERE user_id = ?
-      AND category != 'bonus'
-      AND date(datetime(created_at, '+5 hours')) = ?
-    `).bind(userId, logicalToday).first();
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  };
+- 【実測】上流と完全一致。現在スクロール処理は未実装 [EV-2]。
 
-    const todayPoints = todayPointsResult?.total || 0;
+### [EV-3] 上流 [EV-3] の再実行
+$ sed -n '348,375p' src/frontend/components/TrainingModal.tsx
+          {/* Embedded YouTube Player */}
+          {selectedMenu && embedUrl ? (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+                <span className="flex items-center gap-1.5 text-red-400">
+                  <Play className="w-4 h-4 fill-red-500 text-red-500" />
+                  <span>動画を見ながらその場でトレーニング！</span>
+                </span>
+                <a
+                  href={selectedMenu.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                >
+                  <span>YouTubeで開く</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
 
-    // 中級ストリーク判定 (閾値: midThreshold)
-
-- 【実測】`base_points = 0` のレコードを挿入することで `COALESCE(base_points, earned_points)` が 0 となり、日次素点集計への誤算入を防げることを再確認した (`src/backend/index.ts:L238-L250`, [EV-3])。
-
-### [EV-4] 上流 [EV-6] プロダクションビルドおよび型チェックの再実行 — 一致
-$ npm run build && npx tsc --noEmit
-> quest-habit-app@1.0.0 build
-> vite build
-vite v6.4.3 building for production...
-transforming...
-✓ 1605 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-B56GTR5M.css   69.07 kB │ gzip:  11.29 kB
-dist/assets/index-BoCzHWS0.js   454.08 kB │ gzip: 117.23 kB
-✓ built in 1.58s
-
-- 【実測】ビルドおよび TypeScript 型チェックがエラーなく正常完了することを確認した (`package.json:L6-L8`, [EV-4])。
-
----
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-700 bg-black shadow-2xl">
+                <iframe
+                  src={embedUrl}
+                  title={selectedMenu.menu_name}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                ></iframe>
+              </div>
+            </div>
+- 【実測】上流と完全一致。動画枠コンテナに `ref` 未設定 [EV-3]。
 
 ## 1. 無条件差し戻し条件の判定（全 11 項目・未判定禁止）
-
 | # | 条件 | 判定 | 根拠（設計書の該当箇所を引用） |
 | :-- | :--- | :--- | :--- |
-| 1 | 🗄️ DB スキーマ変更があるのに `migrations/*.sql` の **DDL 全文と local/remote 適用手順**が無い（G-4） | **PASS** | `docs/design-spec.md` §1-2 に既存の `action_logs` テーブルおよび `users` テーブルを活用し、新テーブル・カラム追加不要（マイグレーション不要）であることが明記されている (`docs/design-spec.md:L72-L86`, [EV-1])。 |
-| 2 | 🛡️ 新規フィールドがあるのに**機密フィールド台帳と漏洩遮断設計**が無い、または `SELECT *` を許容（G-7） | **PASS** | `docs/design-spec.md` §2-3 において機密情報の新規追加はなく、`SELECT id, name, current_points` など必要最小限のカラム指定が明記されている (`docs/design-spec.md:L128-L136`, [EV-1])。 |
-| 3 | 🙈 API 呼び出しがあるのに **4xx / 5xx / 通信断時の UI 挙動とログ出力**が未定義（G-5） | **PASS** | `docs/design-spec.md` §2-3, §4 に 400（残高不足・未入力バリデーション）、404（ユーザー不在）、500（内部例外）のエラーハンドリングと UI へのエラー表示が明記されている (`docs/design-spec.md:L114-L188`, [EV-1])。 |
-| 4 | 🧪 受け入れ基準が「ビルドが通ること」等の抽象表現で、**検証コマンドが無い** | **PASS** | `docs/design-spec.md` §5 に正常系・異常系の API テストおよび UI 動作確認基準が明記されている (`docs/design-spec.md:L248-L260`, [EV-1])。 |
-| 5 | 🏛️ 短命・非標準な回避策を採用し、**却下理由付きの代替検討が無い**（G-8） | **PASS** | `docs/design-spec.md` §1-2 に `action_logs` による監査ログ記録と条件付き SQL 更新による標準的な ACID 整合性アプローチを採用している (`docs/design-spec.md:L72-L86`, [EV-1])。 |
-| 6 | 📐 API 契約と **TypeScript 型の具象コード**が無い | **PASS** | `docs/design-spec.md` §2-2, §3-3 にリクエスト JSON スキーマおよび `AdjustPointsModalProps` 等の TypeScript 型定義コードが明記されている (`docs/design-spec.md:L98-L108`, `docs/design-spec.md:L204-L212`, [EV-1])。 |
-| 7 | 🔤 API のキー名と型のプロパティ名が**不一致** | **PASS** | `userId`, `amount`, `reason`, `type` の全プロパティがバックエンドとフロントエンドで完全に一致している (`docs/design-spec.md:L98-L118`, [EV-1])。 |
-| 8 | 📋 未確定の前提が**ブロッカーとして明示されていない** | **PASS** | ユーザーフィードバック（ダッシュボードの子どもカード1箇所のみに集約）を反映し、未確定事項が解消されている (`docs/design-spec.md:L192-L198`, [EV-1])。 |
-| 9 | 🧩 タスク分解が依存順でない / **完了条件が無い** | **PASS** | バックエンド API ➔ モーダル新規作成 ➔ 親カード改修 ➔ 履歴表示改修の順序で整理され、完了条件が明確である (`docs/design-spec.md:L248-L260`, [EV-1])。 |
-| 10 | 🤖 LLM / Gemini API 利用時に既定モデル `gemini-3.1-flash-lite` の指定が無い（G-10） | **PASS** | 本機能改修において LLM / Gemini API は使用しない (`docs/design-spec.md:L90-L190`, [EV-1])。 |
-| 11 | 🕒 上流 `investigation-report.md` の実測と設計内容が矛盾 | **PASS** | `docs/design-spec.md` §0 で上流の実測エビデンスを再実行して整合性を完全確認済み (`docs/design-spec.md:L10-L66`, [EV-1])。 |
+| 1 | 🗄️ DB スキーマ変更があるのに DDL 全文が無い | **PASS** | §5 にて DB 変更なし・DDL 不要である旨が明記されている |
+| 2 | 🛡️ 新規フィールドがあるのに機密台帳・遮断が無い | **PASS** | §4 機密台帳にて新規フィールドなし・機密漏洩リスクなしと明記 |
+| 3 | 🙈 API 呼び出しがあるのにエラー仕様未定義 | **PASS** | §7 エラーハンドリング仕様に 5 状態の UI 挙動・ログ・復帰が網羅定義されている |
+| 4 | 🧪 受け入れ基準に検証コマンドが無い | **PASS** | §9 に `npx tsc --noEmit` / `npm run build` / `grep` コマンドが明記されている |
+| 5 | 🏛️ 短命な回避策を採用し代替検討が無い | **PASS** | §8 にて `scrollIntoView({ behavior: 'smooth' })` を採用し、却下案3件の理由を明記 |
+| 6 | 📐 API 契約と TS 型の具象コードが無い | **PASS** | §3 / §6 にて新規 API なし・既存型利用と明記 |
+| 7 | 🔤 API キー名と型のプロパティ名不一致 | **PASS** | 新規 API 追加なし、既存の `TrainingMenu` を一貫して使用 |
+| 8 | 📋 未確定の前提がブロッカーとして明示されていない | **PASS** | §10 に前提条件およびブロッカーなしと明記 |
+| 9 | 🧩 タスク分解が不適切・完了条件なし | **PASS** | §12 に単一の明確なタスク T1 と検証コマンドが明記されている |
+| 10 | 🤖 LLM 利用時に既定モデル指定が無い | **PASS** | 本改修で LLM は利用しない |
+| 11 | 🕒 上流実測と設計内容が矛盾 | **PASS** | 上流 `investigation-report.md` の実測値（行番号・コード）と完全に一致 |
 
----
-
-## 2. 内容妥当性レビュー（要件網羅性 / データ構造 / 拡張性 / 実装容易性）
-
-- **要件網羅性**: 保護者が子どものポイントを加算・減算したいという要望に対し、直感的なモーダル操作（プリセットpt、理由クイックタグ、リアルタイムシミュレーション）と、ダッシュボードの各子どもカードへの単一ボタン配置により過不足なく設計されている。
-- **データ構造**: 新テーブルを作らず既存の `action_logs` に `category='parent_adjustment'`, `base_points=0` で格納することで、既存のストリークや日次ボリュームボーナスの集計ロジックを破壊せず、かつ完全な監査ログが担保されている。
-- **拡張性**: 減算時の残高チェックおよび条件付き SQL 更新 (`AND current_points >= ?`) により、同時リクエストや誤操作によるマイナス残高リスクが構造的に遮断されている。
-- **実装容易性**: 各コンポーネントの責務（API、モーダル、カード、ログ表示）が明確に分離されており、段階的な製造と単体検証が可能である。
-
----
+## 2. 内容妥当性レビュー
+- **要件網羅性**: ユーザーがメニューをクリックした時のみスクロールさせ、初期表示（マウント時）には勝手にスクロールさせないという UX 上の配慮が明確に設計されている。
+- **データ構造・保守性**: React 標準の `useRef` と DOM 標準 API（`scrollIntoView`）のみを使用し、外部ライブラリ依存がなく保守性が高い。
+- **実装容易性**: 製造担当者が迷う余地のない具象コードスニペット（§11）が提供されている。
 
 ## 3. 指摘事項 & 改善提案（引用必須）
+指摘事項なし（軽微な改善提案のみ）:
+- 画面サイズやヘッダー高さに応じて `scroll-mt-6` を付与することで、固定ヘッダーや周囲の余白との被りを確実に防止できる設計となっており妥当である。
 
-指摘なし。ユーザー指示（ボタンは複数配置せず、ダッシュボードの子どもカードのみに配置）が設計仕様に正しく反映されている。
+## 4. 実測による前提検証（読み取り専用）
 
----
+### [EV-4] 型チェックとビルドの事前検証
+$ npx tsc --noEmit
+(出力なし: 終了コード 0)
+- 【実測】現状の TypeScript 型チェックにエラーは存在しない [EV-4]。
 
-## 4. 未確認事項（E-4）
-
+## 5. 未確認事項（E-4）
 | 未確認項目 | 確認手段 | ブロッカー理由 |
 | :--- | :--- | :--- |
-| ブラウザ操作時のモーダルアニメーションおよびトースト表示の視認性 | 製造後のブラウザ実機検証（G-13） | 本フェーズは設計レビュー段階であり、コード実装後に実機検証するため。 |
+| 未確認: なし | 設計仕様書およびコードベースの整合性を確認完了 | なし |
 
----
-
-## 5. 品質ゲート実行結果（G-11）
-```
-$ ~/antigravity-agents/scripts/verify.sh design-review
+## 6. 品質ゲート実行結果（G-11）
+$ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh design-review
 ========================================================
  verify.sh  role=design-review  base=HEAD  repo=game
- HEAD=416b07b  branch=main
+ HEAD=3eec0f9  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
-```
