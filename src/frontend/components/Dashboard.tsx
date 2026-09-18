@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, ActionLog, UserGoal, UserSummary, DailyStatItem } from '../types';
-import { Clock, Banknote, X, Sparkles } from 'lucide-react';
+import { Clock, Banknote, X, Sparkles, AlertTriangle } from 'lucide-react';
 import { GoalPlannerWidget } from './GoalPlannerWidget';
 import { DailyChart } from './DailyChart';
 import { RivalPulse } from './RivalPulse';
@@ -28,6 +28,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigate,
   onGoalUpdated,
 }) => {
+  const [showDecayBanner, setShowDecayBanner] = useState<boolean>(true);
   const [showCashBanner, setShowCashBanner] = useState<boolean>(true);
   const [showHouseworkBanner, setShowHouseworkBanner] = useState<boolean>(true);
 
@@ -52,9 +53,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const isCashBackBannerActive = todayLocalDateStr() <= '2026-07-31';
   // Housework banner active until September 30, 2026
   const isHouseworkBannerActive = todayLocalDateStr() <= '2026-09-30';
+  // ポイント失効ルール告知バナー: 導入日から先頭3日間（2026年9月20日まで）表示
+  const isDecayBannerActive = todayLocalDateStr() <= '2026-09-20';
 
   return (
     <div className="space-y-6 animate-fade-in">
+
+      {/* ⚠️ ポイント失効（インアクティビティ）ルール導入お知らせバナー（先頭3日間表示） */}
+      {showDecayBanner && isDecayBannerActive && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-950/90 via-slate-900/90 to-amber-950/90 border-2 border-rose-500/60 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl relative overflow-hidden group">
+          <button
+            onClick={() => setShowDecayBanner(false)}
+            className="absolute top-2.5 right-2.5 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all z-10"
+            title="閉じる"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0 shadow-lg">
+              <AlertTriangle className="w-7 h-7 text-rose-400 animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs sm:text-sm font-black text-rose-200 flex items-center gap-2 flex-wrap">
+                <span className="bg-gradient-to-r from-rose-500 to-red-600 text-white text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                  【⚠️ 重要ルール追加】
+                </span>
+                <span>毎日続けよう！「ポイント失効システム」が導入されました</span>
+              </div>
+              <div className="text-xs text-slate-200 leading-relaxed">
+                1ポイントも獲得しない日が続くと、所持ポイントが段階的に失効します（<strong className="text-rose-300 font-bold">3日連続で1/3失効</strong>、<strong className="text-rose-300 font-bold">5日連続でさらに50%失効</strong>、<strong className="text-red-400 font-bold">10日連続で全額0pt</strong>）。
+              </div>
+              <p className="text-[0.6875rem] text-emerald-300 font-bold flex items-center gap-1">
+                <span>💡 その日にたった1ptでも獲得（クイズ1問正解・運動・読書等）すれば失効を完全に阻止できます！</span>
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('streak_bonus_info')}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 text-xs font-black hover:brightness-110 transition-all shadow-lg shrink-0 flex items-center justify-center gap-1.5 border border-rose-300/40 whitespace-nowrap"
+          >
+            <span>📜 失効ルールを詳しく見る ➔</span>
+          </button>
+        </div>
+      )}
 
       {/* New Feature Notice Banner (Earn by Housework 家事で稼ぐ) */}
       {showHouseworkBanner && isHouseworkBannerActive && (
