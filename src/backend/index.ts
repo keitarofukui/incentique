@@ -128,6 +128,118 @@ function getDaysDifference(date1: string, date2: string): number {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
+interface UserPenaltyRecord {
+  id: string;
+  current_points: number;
+  last_action_date?: string | null;
+  inactivity_penalty_stage?: number | null;
+  last_penalty_date?: string | null;
+  penalty_base_date?: string | null;
+}
+
+/**
+ * 1ポイントも獲得しない日が続いた場合のポイント失効処理
+ * - 3日連続0pt: 所持ptの 1/3 失効 (stage 1)
+ * - 5日連続0pt: さらに 50% 失効 (stage 2)
+ * - 10日連続0pt: 全額0pt失効 (stage 3)
+ */
+async function checkAndApplyInactivityPenalty(
+  db: D1Database,
+  user: UserPenaltyRecord,
+  logicalToday: string
+): Promise<{ updatedPoints: number; penaltyApplied: boolean }> {
+  let currentPoints = Number(user.current_points) || 0;
+  if (currentPoints <= 0) {
+    return { updatedPoints: 0, penaltyApplied: false };
+  }
+
+  // 基準日（過去放置分の即時全額失効を防ぐため penalty_base_date を優先考慮）
+  let baseDate = user.penalty_base_date || '2026-09-18';
+  if (user.last_action_date && user.last_action_date > baseDate) {
+    baseDate = user.last_action_date;
+  }
+
+  if (baseDate >= logicalToday) {
+    return { updatedPoints: currentPoints, penaltyApplied: false };
+  }
+
+  const inactiveDays = getDaysDifference(baseDate, logicalToday);
+  let currentStage = Number(user.inactivity_penalty_stage) || 0;
+  let penaltyApplied = false;
+
+  // Stage 1: 3日以上未活動 (所持ptの1/3失効)
+  if (inactiveDays >= 3 && currentStage < 1 && currentPoints > 0) {
+    const decay = Math.round(currentPoints / 3);
+    if (decay > 0) {
+      currentPoints = Math.max(0, currentPoints - decay);
+      const logId = 'log_decay_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      await db.prepare(
+        "INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime('now'))"
+      ).bind(
+        logId,
+        user.id,
+        'parent_adjustment',
+        `⚠️ 3日連続未活動によるポイント失効 (-${decay}pt)`,
+        '3日間連続でポイント獲得がなかったため、所持ポイントの1/3が失効しました。',
+        -decay,
+        'approved'
+      ).run();
+      penaltyApplied = true;
+    }
+    currentStage = 1;
+  }
+
+  // Stage 2: 5日以上未活動 (さらに50%失効)
+  if (inactiveDays >= 5 && currentStage < 2 && currentPoints > 0) {
+    const decay = Math.round(currentPoints * 0.5);
+    if (decay > 0) {
+      currentPoints = Math.max(0, currentPoints - decay);
+      const logId = 'log_decay_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      await db.prepare(
+        "INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime('now'))"
+      ).bind(
+        logId,
+        user.id,
+        'parent_adjustment',
+        `⚠️ 5日連続未活動による追加50%ポイント失効 (-${decay}pt)`,
+        '5日間連続でポイント獲得がなかったため、所持ポイントの50%が失効しました。',
+        -decay,
+        'approved'
+      ).run();
+      penaltyApplied = true;
+    }
+    currentStage = 2;
+  }
+
+  // Stage 3: 10日以上未活動 (全額0pt失効)
+  if (inactiveDays >= 10 && currentStage < 3 && currentPoints > 0) {
+    const decay = currentPoints;
+    currentPoints = 0;
+    const logId = 'log_decay_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    await db.prepare(
+      "INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime('now'))"
+    ).bind(
+      logId,
+      user.id,
+      'parent_adjustment',
+      `⚠️ 10日連続未活動による全ポイント失効 (-${decay}pt)`,
+      '10日間連続でポイント獲得がなかったため、全所持ポイントが失効しました。',
+      -decay,
+      'approved'
+    ).run();
+    penaltyApplied = true;
+    currentStage = 3;
+  }
+
+  if (penaltyApplied || currentStage !== (Number(user.inactivity_penalty_stage) || 0)) {
+    await db.prepare(
+      'UPDATE users SET current_points = ?, inactivity_penalty_stage = ?, last_penalty_date = ? WHERE id = ?'
+    ).bind(currentPoints, currentStage, logicalToday, user.id).run();
+  }
+
+  return { updatedPoints: currentPoints, penaltyApplied };
+}
+
 /**
  * 連続記録の節目（日数）。序盤を厚くしてある。
  * 実績上、子どもたちは3〜4日連続を繰り返し作れているのに5日には一度も届いていない。
@@ -388,6 +500,10 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
       ).bind(logId, userId, 'bonus', title, '連続記録によるボーナスポイントが付与されました！', bonusPointsTotal, 'approved').run();
     }
   }
+
+  // アクションが記録されたので失効ステージと基準日をリセット
+  await db.prepare('UPDATE users SET inactivity_penalty_stage = 0, penalty_base_date = ? WHERE id = ?')
+    .bind(logicalToday, userId).run();
 }
 
 app.use('*', cors());
@@ -397,15 +513,24 @@ app.use('*', cors());
 // ==========================================
 app.get('/api/users', async (c) => {
   try {
+    const logicalToday = getLogicalDate();
     // Never select pin_code — the login screen is public and 1-click, so no
     // client needs it. (Per-child PIN login was removed; only the parent PIN
     // in app_settings is still used, via /api/parent/verify-pin.)
     const { results } = await c.env.DB.prepare(
-      'SELECT id, name, grade_level, avatar, current_points, created_at, last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date, last_all_category_date FROM users ORDER BY created_at ASC'
-    ).all();
-    return c.json({ success: true, users: results });
-  } catch (err: any) {
-    return c.json({ success: false, error: err.message }, 500);
+      'SELECT id, name, grade_level, avatar, current_points, created_at, last_action_date, current_streak_days, last_50pt_date, current_50pt_streak_days, last_100pt_date, current_100pt_streak_days, last_300pt_bonus_date, last_500pt_bonus_date, last_1000pt_bonus_date, last_all_category_date, inactivity_penalty_stage, last_penalty_date, penalty_base_date FROM users ORDER BY created_at ASC'
+    ).all<UserPenaltyRecord>();
+
+    const users = [];
+    for (const u of (results || [])) {
+      const { updatedPoints } = await checkAndApplyInactivityPenalty(c.env.DB, u, logicalToday);
+      users.push({ ...u, current_points: updatedPoints });
+    }
+
+    return c.json({ success: true, users });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ success: false, error: message }, 500);
   }
 });
 
@@ -414,12 +539,41 @@ app.get('/api/users/:id/summary', async (c) => {
     const userId = c.req.param('id');
     const logicalToday = getLogicalDate();
 
-    const user: any = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
+    const user = await c.env.DB.prepare(
+      'SELECT id, current_points, last_action_date, inactivity_penalty_stage, last_penalty_date, penalty_base_date FROM users WHERE id = ?'
+    )
       .bind(userId)
-      .first();
+      .first<UserPenaltyRecord>();
 
     if (!user) {
       return c.json({ success: false, error: 'User not found' }, 404);
+    }
+
+    // 未活動ポイント失効チェックと最新所持ポイントの反映
+    const { updatedPoints } = await checkAndApplyInactivityPenalty(c.env.DB, user, logicalToday);
+    const currentPoints = updatedPoints;
+
+    // 未活動日数の算出
+    let baseDate = user.penalty_base_date || '2026-09-18';
+    if (user.last_action_date && user.last_action_date > baseDate) {
+      baseDate = user.last_action_date;
+    }
+    const inactiveDays = baseDate >= logicalToday ? 0 : getDaysDifference(baseDate, logicalToday);
+
+    // 次回失効までの日数と警告情報
+    let nextPenaltyDays = null;
+    let nextPenaltyLabel = null;
+    if (currentPoints > 0) {
+      if (inactiveDays < 3) {
+        nextPenaltyDays = 3 - inactiveDays;
+        nextPenaltyLabel = '3分の1失効';
+      } else if (inactiveDays < 5) {
+        nextPenaltyDays = 5 - inactiveDays;
+        nextPenaltyLabel = 'さらに50%失効';
+      } else if (inactiveDays < 10) {
+        nextPenaltyDays = 10 - inactiveDays;
+        nextPenaltyLabel = '全額0pt失効';
+      }
     }
 
     // 本日の獲得ポイント
@@ -441,7 +595,6 @@ app.get('/api/users/:id/summary', async (c) => {
       "SELECT COALESCE(SUM(earned_points), 0) as lifetime FROM action_logs WHERE user_id = ? AND status = 'approved'"
     ).bind(userId).first();
 
-    const currentPoints = Number(user.current_points) || 0;
     const lifetimeEarnedPoints = Number(lifetimeResult?.lifetime) || 0;
     // 交換に使った分は wish_items から別集計せず差分で出す。そうすれば
     // 「累計 - 使用 = 所持」が画面上で必ず成立し、2 系統の集計がズレる余地がない。
@@ -473,6 +626,12 @@ app.get('/api/users/:id/summary', async (c) => {
         todayEarnedPoints: todayResult?.total || 0,
         quizTotalCount: quizResult?.total || 0,
         todayCategories,
+        inactiveDays,
+        penaltyWarning: nextPenaltyDays !== null ? {
+          inactiveDays,
+          daysUntilPenalty: nextPenaltyDays,
+          penaltyLabel: nextPenaltyLabel,
+        } : null,
       }
     });
   } catch (err: any) {

@@ -193,20 +193,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
   return (
     <div className="max-w-3xl mx-auto space-y-6">
 
-      {/* Summer Break Campaign Banner */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-between gap-3 shadow-glow-gold">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl animate-bounce">☀️</span>
-          <div>
-            <div className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-              <span>【夏休み限定企画】全アクション対象！ガチャボーナス確率 2倍キャンペーン開催中！🍧</span>
-            </div>
-            <p className="text-xs text-slate-300">
-              8月31日まで、<strong className="text-amber-300 font-bold">全てのポイント獲得（クイズ・読書・映画・運動など）</strong>でラッキーガチャボーナス（2倍・3倍・10倍）発生確率が <strong className="text-amber-300 font-bold">2倍（当選率60%）</strong> に超大幅アップ中！
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Header Banner & Total Questions Count Badge */}
       <div className="space-y-4">

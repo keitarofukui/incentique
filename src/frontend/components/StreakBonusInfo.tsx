@@ -202,6 +202,50 @@ export const StreakBonusInfo: React.FC<Props> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* Inactivity Penalty Rules (ポイント失効ルール) */}
+      <div className="glass-card p-6 sm:p-8 rounded-3xl border border-rose-500/40 space-y-4 bg-gradient-to-br from-rose-950/30 via-slate-900 to-slate-950 shadow-2xl relative overflow-hidden">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+            <span className="text-xl">⚠️</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-rose-300">
+              毎日続けよう！ポイント失効（インアクティビティ）ルール
+            </h3>
+            <p className="text-xs text-slate-400">
+              コツコツ習慣化を促すため、1ポイントも獲得しない日が続くと所持ポイントが段階的に失効します。
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/30 text-center space-y-1">
+            <span className="text-xs font-bold text-rose-300 block">3日連続 0pt</span>
+            <div className="text-lg font-black text-rose-400 font-mono">1/3 失効</div>
+            <p className="text-[0.6875rem] text-slate-400">所持ポイントの約33.3%が失効</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/40 text-center space-y-1">
+            <span className="text-xs font-bold text-rose-300 block">5日連続 0pt</span>
+            <div className="text-lg font-black text-rose-400 font-mono">さらに 50% 失効</div>
+            <p className="text-[0.6875rem] text-slate-400">残ったポイントの半分が失効</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/60 text-center space-y-1 shadow-glow-rose">
+            <span className="text-xs font-bold text-rose-300 block">10日連続 0pt</span>
+            <div className="text-lg font-black text-red-500 font-mono">全額 0 pt に</div>
+            <p className="text-[0.6875rem] text-slate-400">すべての所持ポイントが失効</p>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>
+            <strong>阻止方法：</strong>その日に<strong>たった1ポイント</strong>でも獲得（クイズ1問正解、読書、運動など）すれば、連続未達成は即座にリセットされます！
+          </span>
+        </div>
+      </div>
+
       {/* Rules & Notes */}
       <div className="glass-card p-6 rounded-3xl border border-slate-700/50 space-y-4">
         <h4 className="text-sm font-black text-white flex items-center gap-2">

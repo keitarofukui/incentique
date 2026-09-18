@@ -204,3 +204,20 @@ $ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh design
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
+
+## 15. ポイント失効管理マイグレーション実測（G-4）
+
+### [EV-MIG-1]
+$ npx wrangler d1 execute quest-db --remote --command="PRAGMA table_info(users);"
+PRAGMA table_info(users) remote output:
+19 | inactivity_penalty_stage | INTEGER | 0 | 0 | 0
+20 | last_penalty_date | TEXT | 0 | null | 0
+21 | penalty_base_date | TEXT | 0 | null | 0
+
+### [EV-MIG-2]
+$ npx wrangler d1 execute quest-db --local --command="PRAGMA table_info(users);"
+PRAGMA table_info(users) local output:
+19 | inactivity_penalty_stage | INTEGER | 0 | 0 | 0
+20 | last_penalty_date | TEXT | 0 | null | 0
+21 | penalty_base_date | TEXT | 0 | null | 0
+

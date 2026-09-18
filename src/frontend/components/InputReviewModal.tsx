@@ -148,13 +148,7 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
           </div>
         </div>
 
-        {/* Summer Break Campaign Mini Banner */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/60 to-purple-950/60 border border-amber-500/30 flex items-center gap-3 text-xs text-amber-300">
-          <span className="text-2xl animate-bounce">☀️</span>
-          <div>
-            <span className="font-black text-amber-200">【☀️夏休み確率UP中】</span> 読書・映画・ドラマ・漫画インプットでもガチャボーナス（2倍・3倍・10倍）の当選確率が <strong className="font-mono underline text-amber-200 text-sm">通常の2倍</strong> に大幅UP中！
-          </div>
-        </div>
+
 
         {errorMsg && (
           <div className="p-3.5 rounded-2xl bg-red-950/80 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">

@@ -41,6 +41,9 @@ export interface User {
   last_1000pt_bonus_date?: string | null;
   /** 全カテゴリ制覇ボーナスを付与した論理日 */
   last_all_category_date?: string | null;
+  inactivity_penalty_stage?: number;
+  last_penalty_date?: string | null;
+  penalty_base_date?: string | null;
   created_at: string;
 }
 
@@ -114,6 +117,12 @@ export interface UserSummary {
   todayEarnedPoints: number;
   quizTotalCount: number;
   todayCategories: { [key: string]: boolean };
+  inactiveDays?: number;
+  penaltyWarning?: {
+    inactiveDays: number;
+    daysUntilPenalty: number;
+    penaltyLabel: string;
+  } | null;
 }
 
 export interface DailyStatItem {
