@@ -1216,6 +1216,7 @@ app.get('/api/action-logs', async (c) => {
   try {
     const userId = c.req.query('user_id');
     const status = c.req.query('status');
+    const date = c.req.query('date');
     const page = parseInt(c.req.query('page') || '1', 10);
     const limit = parseInt(c.req.query('limit') || '50', 10);
     const offset = (page - 1) * limit;
@@ -1231,6 +1232,10 @@ app.get('/api/action-logs', async (c) => {
     if (status) {
       conditions.push('action_logs.status = ?');
       params.push(status);
+    }
+    if (date) {
+      conditions.push("date(datetime(action_logs.created_at, '+5 hours')) = ?");
+      params.push(date);
     }
 
     if (conditions.length > 0) {
