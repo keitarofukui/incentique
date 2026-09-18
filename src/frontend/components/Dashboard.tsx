@@ -30,7 +30,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [showDecayBanner, setShowDecayBanner] = useState<boolean>(true);
   const [showCashBanner, setShowCashBanner] = useState<boolean>(true);
-  const [showHouseworkBanner, setShowHouseworkBanner] = useState<boolean>(true);
 
   if (!currentUser) return null;
 
@@ -51,8 +50,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Active until July 31, 2026
   const isCashBackBannerActive = todayLocalDateStr() <= '2026-07-31';
-  // Housework banner active until September 30, 2026
-  const isHouseworkBannerActive = todayLocalDateStr() <= '2026-09-30';
   // ポイント失効ルール告知バナー: 導入日から先頭3日間（2026年9月20日まで）表示
   const isDecayBannerActive = todayLocalDateStr() <= '2026-09-20';
 
@@ -99,42 +96,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* New Feature Notice Banner (Earn by Housework 家事で稼ぐ) */}
-      {showHouseworkBanner && isHouseworkBannerActive && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/90 via-slate-900/90 to-orange-950/90 border-2 border-amber-500/60 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl relative overflow-hidden group">
-          <button
-            onClick={() => setShowHouseworkBanner(false)}
-            className="absolute top-2.5 right-2.5 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all z-10"
-            title="閉じる"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shrink-0 shadow-lg">
-              <Sparkles className="w-7 h-7 text-amber-300 animate-pulse" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs sm:text-sm font-black text-amber-200 flex items-center gap-2 flex-wrap">
-                <span className="bg-amber-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  【✨ 新機能追加】
-                </span>
-                <span>「🧹 家事で稼ぐ」コーナーが新登場！</span>
-              </div>
-              <div className="text-xs text-slate-200 leading-relaxed">
-                洗濯物を干す・畳む、料理、ゴミ捨て等のお手伝い・家事でポイントをGETできるようになりました！
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onNavigate('housework')}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 text-xs font-black hover:brightness-110 transition-all shadow-lg shrink-0 flex items-center justify-center gap-1.5 border border-amber-200/40 whitespace-nowrap"
-          >
-            <span>🧹 家事で稼ぐ画面へ ➔</span>
-          </button>
-        </div>
-      )}
       {/* Cash Back Announcement Banner (Top Most Header Banner, Active until July 31) */}
       {showCashBanner && isCashBackBannerActive && (
         <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-amber-950/90 border-2 border-emerald-500/60 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl relative overflow-hidden group">
