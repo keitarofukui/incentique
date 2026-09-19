@@ -226,7 +226,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
             </div>
           </div>
           <button
-            onClick={() => onNavigate('quizzes')}
+            onClick={() => onNavigate('quiz')}
             className="shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/20 hover:scale-105 transition-all flex items-center gap-1.5"
           >
             <span>🧠 クイズで即阻止！</span>
