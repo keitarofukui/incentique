@@ -903,21 +903,26 @@ app.get('/api/quizzes', async (c) => {
     const studyWhereAnd = studyWhere.replace(/^ WHERE /, ' AND ');
 
     // id is an INTEGER PRIMARY KEY, so MAX(id) is a single b-tree lookup (1 row
-    // read). It drives the random sampling below and doubles as a cheap
-    // "has the question pool changed?" signal for the count cache.
+    // read). It drives the cache invalidation signal when questions are added.
     const maxRow: any = await c.env.DB.prepare('SELECT MAX(id) as maxId FROM quiz_questions').first();
     const maxId = Number(maxRow?.maxId) || 0;
 
-    // 1. Cached total count (24h TTL in app_settings).
-    //    COUNT(*) is a full table scan (~3,600 rows), so it is cached — and the
-    //    value doubles as the selectivity estimate that picks the sampling
-    //    strategy below.
-    //    The cache is also keyed on maxId: importing new questions (via the seed
-    //    scripts or /api/quizzes/generate) bumps it and invalidates the entry
-    //    immediately, instead of leaving the screen showing a stale "全 N 問"
-    //    for up to 24 hours.
-    const cacheKey = `quiz_count_${category || 'all'}_${gradeLevel || 'all'}`;
-    let totalCount: number | null = null;
+    // Helper: Pick k random items from an array without replacement (Fisher-Yates sample)
+    const sampleRandom = <T>(arr: T[], k: number): T[] => {
+      if (arr.length <= k) return [...arr];
+      const copy = [...arr];
+      for (let i = 0; i < k; i++) {
+        const j = i + Math.floor(Math.random() * (copy.length - i));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy.slice(0, k);
+    };
+
+    // 1. Get filtered study quiz IDs (cached in app_settings with 24h TTL, invalidated on maxId bump)
+    const cacheKey = `quiz_ids_${category || 'all'}_${gradeLevel || 'all'}`;
+    let studyIds: number[] | null = null;
 
     try {
       const cacheRow: any = await c.env.DB.prepare(
@@ -927,77 +932,89 @@ app.get('/api/quizzes', async (c) => {
       if (cacheRow && cacheRow.value) {
         const parsed = JSON.parse(cacheRow.value);
         const fresh = Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000;
-        if (typeof parsed.count === 'number' && typeof parsed.timestamp === 'number' && fresh && parsed.maxId === maxId) {
-          totalCount = parsed.count;
+        if (Array.isArray(parsed.ids) && fresh && parsed.maxId === maxId) {
+          studyIds = parsed.ids;
         }
       }
     } catch (_) {}
 
-    if (totalCount === null) {
-      const countRes: any = await c.env.DB.prepare(
-        `SELECT COUNT(*) as total FROM quiz_questions${studyWhere}`
-      ).bind(...studyParams).first();
-      totalCount = countRes?.total || 0;
+    if (studyIds === null) {
+      // Lightweight ID query (only reads id column once per 24h or when questions change)
+      const idsRes = await c.env.DB.prepare(
+        `SELECT id FROM quiz_questions${studyWhere}`
+      ).bind(...studyParams).all();
+
+      studyIds = (idsRes.results || [])
+        .map((r: any) => Number(r.id))
+        .filter((n: number) => Number.isInteger(n) && n > 0);
 
       try {
         await c.env.DB.prepare(
           'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
-        ).bind(cacheKey, JSON.stringify({ count: totalCount, timestamp: Date.now(), maxId })).run();
+        ).bind(cacheKey, JSON.stringify({ ids: studyIds, timestamp: Date.now(), maxId })).run();
       } catch (_) {}
     }
 
-    // 2. Fetch study quizzes.
-    //
-    //    Random primary-key sampling avoids ORDER BY RANDOM() reading the whole
-    //    table, but it only pays off when the filter is loose enough that a
-    //    sample of SAMPLE_SIZE ids reliably contains NEEDED matches. For a
-    //    selective filter (e.g. a single subject) the sample mostly misses and
-    //    we would pay for the attempt *and* the fallback, so go straight to the
-    //    indexed ORDER BY RANDOM() instead.
+    const totalCount = studyIds.length;
     const NEEDED = 45;
-    const SAMPLE_SIZE = 150;
 
+    // 2. Sample 45 study quiz IDs and fetch ONLY those rows (Row Read: at most 45 rows)
     let studyQuizzes: any[] = [];
-    const expectedHits = maxId > 0 ? (SAMPLE_SIZE * (totalCount ?? 0)) / maxId : 0;
-
-    if (expectedHits >= NEEDED * 1.4) {
-      const ids = new Set<number>();
-      while (ids.size < Math.min(SAMPLE_SIZE, maxId)) {
-        ids.add(Math.floor(Math.random() * maxId) + 1);
-      }
-
-      // D1 allows at most 100 bound parameters per query, so the sampled ids are
-      // inlined rather than bound. They are integers generated here, never input.
-      const idList = Array.from(ids).map((n) => Math.trunc(n)).join(',');
-
-      // ORDER BY RANDOM() over the sampled ids only (<= SAMPLE_SIZE rows, not the
-      // table). Without it, LIMIT returns the lowest ids of the sample, which
-      // biases every quiz session towards the earliest-seeded questions.
-      const sampledRes = await c.env.DB.prepare(
-        `SELECT * FROM quiz_questions WHERE id IN (${idList})${studyWhereAnd} ORDER BY RANDOM() LIMIT ${NEEDED}`
-      ).bind(...studyParams).all();
-      studyQuizzes = sampledRes.results || [];
+    if (studyIds.length > 0) {
+      const sampledStudyIds = sampleRandom(studyIds, NEEDED);
+      const inClause = sampledStudyIds.join(',');
+      const rowsRes = await c.env.DB.prepare(
+        `SELECT * FROM quiz_questions WHERE id IN (${inClause})`
+      ).all();
+      studyQuizzes = rowsRes.results || [];
     }
 
-    // Fallback: selective filter, or an unlucky draw. The index on
-    // (category, grade_level) keeps this to the matching rows, not the table.
-    if (studyQuizzes.length < NEEDED) {
-      const fallbackRes = await c.env.DB.prepare(
-        `SELECT * FROM quiz_questions${studyWhere} ORDER BY RANDOM() LIMIT ${NEEDED}`
-      ).bind(...studyParams).all();
-      studyQuizzes = fallbackRes.results || [];
-    }
-
-    // 3. Fetch Anime Break-time Quizzes (Bonus Mix: 3 items)
+    // 3. Fetch Anime Break-time Quizzes (3 items) - using ID sampling to eliminate ORDER BY RANDOM()
     let animeQuizzes: any[] = [];
     if (studyQuizzes.length > 0) {
-      const animeRes = await c.env.DB.prepare(
-        `SELECT * FROM quiz_questions WHERE category = 'anime_manga' ORDER BY RANDOM() LIMIT 3`
-      ).all();
-      animeQuizzes = animeRes.results || [];
+      const animeCacheKey = 'quiz_ids_anime_manga';
+      let animeIds: number[] | null = null;
+
+      try {
+        const animeCacheRow: any = await c.env.DB.prepare(
+          'SELECT value FROM app_settings WHERE key = ?'
+        ).bind(animeCacheKey).first();
+
+        if (animeCacheRow && animeCacheRow.value) {
+          const parsed = JSON.parse(animeCacheRow.value);
+          const fresh = Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000;
+          if (Array.isArray(parsed.ids) && fresh && parsed.maxId === maxId) {
+            animeIds = parsed.ids;
+          }
+        }
+      } catch (_) {}
+
+      if (animeIds === null) {
+        const animeIdsRes = await c.env.DB.prepare(
+          "SELECT id FROM quiz_questions WHERE category = 'anime_manga'"
+        ).all();
+        animeIds = (animeIdsRes.results || [])
+          .map((r: any) => Number(r.id))
+          .filter((n: number) => Number.isInteger(n) && n > 0);
+
+        try {
+          await c.env.DB.prepare(
+            'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+          ).bind(animeCacheKey, JSON.stringify({ ids: animeIds, timestamp: Date.now(), maxId })).run();
+        } catch (_) {}
+      }
+
+      if (animeIds.length > 0) {
+        const sampledAnimeIds = sampleRandom(animeIds, 3);
+        const inClause = sampledAnimeIds.join(',');
+        const animeRowsRes = await c.env.DB.prepare(
+          `SELECT * FROM quiz_questions WHERE id IN (${inClause})`
+        ).all();
+        animeQuizzes = animeRowsRes.results || [];
+      }
     }
 
-    // Combine & Fisher-Yates Shuffle
+    // 4. Combine & Fisher-Yates Shuffle
     const combined = [...studyQuizzes, ...animeQuizzes];
     for (let i = combined.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
