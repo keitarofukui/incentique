@@ -76,30 +76,29 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-slate-950/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-1.5 sm:gap-3">
 
-        {/* Brand — owns the left side on its own. Every control lives in the
-            right-hand group, so nothing can ever sit on top of the title. */}
+        {/* Brand — owns the left side. Kept shrink-0 so title never truncates on mobile */}
         <div
           onClick={() => setActiveTab('dashboard')}
-          className="flex items-center gap-2 cursor-pointer group min-w-0"
+          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
         >
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center shadow-glow-cyan group-hover:scale-105 transition-transform shrink-0">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center shadow-glow-cyan group-hover:scale-105 transition-transform shrink-0">
+            <Sparkles className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-slate-950" />
           </div>
-          <span className="font-mono font-black text-base sm:text-xl tracking-wide sm:tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple truncate">
+          <span className="font-mono font-black text-xs min-[390px]:text-sm sm:text-xl tracking-tight sm:tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-white to-cyber-neonPurple whitespace-nowrap">
             INCENTI QUEST
           </span>
         </div>
 
         {/* Controls: user badge, points badge, parent mode, logout */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 min-w-0">
           {currentUser && !isParentMode && (
             <>
               {/* User Name Badge */}
               <div
                 onClick={() => setActiveTab('dashboard')}
-                className="glass-card px-2 sm:px-2.5 py-1 rounded-2xl border border-slate-700/80 flex items-center gap-1 cursor-pointer hover:border-slate-500 transition-all shrink-0 max-w-[85px] sm:max-w-[130px]"
+                className="glass-card px-1.5 sm:px-2.5 py-1 rounded-2xl border border-slate-700/80 flex items-center gap-1 cursor-pointer hover:border-slate-500 transition-all shrink-0 max-w-[55px] min-[390px]:max-w-[70px] sm:max-w-[130px]"
                 title={`ログイン中: ${currentUser.name}`}
               >
                 <span className="text-xs shrink-0">{currentUser.avatar || '⚡'}</span>
@@ -109,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Points Badge */}
               <div
                 onClick={() => setActiveTab('wishlist')}
-                className="glass-card px-2 sm:px-3 py-1 rounded-2xl border border-amber-500/40 flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:border-amber-400 transition-all shadow-glow-gold shrink-0"
+                className="glass-card px-1.5 sm:px-3 py-1 rounded-2xl border border-amber-500/40 flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:border-amber-400 transition-all shadow-glow-gold shrink-0"
               >
                 <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                 <div className="flex flex-col">

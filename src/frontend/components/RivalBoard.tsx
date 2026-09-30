@@ -15,9 +15,13 @@ export const RivalBoard: React.FC<RivalBoardProps> = ({ users, currentUser, acti
   const sortedRivals = [...users].sort((a, b) => b.current_points - a.current_points);
   const userRankIndex = sortedRivals.findIndex((u) => u.id === currentUser.id);
 
-  // Find leader or person ahead
+  // Find leader and person ahead
+  const leader = sortedRivals.length > 0 ? sortedRivals[0] : null;
+  const isLeader = userRankIndex === 0;
+  const isSecond = userRankIndex === 1;
   const personAhead = userRankIndex > 0 ? sortedRivals[userRankIndex - 1] : null;
   const gapToAhead = personAhead ? personAhead.current_points - currentUser.current_points : 0;
+  const gapToLeader = leader && !isLeader ? leader.current_points - currentUser.current_points : 0;
 
   return (
     <div className="glass-card p-6 sm:p-8 rounded-3xl space-y-6 border border-cyber-border">
@@ -31,17 +35,29 @@ export const RivalBoard: React.FC<RivalBoardProps> = ({ users, currentUser, acti
           <p className="text-xs text-slate-400">お互いのポイント獲得状況を高め合おう！</p>
         </div>
 
-        {personAhead ? (
-          <div className="bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-red-300 flex items-center gap-2">
-            <Flame className="w-4 h-4 text-red-400 animate-bounce" />
-            <span>首位の【{personAhead.name}】まで あと <strong className="text-amber-400 font-mono text-sm">{gapToAhead.toLocaleString()} pt</strong>！</span>
-          </div>
-        ) : (
+        {isLeader ? (
           <div className="bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-amber-300 flex items-center gap-2 shadow-glow-gold">
             <Trophy className="w-4 h-4 text-amber-400 animate-pulse" />
             <span>あなたが現在ランキング 1 位です！👑</span>
           </div>
-        )}
+        ) : isSecond && personAhead ? (
+          <div className="bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-red-300 flex items-center gap-2">
+            <Flame className="w-4 h-4 text-red-400 animate-bounce" />
+            <span>首位の【{personAhead.name}】まで あと <strong className="text-amber-400 font-mono text-sm">{gapToAhead.toLocaleString()} pt</strong>！</span>
+          </div>
+        ) : personAhead ? (
+          <div className="bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-red-300 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-4 h-4 text-red-400 animate-bounce shrink-0" />
+              <span>次の順位（{userRankIndex}位）の【{personAhead.name}】まで あと <strong className="text-amber-400 font-mono text-sm">{gapToAhead.toLocaleString()} pt</strong>！</span>
+            </div>
+            {leader && leader.id !== personAhead.id && (
+              <span className="text-[0.6875rem] text-slate-400 font-normal">
+                （首位【{leader.name}】まで あと {gapToLeader.toLocaleString()} pt）
+              </span>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Leaderboard Cards */}

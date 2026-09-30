@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { ActionLog, DailyStatItem } from '../types';
 import { TrendingUp, Flame, Calendar, X, Clock, Sparkles, ChevronRight, Activity } from 'lucide-react';
 import { logLocalDateStr, toLocalDateStr, parseLogDate } from '../dateUtils';
@@ -8,6 +8,7 @@ interface DailyChartProps {
   userId: string;
   dailyStats?: DailyStatItem[];
 }
+
 
 const getCategoryDetails = (category: string) => {
   if (category === 'quiz' || category === 'study') {
@@ -73,6 +74,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dayLogsCache, setDayLogsCache] = useState<Record<string, ActionLog[]>>({});
   const [isLoadingDayLogs, setIsLoadingDayLogs] = useState<boolean>(false);
+  const dayDetailPanelRef = useRef<HTMLDivElement | null>(null);
 
   // Filter approved logs for current user (fallback)
   const userLogs = useMemo(() => {
@@ -89,6 +91,11 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
     }
 
     setSelectedDate(dateStr);
+
+    // スムーズスクロールで詳細パネルを表示領域に引き寄せる
+    setTimeout(() => {
+      dayDetailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
 
     if (dayLogsCache[dateStr]) {
       return;
@@ -330,7 +337,6 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">「食事」と「ボーナス」を完全分離！どの分野をどれだけ頑張ったか一目でわかる</p>
           </div>
         </div>
 
@@ -372,19 +378,12 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
         </div>
       </div>
 
-      {/* Guide message & 5-Category Legend Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-1.5 text-xs text-cyan-300 bg-cyan-950/40 px-3 py-1.5 rounded-xl border border-cyan-500/30">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
-          <span>グラフの日付をタップすると、その日の「何をして何pt獲得したか」の明細が見られます</span>
+      {/* 5-Category Legend Bar */}
+      <div className="flex items-center justify-start sm:justify-end gap-2 sm:gap-3 text-xs font-bold text-slate-300 flex-wrap pt-1">
+        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-cyan-500/30">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block shadow-glow-cyan" />
+          <span className="text-cyan-300">🧠 クイズ</span>
         </div>
-
-        {/* 5-Category Legend Bar */}
-        <div className="flex items-center justify-end gap-2 sm:gap-3 text-xs font-bold text-slate-300 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-cyan-500/30">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block shadow-glow-cyan" />
-            <span className="text-cyan-300">🧠 クイズ</span>
-          </div>
           <div className="flex items-center gap-1.5 bg-purple-950/40 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl border border-purple-500/30">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block shadow-glow-purple" />
             <span className="text-purple-300">📚 インプット</span>
@@ -402,7 +401,6 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
             <span className="text-rose-300">🎁 ボーナス</span>
           </div>
         </div>
-      </div>
 
       {/* 5-Layer Menu-Matched Stacked Animated Area Chart */}
       <div className="pt-2 relative">
@@ -659,7 +657,10 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
 
       {/* Selected Day Action Logs Detail Panel (タップした日の詳細明細) */}
       {selectedDate && selectedDayData && (
-        <div className="mt-4 bg-slate-950/90 border border-cyan-500/40 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
+        <div
+          ref={dayDetailPanelRef}
+          className="mt-4 bg-slate-950/90 border border-cyan-500/40 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300"
+        >
           {/* Panel Header */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -737,7 +738,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
                         {catInfo.icon}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-sm text-slate-100 truncate">
+                        <div className="font-bold text-sm text-slate-100 break-words leading-snug">
                           {log.title_or_menu}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
