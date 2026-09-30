@@ -145,16 +145,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <DailyChart actionLogs={actionLogs} userId={currentUser.id} dailyStats={dailyStats} />
 
       {/* 4. BLOCK 4: 主な活動成果タイムライン */}
-      <div className="glass-card p-6 rounded-2xl space-y-4">
+      <div className="glass-card p-3.5 sm:p-5 rounded-2xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
               <Clock className="w-5 h-5 text-slate-400" />
-              <span>主な活動成果（読書・運動・インプット）</span>
+              <span>主な活動成果</span>
             </h3>
             {quizSuccessCount > 0 && (
               <span className="text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-0.5 rounded-full">
-                🧠 クイズ累積正解: {quizSuccessCount}問 (+{quizSuccessCount}pt)
+                🧠 クイズ累積正解: {quizSuccessCount}問
               </span>
             )}
           </div>
@@ -175,15 +175,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {userMajorLogs.slice(0, 5).map((log) => (
               <div
                 key={log.id}
-                className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start justify-between gap-3 text-xs"
               >
                 <div className="space-y-1 min-w-0">
-                  <div className="font-bold text-white truncate flex items-center gap-2">
-                    <span className="text-slate-400 text-xs">{log.category}</span>
-                    <span>{log.title_or_menu}</span>
+                  <div className="font-bold text-white break-words">
+                    {log.title_or_menu}
                   </div>
                   {log.review_text && (
-                    <p className="text-slate-300 text-xs line-clamp-1">{log.review_text}</p>
+                    <p className="text-slate-300 text-xs break-words">{log.review_text}</p>
                   )}
                 </div>
                 <div className="text-right shrink-0">

@@ -323,7 +323,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     <div className="flex items-center gap-2">
                       {isCash ? (
                         <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-md text-xs font-bold flex items-center gap-1 shrink-0">
-                          <Banknote className="w-3 h-3" /> 現金還元 (7掛け)
+                          <Banknote className="w-3 h-3" /> 現金還元
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-md text-xs font-bold flex items-center gap-1 shrink-0">
@@ -379,13 +379,16 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-400 font-mono">
                         <span>達成度</span>
-                        <span>{progress}% ({currentPoints.toLocaleString()} / {item.required_points.toLocaleString()} pt)</span>
+                        <span>{progress}%</span>
                       </div>
                       <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                         <div
                           className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 rounded-full transition-all duration-500"
                           style={{ width: `${progress}%` }}
                         ></div>
+                      </div>
+                      <div className="text-right text-[0.6875rem] text-slate-400 font-mono mt-0.5">
+                        {currentPoints.toLocaleString()} / {item.required_points.toLocaleString()} pt
                       </div>
                     </div>
                   </div>
@@ -439,7 +442,6 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                           <ShoppingCart className="w-4 h-4" />
                           <span>{isCash ? `💵 現金 ${cashAmount.toLocaleString()}円と交換申請！` : '🎁 これと交換したい！親にリクエスト'}</span>
                         </button>
-                        <p className="text-xs text-slate-400 text-center">※手渡し時に {item.required_points.toLocaleString()} pt が引き落とされます</p>
                       </div>
                     ) : (
                       <div className="w-full py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-center font-bold text-xs flex items-center justify-center gap-1.5">
@@ -493,7 +495,7 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                     }`}
                   >
                     <Banknote className="w-4 h-4 text-emerald-400" />
-                    <span>💵 現金還元 (7掛け)</span>
+                    <span>💵 現金還元</span>
                   </button>
                 </div>
               </div>

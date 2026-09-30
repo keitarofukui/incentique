@@ -311,7 +311,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs font-black text-indigo-300 flex items-center gap-1">
               <span>🔥 デイリー</span>
-              <span className="text-xs font-normal text-slate-400">(1pt+)</span>
+              <span className="text-[0.625rem] text-slate-500 font-mono ml-1">1pt+</span>
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
               streakDaily > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
@@ -347,7 +347,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs font-black text-rose-300 flex items-center gap-1">
               <span>💥 中級</span>
-              <span className="text-xs font-normal text-slate-400">({midThreshold}pt+)</span>
+              <span className="text-[0.625rem] text-slate-500 font-mono ml-1">{midThreshold}pt+</span>
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
               streakMid > 0 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-400'
@@ -391,7 +391,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs font-black text-amber-300 flex items-center gap-1">
               <span>👑 神</span>
-              <span className="text-xs font-normal text-slate-400">({godThreshold}pt+)</span>
+              <span className="text-[0.625rem] text-slate-500 font-mono ml-1">{godThreshold}pt+</span>
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
               streakGod > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
@@ -439,7 +439,7 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               {reachedMilestone ? (
                 <> 達成！ <strong className="text-emerald-300 font-mono">+{(reachedMilestone * dailyMultiplier).toLocaleString()}pt</strong></>
               ) : upcomingMilestone ? (
-                <span className="text-slate-400">（次の節目 {upcomingMilestone}日まであと{upcomingMilestone - streakIfRecorded}日 → +{(upcomingMilestone * dailyMultiplier).toLocaleString()}pt）</span>
+                <span className="text-slate-400 font-normal"> · あと{upcomingMilestone - streakIfRecorded}日で +{(upcomingMilestone * dailyMultiplier).toLocaleString()}pt</span>
               ) : null}
             </span>
           </div>
@@ -449,7 +449,6 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
               <span className="text-rose-400 font-black shrink-0">しなければ</span>
               <span className="text-rose-200">
                 → <strong className="text-rose-100">0日に戻る</strong>
-                <span className="text-rose-300/80">（積み上げた{streakDaily}日が消滅）</span>
               </span>
             </div>
           )}

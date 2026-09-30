@@ -88,7 +88,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
   };
 
   return (
-    <div className="glass-card p-6 rounded-3xl border border-amber-500/30 space-y-6 shadow-2xl relative overflow-hidden">
+    <div className="glass-card p-3.5 sm:p-5 rounded-3xl border border-amber-500/30 space-y-5 shadow-2xl relative overflow-hidden">
       
       {/* Celebratory Banner when Goal 100% Reached */}
       {progressPercent >= 100 && targetPoints > 0 && (
@@ -123,7 +123,6 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
                 いつでも変更OK
               </span>
             </div>
-            <p className="text-xs text-slate-400">期間までの残り日数から、1日あたり必要な頑張りペースを自動算出！</p>
           </div>
         </div>
 
@@ -147,7 +146,7 @@ export const GoalPlannerWidget: React.FC<GoalPlannerWidgetProps> = ({
         {/* Card 1: Target Item */}
         <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目標のご褒美</span>
-          <div className="text-base font-black text-amber-300 truncate">{targetTitle || '未設定 (目標を設定しよう)'}</div>
+          <div className="text-base font-black text-amber-300 truncate">{targetTitle || '未設定'}</div>
           <div className="text-xs text-amber-400 font-mono font-extrabold">{targetPoints.toLocaleString()} pt 目標</div>
         </div>
 

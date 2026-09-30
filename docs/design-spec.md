@@ -1,187 +1,310 @@
-# 機能設計仕様書: 細かいUI/UXの改善（スマホ縦表示・グラフ文言＆詳細ログ視認性・ライバル順位表示）
+# 設計仕様書: UI横幅有効活用・不要な括弧（）及び冗長説明の削減
 
-- 作成日時: 2026-09-30 18:33
+- 版数: v1.1
+- 作成日時: 2026-09-30 19:35
 - 対象リポジトリ/ブランチ: game / main
-- 対象コミット: 2b661df
-- 上流 Artifact: docs/investigation-report.md（対象コミット: 2b661df）
+- 対象コミット: 2c17559
+- 上流 Artifact: なし（直接設計）
+- トラック: ライト
 
-## 0. 上流の抜き取り再実測（§2-3・軽量コマンド 3 件）
+---
 
-### [EV-1] 上流 [EV-1] の再実行（Git 状態）
-$ git rev-parse --short HEAD && git branch --show-current
-2b661df
-main
+## 1. 目的とスコープ
 
-- 【実測】コミットは 2b661df、ブランチは main で上流と一致 [EV-1]。
+### 1-1. 目的
+スマホ縦画面（横幅375px〜390px）における画面領域の浪費を解消し、情報密度と可読性を向上させる。
+1. **グラフタップ時詳細ログ**: クイズ問題文が実効幅約160px【推定】・2行制限で途切れ、肝心の内容が読めない問題を解消する。
+2. **主な活動成果タイムライン**: タイトル内の不要な（）により3行折り返し【推定】が発生している問題と、生英単語露出・truncateによる文字切れを解消する。
+3. **不要な（）表記・自明な説明文の削減**: 見れば自明な注釈（「自動算出！」等）や、不要な括弧（「(1pt+)」「(7掛け)」等）をスリム化する。
 
-### [EV-2] 上流 [EV-3] の再実行（DailyChart.tsx L330-336）
-$ sed -n '330,336p' src/frontend/components/DailyChart.tsx
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-400">「食事」と「ボーナス」を完全分離！どの分野をどれだけ頑張ったか一目でわかる</p>
+### 1-2. トラック選定理由
+- 変更対象はフロントエンドUIコンポーネント（`src/frontend/components/`）のみ。
+- スキーマ（DBマイグレーション）、機密フィールド、外部API、認証には一切触れない。
+- 想定差分行数は約80〜150行（< 200行）。
+
+---
+
+## 2. 確定済みの前提
+
+- 本番URL: `https://quest-habit-app.keitaro-fukui.workers.dev` は正常稼働中 [EV-1]
+- HEAD コミット: `2c17559` [EV-2]
+- フロントエンド技術スタック: React + Vite + Tailwind CSS [EV-3]
+
+---
+
+## 3. 現状の課題と実測証跡
+
+### [EV-1]
+$ curl -s -o /dev/null -w "%{http_code}\n" https://quest-habit-app.keitaro-fukui.workers.dev
+200
+
+### [EV-2]
+$ git rev-parse --short HEAD
+2c17559
+
+### [EV-3]
+$ grep -n '"react"\|"vite"\|"tailwindcss"' package.json
+7:    "dev": "vite",
+17:    "react": "^18.3.1",
+30:    "tailwindcss": "^3.4.17",
+33:    "vite": "^6.0.5",
+
+### [EV-4]
+$ sed -n '732,765p' src/frontend/components/DailyChart.tsx
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all gap-3"
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl border flex items-center justify-center text-base shrink-0 ${catInfo.color}`}>
+                        {catInfo.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-slate-100 break-words leading-snug">
+                          {log.title_or_menu}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                          <span className={`px-1.5 py-0.5 rounded-lg text-[0.6875rem] border ${catInfo.color}`}>
+                            {catInfo.label}
+                          </span>
+                          {timeStr && (
+                            <span className="flex items-center gap-1 font-mono text-slate-400">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              {timeStr}
+                            </span>
+                          )}
+                        </div>
+                        {log.review_text && (
+                          <p className="text-xs text-slate-300 mt-1.5 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 italic line-clamp-2">
+                            "{log.review_text}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="font-black text-sm sm:text-base font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-xl shadow-inner">
+                        +{log.earned_points} pt
+                      </span>
+
+### [EV-5]
+$ sed -n '150,187p' src/frontend/components/Dashboard.tsx
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+              <Clock className="w-5 h-5 text-slate-400" />
+              <span>主な活動成果（読書・運動・インプット）</span>
+            </h3>
+            {quizSuccessCount > 0 && (
+              <span className="text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-0.5 rounded-full">
+                🧠 クイズ累積正解: {quizSuccessCount}問 (+{quizSuccessCount}pt)
+              </span>
+            )}
           </div>
+          <button
+            onClick={() => onNavigate('action-logs')}
+            className="text-xs font-bold text-cyber-neonCyan hover:underline self-start sm:self-auto"
+          >
+            全ログ・絞り込み表示 →
+          </button>
         </div>
+...(中略)
+                  <div className="font-bold text-white truncate flex items-center gap-2">
+                    <span className="text-slate-400 text-xs">{log.category}</span>
+                    <span>{log.title_or_menu}</span>
+                  </div>
+                  {log.review_text && (
+                    <p className="text-slate-300 text-xs line-clamp-1">{log.review_text}</p>
+                  )}
 
-- 【実測】L333 に「完全分離」文言が存在し上流と一致 [EV-2]。
+### [EV-6]
+$ sed -n '312,320p' src/frontend/components/PersonalStreakCard.tsx
+            <span className="text-xs font-black text-indigo-300 flex items-center gap-1">
+              <span>🔥 デイリー</span>
+              <span className="text-xs font-normal text-slate-400">(1pt+)</span>
+            </span>
+            <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
+              streakDaily > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
+            }`}>
+              {streakDaily}日連続
+            </span>
 
-### [EV-3] 上流 [EV-9] の再実行（「首位」検索）
-$ grep -rn "首位" src/
-src/frontend/components/RivalBoard.tsx:37:            <span>首位の【{personAhead.name}】まで あと <strong className="text-amber-400 font-mono text-sm">{gapToAhead.toLocaleString()} pt</strong>！</span>
+【実測】`DailyChart.tsx:L734-765` において、`p-2.5` カード内に左アイコン（36px）と右ptバッジ（約80px）が横並び配置され、問題文 `review_text` に `line-clamp-2` が指定されている [EV-4]。
+【推定】モバイル幅（375px）では左右要素により問題文の横幅が約160pxに制限され文字切れする。確定方法: 製造後の幅375pxブラウザ実画面検証（G-13）。
+【実測】`Dashboard.tsx:L153` の見出しに `（読書・運動・インプット）` が含まれ、L157 のクイズバッジと並んで配置され、L182 では生カテゴリ英単語 `log.category` が露出して `truncate` が設定されている [EV-5]。
+【推定】モバイル幅では見出しが3行に折り返す。確定方法: 同上。
+【実測】`PersonalStreakCard.tsx:L314` に `(1pt+)` などの括弧書きが存在する [EV-6]。
 
-- 【実測】ヒットは RivalBoard.tsx:37 の 1 件のみで上流と一致 [EV-3]。
+---
 
-### [EV-4] 上流 [EV-7] の再実行（users テーブルの首位確認）
-$ npx wrangler d1 execute quest-db --remote --command "SELECT id, name, current_points FROM users ORDER BY current_points DESC;"
-│ id                      │ name         │ current_points │
-├─────────────────────────┼──────────────┼────────────────┤
-│ user_1784723445812_y29a │ シュンタロウ │ 31925          │
-│ user_1784722928426_3ng3 │ りょーたろ   │ 16109          │
+## 3-1. 未確認事項
 
-- 【実測】1位はシュンタロウ、2位はりょーたろで上流と一致 [EV-4]。
+- 実機スクリーンショット上の視覚的崩れ（問題文幅約160px、見出し3行折り返し）はクラス定義からの【推定】であり、実画面のピクセル単位のレンダリング状況は未確認。
+- 確定方法: 製造後の幅375pxブラウザによる G-13 実行時検証（`操作:` / `観測:` / `Console:`）にて確定する。
 
-### [EV-5] 上流 [EV-10] の再実行（ビルド・型チェック）
-$ npx tsc --noEmit
-(0 errors)
+---
 
-- 【実測】型エラー 0 件で上流と一致 [EV-5]。
+## 4. 改修仕様
 
-## 0-1. 確定済みの前提（上流から引き継ぎ・再実測しない / §2-5）
-| 事実 | 根拠 |
-| :--- | :--- |
-| リポジトリ HEAD は 2b661df | [EV-1] |
-| npx tsc --noEmit はエラー 0 件 | [EV-5] |
-| 所持ポイント首位はシュンタロウ（31,925pt）、りょーたろは2位（16,109pt） | [EV-4] |
+### 4-1. DailyChart.tsx: 詳細ログの2段カード化
+- **見出し（L726）**:
+  - `獲得アクション一覧（全{selectedDayLogs.length}件）` ➔ `獲得アクション一覧 {selectedDayLogs.length}件` （（）を削除）。
+- **ログアイテム行（L734-L768）を上下2段構造に変更**:
+  ```tsx
+  <div
+    key={log.id}
+    className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all space-y-2"
+  >
+    {/* 上段: カテゴリ情報・時刻 ＆ 右寄せptバッジ */}
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className={`w-7 h-7 rounded-xl border flex items-center justify-center text-sm shrink-0 ${catInfo.color}`}>
+          {catInfo.icon}
+        </div>
+        <span className={`px-1.5 py-0.5 rounded-lg text-[0.6875rem] border shrink-0 ${catInfo.color}`}>
+          {catInfo.label}
+        </span>
+        {timeStr && (
+          <span className="flex items-center gap-1 font-mono text-slate-400 text-xs">
+            <Clock className="w-3 h-3 text-slate-400" />
+            {timeStr}
+          </span>
+        )}
+      </div>
+      <div className="text-right shrink-0">
+        <span className="font-black text-sm font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-xl shadow-inner">
+          +{log.earned_points} pt
+        </span>
+      </div>
+    </div>
 
-- トラック: ライト（理由: DBスキーマ・機密・外部API・認証に変更がなく、フロントエンドのUIレイアウト・文言修正・CSS調整のみで製品コード差分が100行未満のため / §2-6）
-- トラック自己照合: §12 の変更対象パス = `src/frontend/components/Header.tsx`, `src/frontend/components/DailyChart.tsx`, `src/frontend/components/RivalBoard.tsx` / リスクパス（migrations, auth, secret, credential, token, .env, wrangler.toml）および他レーン共有パスへの抵触: 無し（適合）
+    {/* 下段（全幅展開）: タイトル ＆ クイズ問題文（制限解除） */}
+    <div className="space-y-1">
+      <div className="font-bold text-sm text-slate-100 break-words leading-snug">
+        {log.title_or_menu}
+      </div>
+      {log.review_text && (
+        <p className="text-xs text-slate-300 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80 italic break-words">
+          "{log.review_text}"
+        </p>
+      )}
+    </div>
+  </div>
+  ```
+  - **行数制限の決定**: 親コンテナ（L723）に `max-h-80 overflow-y-auto` が設定されているため、`line-clamp` は**制限解除**とし、全文読めるようにする。
 
-## 1. 概要・目的
-ユーザーから指摘された4点の細かいUI/UX不具合を解消し、モバイル利用時およびランキング閲覧時の体験を最適化する。
-1. スマホ縦表示時にアプリタイトル「INCENTI QUEST」が省略・消失する問題を解消。
-2. ホーム獲得ポイント推移グラフの不要文言（「完全分離」サブタイトル、日付タップガイド説明文）を削除。
-3. グラフの日付タップ時に、詳細ログパネルへ自然にスクロール連動させ、ログタイトルを折り返し表示（長文でも全表示）にする。
-4. ライバルタブにおいて、3位以下のユーザー視点で直上の相手（2位のりょーたろ等）が「首位」と誤認表示されるロジック・文言を是正。
+### 4-2. Dashboard.tsx: 「主な活動成果」のスリム化
+- **外枠パディング（L148）**:
+  - `glass-card p-6 rounded-2xl space-y-4` ➔ `glass-card p-3.5 sm:p-5 rounded-2xl space-y-4`
+- **見出しラッパー（L149-L160）**:
+  - `flex flex-col sm:flex-row sm:items-center justify-between gap-2`
+  - 見出し（L153）: `主な活動成果（読書・運動・インプット）` ➔ **`主な活動成果`**
+  - クイズ累積正解バッジ（L157）: `🧠 クイズ累積正解: {quizSuccessCount}問 (+{quizSuccessCount}pt)` ➔ `🧠 クイズ累積正解: {quizSuccessCount}問`（重複括弧 `(+{...}pt)` を削除）
+- **ログリスト行（L178-L188）**:
+  - コンテナ（L178）: `items-center` ➔ `items-start`
+  - 生英単語 `<span className="text-slate-400 text-xs">{log.category}</span>` を**削除**。
+  - タイトル（L181）の `truncate` を削除し `break-words` に変更。
 
-## 2. 機能要件 / 非機能要件
-### 機能要件
-- **FR-1 (Header)**: 幅360px〜430pxのモバイル画面で、タイトル「INCENTI QUEST」が切り詰められず完全に視認できること。
-- **FR-2 (DailyChart不要文言削除)**: 「「食事」と「ボーナス」を完全分離！...」および「グラフの日付をタップすると、その日の「何をして何pt獲得したか」の明細が見られます」を削除し、すっきりとした配置にすること。
-- **FR-3 (DailyChart詳細ログ改善)**:
-  - 日付タップ時、自動的に詳細パネル（`Selected Day Action Logs Detail Panel`）が見える位置へスムーズスクロールすること。
-  - ログカードの `title_or_menu` を `truncate` から複数行折り返し（`break-words`）に変更し、30文字以上のストリークボーナス名等も全文読めること。
-- **FR-4 (RivalBoard順位文言是正)**:
-  - 1位のとき: 「あなたが現在ランキング 1 位です！👑」
-  - 2位のとき: 「首位の【{首位の名前}】まで あと {差分} pt！」
-  - 3位以下のとき: 「次の順位（{直上の順位}位）の【{直上の名前}】まで あと {直上との差分} pt！」（首位との差分もサブ表示）
+### 4-3. PersonalStreakCard.tsx: 基準値・報酬額を保持した（）の整理
+- **ストリーク基準値ヘッダー**: 基準値は保護者設定で変動するため消さず、括弧を外して小さく併記する。
+  - デイリー（L314）: `(1pt+)` ➔ `<span className="text-[0.625rem] text-slate-500 font-mono ml-1">1pt+</span>`
+  - 中級（L350）: `({midThreshold}pt+)` ➔ `<span className="text-[0.625rem] text-slate-500 font-mono ml-1">{midThreshold}pt+</span>`
+  - 神（L394）: `({godThreshold}pt+)` ➔ `<span className="text-[0.625rem] text-slate-500 font-mono ml-1">{godThreshold}pt+</span>`
+- **行動喚起バー（L442, L452）**:
+  - L442: 節目の報酬額を維持し、冗長な括弧を外す:
+    `· あと{upcomingMilestone - streakIfRecorded}日で +{(upcomingMilestone * dailyMultiplier).toLocaleString()}pt`
+  - L452: `<span className="text-rose-300/80">（積み上げた{streakDaily}日が消滅）</span>` を削除。
 
-### 非機能要件
-- **NFR-1 (レスポンシブ)**: PC・タブレット（sm以上）の既存表示を壊さず、スマホ縦（幅375px等）のみに最適化されること。
-- **NFR-2 (アクセシビリティ)**: Header のボタン（ログアウト・保護者切替）のタップターゲット領域を維持すること。
+### 4-4. GoalPlannerWidget.tsx & WishlistSection.tsx: 冗長説明の削減
+- **GoalPlannerWidget.tsx**:
+  - 外枠カードパディング（L91）: `glass-card p-6` ➔ `glass-card p-3.5 sm:p-5`（※L245のモーダルは変更なし）
+  - サブタイトル（L126）: `<p className="text-xs text-slate-400">期間までの残り日数から、1日あたり必要な頑張りペースを自動算出！</p>` ➔ **削除**
+  - 目標未設定時（L150）: `targetTitle || '未設定 (目標を設定しよう)'` ➔ `targetTitle || '未設定'`
+- **WishlistSection.tsx**:
+  - **70%還元・7掛けの対象特定**:
+    - 対象: L326（カード内バッジ）の `現金還元 (7掛け)` ➔ `現金還元` に変更。
+    - 対象: L496（モーダルボタン）の `<span>💵 現金還元 (7掛け)</span>` ➔ `<span>💵 現金還元</span>` に変更。
+    - 対象外（維持）: Dashboard L122, Wishlist L239, L505, ParentPortal L557 はルール解説の文脈であり還元率の明示が必要なため維持。
+  - **達成度表示の改修（L381-L382）**:
+    - L381-382 を以下に変更:
+      ```tsx
+      <div className="flex justify-between text-xs text-slate-400 font-mono">
+        <span>達成度</span>
+        <span>{progress}%</span>
+      </div>
+      ```
+    - 進捗バー直下に以下を配置:
+      ```tsx
+      <div className="text-right text-[0.6875rem] text-slate-400 font-mono mt-0.5">
+        {currentPoints.toLocaleString()} / {item.required_points.toLocaleString()} pt
+      </div>
+      ```
+  - **注意書きの重複解消**:
+    - L431（親の調達待ち時）は文脈上必要なため維持。
+    - L442 の `<p className="text-xs text-slate-400 text-center">※手渡し時に {item.required_points.toLocaleString()} pt が引き落とされます</p>` を**削除**（ボタン自体にポイントが明記されているため重複不要）。
 
-## 3. データフロー全経路
-今回はフロントエンドの表示ロジックおよび CSS クラスの変更のみであり、バックエンド API や DB への新規データフローは発生しない。
-- 既存のデータ読み出し経路:
-  - `Header.tsx:L83-L130`: `currentUser` の名前・ポイントを表示。
-  - `DailyChart.tsx:L85-L120`: `selectedDate` の更新および `/api/action-logs` からの該当ログ取得。
-  - `RivalBoard.tsx:L15-L40`: `users` 配列のソートと差分計算。
+---
 
-## 4. 🛡️ 機密フィールド台帳と漏洩遮断設計（G-7）
-本変更では新規フィールドの追加や既存フィールドの変更は一切行わない。
-機密値（トークン・パスワード等）の取り扱いは無く、漏洩リスクは存在しない。
+## 5. 影響範囲とリスク評価
 
-| フィールド | 機密度 | 既存の露出経路 | 遮断策 |
+- **製品コード影響範囲**: `src/frontend/components/` 配下の4ファイルのみ（JSX / Tailwind クラス）。
+- **データ・APIへの影響**: なし（既存の API や DB は一切無変更）。
+- **二次被害・漏洩リスク (G-7)**: なし（表示要素の削除・整理のみで新規フィールド追加なし）。
+- **エラー処理 (G-5)**: なし（ロジックの例外ハンドリングには触れない）。
+
+---
+
+## 6. 受け入れ基準（AC）と検証計画
+
+### 6-1. 受け入れ基準（機械的検証）
+- **AC-1**: `grep -n "（全{selectedDayLogs.length}件）" src/frontend/components/DailyChart.tsx` のヒット件数が 0 件。
+- **AC-2**: `grep -n "line-clamp-2" src/frontend/components/DailyChart.tsx` のヒット件数が 0 件。
+- **AC-3**: `grep -n "（読書・運動・インプット）" src/frontend/components/Dashboard.tsx` のヒット件数が 0 件。
+- **AC-4**: `grep -n "log.category" src/frontend/components/Dashboard.tsx` のヒット件数が 0 件。
+- **AC-5**: `grep -n "(1pt+)\|({midThreshold}pt+)\|({godThreshold}pt+)" src/frontend/components/PersonalStreakCard.tsx` のヒット件数が 0 件。
+- **AC-6**: `grep -n "自動算出" src/frontend/components/GoalPlannerWidget.tsx` のヒット件数が 0 件。
+- **AC-7**: `grep -n "未設定 (目標を設定しよう)" src/frontend/components/GoalPlannerWidget.tsx` のヒット件数が 0 件。
+- **AC-8**: `grep -n "現金還元 (7掛け)" src/frontend/components/WishlistSection.tsx` のヒット件数が 0 件。
+- **AC-9**: `npx tsc --noEmit` が 0 エラーで終了すること。
+- **AC-10**: `npm run build` が正常終了すること。
+
+### 6-2. UI実機検証計画（G-13）
+- **環境**: ブラウザをモバイル幅（375px × 667px / 390px × 844px）に設定。
+- **検証項目**:
+  1. **DailyChart**: 日付（9/29等）をタップし、クイズ問題文が上下2段レイアウトで画面全幅（300px以上）に展開され、複数行で最後まで読めることを観測。
+  2. **Dashboard**: ホーム画面を開き、「主な活動成果」の見出しが折り返さずすっきり表示され、リスト内のタイトルが `truncate` されずに全文表示されることを観測。
+  3. **PersonalStreakCard / GoalPlanner / Wishlist**: 各画面を表示し、不要な括弧や説明文が消え、Console にエラーが出ないことを確認。
+- **証跡記録**: `docs/test-report.md` に `操作:` / `観測:` / `Console:` を明記する。
+
+---
+
+## 7. タスク分解と完了条件
+
+| タスクID | 内容 | 完了条件（検証コマンド） |
+| :--- | :--- | :--- |
+| **T1** | `DailyChart.tsx` の2段カード化・問題文全幅展開・見出し修正 | AC-1, AC-2 通過 ＋ `npx tsc --noEmit` exit 0 |
+| **T2** | `Dashboard.tsx` の見出し簡潔化・生英単語削除・truncate解除・余白最適化 | AC-3, AC-4 通過 ＋ `npx tsc --noEmit` exit 0 |
+| **T3** | `PersonalStreakCard.tsx` の括弧整理・基準値/報酬pt維持 | AC-5 通過 ＋ `npx tsc --noEmit` exit 0 |
+| **T4** | `GoalPlannerWidget.tsx` / `WishlistSection.tsx` の説明削減・7掛け整理 | AC-6, AC-7, AC-8 通過 ＋ `npx tsc --noEmit` exit 0 |
+| **T5** | ビルド＆G-13実画面検証 | AC-9, AC-10 通過 ＋ モバイル幅での実機検証証跡記録 |
+
+---
+
+## 8. 改訂履歴
+
+| 版 | 指摘/反証 # | 変更したセクション | 変更内容 |
 | :--- | :--- | :--- | :--- |
-| 該当なし（UI調整のみ） | - | - | - |
+| v1.0 | — | 全体 | 初版作成 |
+| v1.1 | 指摘#1〜#10, 反証A〜C | §1-1, §2, §3, §3-1, §4-1〜§4-4, §6, §7 | AC新設、タスク分解新設、基準値・報酬pt残置、70%対象特定、推定ラベル是正、G-13実機検証計画追加 |
 
-## 5. 🗄️ DB マイグレーション DDL（全文 / G-4）
-本機能において DB スキーマの変更は不要（マイグレーションなし）。
+---
 
-## 6. API 契約
-本機能においてバックエンド API の新規追加およびスキーマ変更は不要。
+## 9. ゲート検証結果（完了条件）
 
-## 7. 🙈 エラーハンドリング仕様（G-5）
-本機能では新規 API リクエストは追加せず、DailyChart 内の既存の `/api/action-logs` 取得処理（`res.ok` に対する else/try-catch 処理）をそのまま維持する。
-
-## 8. 🏛️ アーキテクチャ選定と却下案（G-8）
-### 採用アーキテクチャ
-1. **Header の省スペース化**:
-   - モバイル幅（sm 未満）では Controls 側の余白（padding/gap）をわずかに縮め、ユーザー名バッジの最大幅を 85px から 60px 程度にスリム化することで、Brand 側に約 130px 以上の表示幅を安定して確保。
-   - タイトルはモバイルで `text-sm`（フォントサイズ縮小）、PCで `sm:text-xl` とし、画面幅 360px でも「INCENTI QUEST」が完全に収まるようにする。
-   - *却下案*: タイトルをアイコンのみにして文字を隠す案 ➔ ユーザーの「タイトルが表示されない」という要望に反するため却下。
-2. **DailyChart スクロール処理**:
-   - `useRef<HTMLDivElement>` を詳細パネルに付与し、日付選択時に `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` を呼び出す。
-   - *却下案*: `window.scrollTo` でハードコードされた座標を指定する案 ➔ 画面サイズや期間タブの選択状態によって位置が変わるため却下。
-3. **RivalBoard の順位分岐**:
-   - `userRankIndex === 1`（2位）と `userRankIndex > 1`（3位以下）で文言を明確に分岐。
-   - *却下案*: 常に首位との差だけを表示する案 ➔ 3位以下のユーザーにとって「直上の相手を抜く」という現実的なモチベーションが失われるため、直上の相手を「次の順位（N位）」として明示しつつ首位差も添える設計とする。
-
-## 9. 🧪 受け入れ基準（検証コマンド付き）
-| # | 検証項目 | 検証手順 / コマンド | 合格基準 |
-| :--- | :--- | :--- | :--- |
-| AC-1 | 型チェック | `npx tsc --noEmit` | エラー 0 件 |
-| AC-2 | プロダクションビルド | `npm run build` | exit 0 で正常終了 |
-| AC-3 | Header タイトル | 幅 375px で表示確認 | 「INCENTI QUEST」が切り詰められず表示される |
-| AC-4 | グラフ不要文言 | `grep -rn "完全分離" src/` | ヒット 0 件 |
-| AC-5 | グラフ説明文 | `grep -rn "グラフの日付をタップ" src/` | ヒット 0 件 |
-| AC-6 | 日付タップ詳細表示 | 日付タップ時の DOM / CSS 確認 | `scrollIntoView` が呼ばれ、タイトルに `break-words` が適用されている |
-| AC-7 | ライバル順位表示 | `RivalBoard.tsx` の文言確認 | 3位以下のとき「首位の【...】」と表示されず「次の順位」と正しく表示される |
-
-## 10. 📋 前提条件・ブロッカー
-- ブロッカーなし。
-
-## 11. UI / コンポーネント設計
-
-### 11-1. Header.tsx 変更点
-- `Brand`:
-  - `span`: `text-sm sm:text-xl font-mono font-black tracking-normal sm:tracking-wider whitespace-nowrap`
-- `Controls`:
-  - 全体: `gap-1 sm:gap-2.5`
-  - ユーザー名バッジ: `px-1.5 sm:px-2.5 py-1 max-w-[65px] sm:max-w-[130px]`
-  - 所持ポイントバッジ: `px-1.5 sm:px-3 py-1 gap-1 sm:gap-1.5`
-  - 保護者切替・ログアウトボタン: `p-1.5 sm:px-2.5 sm:py-1`
-
-### 11-2. DailyChart.tsx 変更点
-- L333 の `<p className="text-xs text-slate-400">「食事」と「ボーナス」を完全分離！どの分野をどれだけ頑張ったか一目でわかる</p>` を削除。
-- L376-L381 のガイドメッセージ `<div ...><span>グラフの日付をタップすると...</span></div>` を削除。
-- 凡例バー（Legend Bar）の親コンテナを `flex items-center justify-start sm:justify-end gap-2 sm:gap-3 text-xs font-bold text-slate-300 flex-wrap pt-1` に調整。
-- `dayDetailPanelRef` を作成し、日付選択時に `scrollIntoView` を実行。
-- ログカードのタイトル（L720付近）:
-  `<div className="font-bold text-sm text-slate-100 break-words leading-snug">{log.title_or_menu}</div>`
-
-### 11-3. RivalBoard.tsx 変更点
-- 首位 `leader = sortedRivals[0]`、直上の相手 `personAhead = userRankIndex > 0 ? sortedRivals[userRankIndex - 1] : null`。
-- 文言条件分岐:
-  - 1位: `あなたが現在ランキング 1 位です！👑`
-  - 2位: `首位の【{personAhead.name}】まで あと {gapToAhead.toLocaleString()} pt！`
-  - 3位以下: `次の順位（{userRankIndex}位）の【{personAhead.name}】まで あと <strong className="text-amber-400 font-mono text-sm">{gapToAhead.toLocaleString()} pt</strong>！（首位【{leader.name}】まで あと {gapToLeader.toLocaleString()} pt）`
-
-## 12. 実装タスクチェックリスト（依存順・1 タスク 1 コミット・完了条件付き）
-- [x] T1: Header.tsx のモバイル向けレイアウト調整（タイトル表示領域確保） / 完了条件: `npx tsc --noEmit` exit 0
-  → 実装: `src/frontend/components/Header.tsx:L76-L145` / `npx tsc --noEmit` 0 error
-- [x] T2: DailyChart.tsx の不要文言削除・スクロール連動・ログタイトル折り返し / 完了条件: `npx tsc --noEmit` exit 0 ＋ `grep -rn "完全分離" src/` ヒット 0 件
-  → 実装: `src/frontend/components/DailyChart.tsx:L1, L74, L337, L381, L660, L738` / `npx tsc --noEmit` 0 error / 完全分離 0 hits
-- [x] T3: RivalBoard.tsx の順位比較表示ロジック・文言是正 / 完了条件: `npx tsc --noEmit` exit 0
-  → 実装: `src/frontend/components/RivalBoard.tsx:L15-L60` / `npx tsc --noEmit` 0 error / 2位・3位以下分岐実装
-- [x] T4: 全体ビルドおよび動作検証 / 完了条件: `npm run build` exit 0
-  → 検証: `npm run build` exit 0 (built in 1.61s)
-
-## 13. 未確認事項（E-4）
-なし。
-
-## 14. 品質ゲート実行結果（G-11）
 ```
-$ ~/antigravity-agents/scripts/verify.sh design
 ========================================================
  verify.sh  role=design  base=HEAD  repo=game
- HEAD=2b661df  branch=main
+ HEAD=2c17559  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
 ```
-
-## 15. 改訂履歴（差分改訂 / §2-5）
-| 版 | 指摘 # | 変更したセクション | 1 行要約 |
-| :-- | :--- | :--- | :--- |
-| 初版 | - | 全体 | 初版作成 |

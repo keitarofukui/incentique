@@ -723,7 +723,7 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               <div className="text-xs text-slate-400 font-bold mb-1 flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                <span>獲得アクション一覧（全{selectedDayLogs.length}件）</span>
+                <span>獲得アクション一覧 {selectedDayLogs.length}件</span>
               </div>
               {selectedDayLogs.map((log) => {
                 const catInfo = getCategoryDetails(log.category);
@@ -731,38 +731,41 @@ export const DailyChart: React.FC<DailyChartProps> = ({ actionLogs, userId, dail
                 return (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all gap-3"
+                    className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all space-y-2"
                   >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <div className={`w-9 h-9 rounded-xl border flex items-center justify-center text-base shrink-0 ${catInfo.color}`}>
-                        {catInfo.icon}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-sm text-slate-100 break-words leading-snug">
-                          {log.title_or_menu}
+                    {/* 上段: カテゴリ情報・時刻 ＆ 右寄せptバッジ */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-7 h-7 rounded-xl border flex items-center justify-center text-sm shrink-0 ${catInfo.color}`}>
+                          {catInfo.icon}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                          <span className={`px-1.5 py-0.5 rounded-lg text-[0.6875rem] border ${catInfo.color}`}>
-                            {catInfo.label}
+                        <span className={`px-1.5 py-0.5 rounded-lg text-[0.6875rem] border shrink-0 ${catInfo.color}`}>
+                          {catInfo.label}
+                        </span>
+                        {timeStr && (
+                          <span className="flex items-center gap-1 font-mono text-slate-400 text-xs">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            {timeStr}
                           </span>
-                          {timeStr && (
-                            <span className="flex items-center gap-1 font-mono text-slate-400">
-                              <Clock className="w-3 h-3 text-slate-400" />
-                              {timeStr}
-                            </span>
-                          )}
-                        </div>
-                        {log.review_text && (
-                          <p className="text-xs text-slate-300 mt-1.5 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 italic line-clamp-2">
-                            "{log.review_text}"
-                          </p>
                         )}
                       </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-sm font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-xl shadow-inner">
+                          +{log.earned_points} pt
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="font-black text-sm sm:text-base font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-xl shadow-inner">
-                        +{log.earned_points} pt
-                      </span>
+
+                    {/* 下段（全幅展開）: タイトル ＆ クイズ問題文（制限解除） */}
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-slate-100 break-words leading-snug">
+                        {log.title_or_menu}
+                      </div>
+                      {log.review_text && (
+                        <p className="text-xs text-slate-300 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80 italic break-words">
+                          "{log.review_text}"
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
