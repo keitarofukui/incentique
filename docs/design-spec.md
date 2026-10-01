@@ -1,187 +1,150 @@
-# 機能設計仕様書: 陵太郎（高3）の中学生クイズ解答制限・反則化および保護者ポータル学年変更機能
+# 機能設計仕様書: 中学1年後半クイズ約1,000問のGemini 3.1 Flash Lite一括生成・投入およびUI調整
 
-- 作成日時: 2026-10-01 10:50
+- 作成日時: 2026-10-01 14:52
 - 対象リポジトリ/ブランチ: game / main
-- 対象コミット: 7674d22
-- 上流 Artifact: docs/investigation-report.md（対象コミット: 7674d22）
+- 対象コミット: 5f0a612
+- 上流 Artifact: docs/investigation-report.md（対象コミット: 5f0a612）
 
 ## 0. 上流の抜き取り再実測（§2-3・軽量コマンド 3 件）
 
-### [EV-1] 上流 [EV-1] の再実行（Git 状態）
-$ git rev-parse --short HEAD && git branch --show-current && git status --short
-7674d22
+### [EV-1] 上流 [EV-1] の再実行（HEADコミット確認）
+$ git rev-parse --short HEAD && git branch --show-current
+5f0a612
 main
- M docs/adversary-report.md
- M docs/design-review.md
- M docs/design-spec.md
- M docs/investigation-report.md
- M src/backend/index.ts
- M src/frontend/components/ParentPortal.tsx
- M src/frontend/components/QuizQuest.tsx
+- 【実測】上流と完全一致 [EV-1]
 
-- 【実測】上流と一致。コミット 7674d22、ブランチ main [EV-1]。
-
-### [EV-2] 上流 [EV-5] の再実行（学年選択セレクタ）
-$ sed -n '235,245p' src/frontend/components/QuizQuest.tsx
-        {/* Filter Controls (Grade & Category) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-          {/* Grade Level Selector */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-bold text-slate-400 mr-1.5 shrink-0">対象学年:</span>
-            {[
+### [EV-2] 上流 [EV-8] の再実行（QuizQuest.tsx のjunior_1ラベル）
+$ sed -n '243,246p' src/frontend/components/QuizQuest.tsx
               { id: 'all', label: '全学年' },
               { id: 'junior_1', label: '🎒 中1レベル(前半)' },
               { id: 'high_3', label: '🎓 高校レベル(高1〜2)' },
             ]
-              .filter((g) => !(isHighSchoolUser && g.id === 'junior_1'))
+- 【実測】上流と完全一致 `src/frontend/components/QuizQuest.tsx:L243-L246` [EV-2]
 
-- 【実測】高校生ユーザー除外ロジックが組み込まれた [EV-2]。
+### [EV-3] 上流 [EV-5] の再実行（既存生成スクリプト）
+$ ls -1 scripts/generate_junior1_2100.mjs
+scripts/generate_junior1_2100.mjs
+- 【実測】上流と完全一致 [EV-3]
 
-### [EV-3] 上流 [EV-7] の再実行（漫画インプット高校生ペナルティ）
-$ sed -n '1490,1500p' src/backend/index.ts
-    } else if (body.category === 'input_manga') {
-      const user: any = await c.env.DB.prepare('SELECT grade_level FROM users WHERE id = ?').bind(body.userId).first();
-      if (user && (user.grade_level || '').startsWith('high')) {
-        basePoints = Math.floor(basePoints / 10);
-      }
-    }
-
-- 【実測】上流と一致。高校生の学年判定ロジックが実在する [EV-3]。
-
-### [EV-4] ビルド健全性の再実測
-$ npm run build
-> quest-habit-app@1.0.0 build
-> vite build
-✓ built in 1.57s
-
-- 【実測】ビルドエラー0件で通過 [EV-4]。
+### [EV-4] 上流 [EV-4] の再確認（型検査とビルド健全性）
+$ npx tsc --noEmit
+- 【実測】型エラー 0 件で正常通過 [EV-4]
 
 ## 0-1. 確定済みの前提（上流から引き継ぎ・再実測しない / §2-5）
 | 事実 | 根拠（上流の EV） |
 | :--- | :--- |
-| users テーブルのりょーたろは `high_3`、シュンタロウは `junior_1` で登録済み | [EV-2]（upstream: investigation-report.md） |
-| quiz_questions テーブルには `junior_1` / `high_3` / `all` の3種の学年区分のみが存在 | [EV-3]（upstream: investigation-report.md） |
-| `npm run build` は 0 エラーで正常通過する | [EV-4] |
+| 本番 D1 (`quest-db`) の `quiz_questions` テーブル構造および既存 3,594問の junior_1 問題 | investigation-report.md の EV-2 |
+| Gemini 3.1 Flash Lite (`gemini-3.1-flash-lite`) の API 疎通と料金・速度 | investigation-report.md の EV-3 |
+| 20問生成時の消費トークン（Input 162 / Output 1,086 tokens） | investigation-report.md の EV-4 |
+| ビルド・型検査の健全性（0 error） | [EV-4] |
 
-- トラック: ライト（理由: 既存テーブルの既存カラム `grade_level` の更新と参照のみであり、スキーマ改変・外部API・機密フィールド新設を伴わず、コード差分も100行程度に収まるため / §2-6）
-- トラック自己照合: §12 の変更対象パス = `src/frontend/components/QuizQuest.tsx`, `src/frontend/components/ParentPortal.tsx`, `src/backend/index.ts` / リスクパス・他レーン共有パスへの抵触: 無し
+- トラック: フル（理由: 生成スクリプト追加・シードSQL適用・UI文言調整を伴うため厳格にフルトラックで検証）
+- トラック自己照合: §12 の変更対象パス = `scripts/generate_junior1_late_1000.mjs`, `junior1_late_1000_seed.sql`, `src/frontend/components/QuizQuest.tsx` / リスクパス抵触なし。
 
 ## 1. 概要・目的
-高校生ユーザー（陵太郎: `high_3`）が中学生向けクイズ（`junior_1`）を解いてポイントを獲得することを防ぎ（反則化）、同時に子供の進級・成長に合わせて親がいつでも学年を更新できるよう、保護者ポータルに学年変更機能を提供する。
+ユーザー要望「中学1年の後半のクイズを1000問ほど追加してほしい。Gemini3.1FLASHliteで安く作ってね」に基づき、文部科学省指導要領に準拠した中学1年生後半（2学期後半〜3学期）のクイズ問題1,000問（英語・数学・理科・社会・国語 各200問）を最新高コスパモデル `gemini-3.1-flash-lite` を用いて一括生成し、Cloudflare D1 にシード投入する。また、フロントエンドの学年セレクター文言を実態に合わせて更新する。
 
 ## 2. 機能要件 / 非機能要件
-- **FR-1（UI制限）**: クイズ画面（`QuizQuest.tsx`）で、ログインユーザーが高校生（`currentUser.grade_level.startsWith('high')`）の場合、学年セレクタから「🎒 中1レベル」を除外（全学年 `all` と高校レベル `high_3` のみ表示）。
-- **FR-2（解答API反則判定）**: `/api/quizzes/answer` において、ユーザーが高校生かつ問題が `junior_1` の場合、正解であっても `basePoints = 0` / 獲得ポイント 0pt とし、反則メッセージ（「高校生は中学生クイズではポイントを獲得できません」）を含むレスポンスを返却し、加算を行わない。全学年向け問題（`all`）は制限対象外とする。
-- **FR-3（保護者ポータル学年変更）**: 保護者ポータルのアカウント一覧カードで、各ユーザーの現在の学年をドロップダウン（`junior_1: 中学レベル`, `high_3: 高校レベル`, `other: 一般・その他`）で表示・即時更新可能にする。
-- **FR-4（学年更新API）**: `PATCH /api/users/:id/grade` エンドポイントを新設し、ホワイトリスト検証（`junior_1`, `high_3`, `other` 以外は 400 Bad Request）を行って `users.grade_level` を更新する。
+### 機能要件
+- 中1後半カリキュラム（英語: 過去形・進行形・can・疑問詞、数学: 比例反比例・平面空間図形・データ活用、理科: 光・音・力・地層地震、社会: 世界地理・平安鎌倉室町戦国、国語: 文法品詞・古典入門・敬語漢字）に準拠した4択クイズ1,000問を生成すること。
+- 生成結果を D1 互換の INSERT 文 SQL ファイル（`junior1_late_1000_seed.sql`）として出力すること。
+- 本番 D1 データベース（`quest-db`）に適用し、クイズ出題 API `/api/quizzes?grade_level=junior_1` から出題されること。
+- `src/frontend/components/QuizQuest.tsx` のタブ表示を「🎒 中1レベル(前半)」から「🎒 中1レベル」に変更すること。
+
+### 非機能要件
+- APIコストは 10円未満（約0.017ドル）に抑えること（Gemini 3.1 Flash Lite 活用）。
+- Gemini API のレートリミットを回避するため、リクエスト間に 1.5秒のスリープを設けること。
+- 既存の高校生ユーザー（りょーたろ）に対する反則防止ロジック（0pt遮断）に悪影響を与えないこと。
 
 ## 3. データフロー全経路
-1. **クイズ出題・制限**:
-   - `QuizQuest.tsx:L15` (`currentUser.grade_level`) ➔ 学年タブのフィルタリング ➔ 高校生なら中1タブ非表示
-2. **クイズ解答・反則遮断**:
-   - `QuizQuest.tsx:L100` (`POST /api/quizzes/answer`) ➔ `src/backend/index.ts:L1040`
-   - `user = SELECT grade_level FROM users WHERE id = ?`
-   - `question = SELECT grade_level FROM quiz_questions WHERE id = ?`
-   - もし `user.grade_level.startsWith('high') && question.grade_level === 'junior_1'` なら `basePoints = 0`, `isFoul = true` ➔ `users.current_points` への加算なし
-3. **学年変更フロー**:
-   - `ParentPortal.tsx` で学年セレクト変更 ➔ `PATCH /api/users/:id/grade` `{ gradeLevel: 'high_3' }`
-   - `src/backend/index.ts` で値検証 ➔ `UPDATE users SET grade_level = ? WHERE id = ?` ➔ 200 OK ➔ 親画面＆ローカル state 更新
+1. **生成**: `scripts/generate_junior1_late_1000.mjs` ➔ Gemini API（`gemini-3.1-flash-lite`）呼び出し（20問×50タスク＝1,000問）
+2. **SQL化**: 整形された JSON を `junior1_late_1000_seed.sql` に書き出し
+3. **投入**: `npx wrangler d1 execute quest-db --remote --file=./junior1_late_1000_seed.sql` ➔ D1 テーブル `quiz_questions` に永続化
+4. **読み出し**: クライアント `QuizQuest.tsx` ➔ `GET /api/quizzes?grade_level=junior_1` ➔ `src/backend/index.ts:L910-L1060`（Fisher-Yates サンプリング）➔ 45問を返却 ➔ 画面に表示
 
 ## 4. 🛡️ 機密フィールド台帳と漏洩遮断設計（G-7）
 | フィールド | 機密度 | 既存の露出経路（実測） | 遮断策（具体実装） |
 | :--- | :--- | :--- | :--- |
-| `grade_level` | 低（公開属性） | `GET /api/users`, `GET /api/rivals` | 既存通り露出を許容。更新API `PATCH /api/users/:id/grade` はホワイトリスト（`['high_3', 'junior_1', 'other']`）のみを受け入れ、SQLインジェクションや不正文字列を遮断 |
+| `GEMINI_API_KEY` | 極高 | なし（`.dev.vars` / 環境変数） | Git管理外（`.gitignore` 対象）からスクリプト実行時のみメモリロード。SQLファイルやコミットログに一切出力しない。 |
+| クイズ問題データ | 公開 | `/api/quizzes` | 機密情報・個人情報・トークンは含まれない一般的な学習問題のため露出リスクなし。 |
 
 ## 5. 🗄️ DB マイグレーション DDL（全文 / G-4）
-**該当なし（DDL変更なし）**
-`users` テーブルには既に `grade_level TEXT NOT NULL` が存在し、`quiz_questions` テーブルにも `grade_level TEXT` が存在するため、新規テーブルやカラム追加は不要。
+既存の `quiz_questions` テーブル定義をそのまま使用するため、スキーマ変更（`ALTER TABLE` / `CREATE TABLE`）は不要。
+投入されるレコードの SQL フォーマット:
+```sql
+INSERT INTO quiz_questions (grade_level, category, question_text, options_json, correct_index, difficulty) 
+VALUES ('junior_1', 'english', '問題文', '["選択肢1","選択肢2","選択肢3","選択肢4"]', 0, 1);
+```
 
 ## 6. API 契約
-### 新設: `PATCH /api/users/:id/grade`
-- **リクエスト**:
-  - URL: `/api/users/:id/grade`
-  - Method: `PATCH`
-  - Headers: `Content-Type: application/json`
-  - Body: `{"gradeLevel": "high_3" | "junior_1" | "other"}`
-- **成功レスポンス**:
-  - Status: `200 OK`
-  - Body: `{"success": true, "id": "user_...", "gradeLevel": "high_3"}`
-- **エラーレスポンス**:
-  - Status: `400 Bad Request`（不正な値の場合）
-  - Body: `{"success": false, "error": "Invalid grade_level. Must be high_3, junior_1, or other."}`
-  - Status: `404 Not Found`（ユーザー不在時）
-  - Body: `{"success": false, "error": "User not found"}`
+既存 API の仕様に変更なし。
+- `GET /api/quizzes?grade_level=junior_1&category=all`
+  - 成功レスポンス: `{ success: true, count: 45, quizzes: [...], totalCount: 12288 }`
+  - エラーレスポンス: `{ success: false, error: string }` (HTTP 500)
 
-### 変更: `POST /api/quizzes/answer`
-- **リクエスト**: 既存通り (`userId`, `questionId`, `selectedIndex`)
-- **成功レスポンス（通常時）**: 既存通り (`pointsEarned > 0`)
-- **成功レスポンス（反則時）**:
-  - Status: `200 OK`
-  - Body: `{"success": true, "correct": true, "isFoul": true, "pointsEarned": 0, "basePoints": 0, "newTotalPoints": 1234, "message": "高校生は中学生クイズではポイントを獲得できません（反則）"}`
-
-## 7. 🙈 エラーハンドリング仕様（G-5）
-| API / 操作 | 成功 | 4xx（クライアント誤り） | 5xx（サーバー障害） | ネットワーク断 | UI表示・ログ |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `PATCH /api/users/:id/grade` | 200: トースト「学年を更新しました」 | 400: エラー表示「不正な学年です」 | 500: エラー表示「サーバーエラーが発生しました」 | 通信エラー表示 | `console.error` 出力、失敗時に画面を成功状態にしない |
-| `POST /api/quizzes/answer` (反則時) | 200: 正解表示＋「反則: 0pt」警告バッジ | 404: 問題不在 | 500: 解答記録失敗 | 通信エラー | 不正解や0pt時はポイントを加算せず警告表示 |
+## 7. 🙈 エラーハンドリング仕様（G-5・5 状態の表）
+| 状態 | 対象箇所 | 挙動 | ログ出力先 |
+| :--- | :--- | :--- | :--- |
+| Gemini API HTTP 4xx/5xx | `generate_junior1_late_1000.mjs` | 最大2回リトライ（各2秒待機）。失敗時は該当タスクをスキップし処理継続 | `console.error` |
+| JSON パースエラー | `generate_junior1_late_1000.mjs` | Markdownバッククォート除去後にパース。パース失敗時はリトライ | `console.error` |
+| D1 SQL 実行エラー | `wrangler d1 execute` | エラー行を表示して即座にトランザクションロールバック | stderr |
+| ネットワーク断 | クライアント `QuizQuest.tsx` | 既存の retry ボタンおよびエラーメッセージを表示 | `console.error` |
+| タイムアウト | API fetch | 既存のタイムアウトハンドラでエラー表示 | `console.error` |
 
 ## 8. 🏛️ アーキテクチャ選定と却下案（G-8）
-- **採用方式**:
-  1. フロントエンドで高校生ユーザーに対して中1タブをフィルタアウト（誤操作防止）。
-  2. バックエンドでも解答APIで二重チェックし、高校生による中1問題解答は 0pt（反則判定）とする（バイパス防止）。
-  3. 保護者ポータルに学年更新 API（`PATCH`）とセレクトボックスを配備。
-- **却下した回避策**:
-  - 却下案1: フロントエンドのみで非表示にする ➔ curlや直API呼び出しでポイントを稼げる抜け穴が残るため却下。
-  - 却下案2: 中学生問題を解いた瞬間にエラー 400 を返す ➔ UI側がクラッシュ・ネットワークエラーと誤認しやすいため、正常応答（`success: true, isFoul: true, pointsEarned: 0`）として反則である旨を明示する設計を採用。
+- **採用方式**: スタンドアロンな Node.js スクリプトによる一括バッチ生成（50リクエスト×20問）＋ SQLファイル出力 ＋ Wrangler CLI による本番適用。
+  - **理由**: Workers ランタイム上で 1,000問を生成すると CPU 時間制限・サブフェッチ回数制限（最大50回）に抵触しタイムアウトする。ローカルCLIスクリプトでのバッチ生成が最も安全確実。
+- **却下案**:
+  - Workers API `/api/quizzes/generate` のブラウザ呼び出し: Workers のタイムアウトおよび無料枠サブフェッチ制限に抵触するため却下。
+  - `gemini-1.5-flash` / `gemini-2.5-flash` の利用: ユーザー指定の最高コスパ最新モデル `gemini-3.1-flash-lite`（G-10準拠）を採用するため旧モデルは却下。
 
-## 9. 🧪 受け入れ基準
-1. 高校生ユーザー（りょーたろ `high_3`）でログイン時、クイズ画面の学年セレクタに「中1レベル」が表示されないこと。
-2. りょーたろが直リクエスト等で中1問題（`junior_1`）に正解しても、ポイント加算が 0pt であること。
-3. 全学年問題（`all`）および高校生問題（`high_3`）では高校生でも通常通りポイントが加算されること。
-4. 中学生ユーザー（シュンタロウ `junior_1`）では中1レベルが通常通り表示・解答・ポイント加算されること。
-5. 保護者ポータルの登録アカウント一覧で、学年セレクトを変更すると即時 D1 に反映され、リロード後も保持されること。
-- 検証コマンド: `npx tsc --noEmit && npm run build`
+## 9. 🧪 受け入れ基準（検証コマンド付き）
+1. `scripts/generate_junior1_late_1000.mjs` が完走し、`junior1_late_1000_seed.sql` に 1,000問以上の INSERT 文が出力されること。
+   - 検証: `grep -c "INSERT INTO quiz_questions" junior1_late_1000_seed.sql` が 1000 以上。
+2. 本番 D1 (`quest-db`) に適用後、`junior_1` の問題数が既存 3,594問 から 4,594問 以上に増加すること。
+   - 検証: `npx wrangler d1 execute quest-db --remote --command "SELECT count(*) FROM quiz_questions WHERE grade_level = 'junior_1';"`
+3. `src/frontend/components/QuizQuest.tsx` の表示が「🎒 中1レベル」となり、ビルドおよび型チェックが 0 エラーであること。
+   - 検証: `npx tsc --noEmit && npm run build`
+4. 本番デプロイ後、本番URLから HTTP 200 で中1クイズが取得できること。
+   - 検証: `curl -s -i "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes?grade_level=junior_1"`
 
 ## 10. 📋 前提条件・ブロッカー
-- ブロッカーなし。既存スキーマで完全に対応可能。
+- 前提条件: `.dev.vars` に有効な `GEMINI_API_KEY` が設定されていること（実測確認済み [EV-3]）。
+- ブロッカー: なし。
 
 ## 11. UI / コンポーネント設計
-1. `QuizQuest.tsx`:
-   - `gradeOptions`: `currentUser.grade_level.startsWith('high')` の場合は `id !== 'junior_1'` でフィルタリング。
-   - 解答結果モーダル・トースト: `data.isFoul` の場合は「⚠️ 反則！高校生は中学生クイズではポイントを獲得できません（0pt）」と表示。
-2. `ParentPortal.tsx`:
-   - 各ユーザーカードに学年セレクト（`<select value={user.grade_level} onChange="...">`）を配置。
+- `src/frontend/components/QuizQuest.tsx:L244`:
+  - 変更前: `{ id: 'junior_1', label: '🎒 中1レベル(前半)' },`
+  - 変更後: `{ id: 'junior_1', label: '🎒 中1レベル' },`
 
-## 12. 実装タスクチェックリスト
-- [x] T1: バックエンドに `PATCH /api/users/:id/grade` エンドポイントを実装し、ホワイトリスト検証を追加する / 完了条件: `npx tsc --noEmit`
-  → 実装: `src/backend/index.ts:L739-L762` / tsc 0 error
-- [x] T2: バックエンド `/api/quizzes/answer` に学年チェック（高校生による `junior_1` 解答時の 0pt 反則化）を実装する / 完了条件: `npx tsc --noEmit`
-  → 実装: `src/backend/index.ts:L1090-L1145` / tsc 0 error
-- [x] T3: フロントエンド `QuizQuest.tsx` で高校生に対する中1タブ除外および反則時UI表示を実装する / 完了条件: `npm run build`
-  → 実装: `src/frontend/components/QuizQuest.tsx:L32, L125-L135, L246, L395-L410` / npm run build PASS
-- [x] T4: フロントエンド `ParentPortal.tsx` に学年変更セレクトボックスおよび更新通信処理を追加する / 完了条件: `npm run build`
-  → 実装: `src/frontend/components/ParentPortal.tsx:L147-L165, L930-L945` / npm run build PASS
+## 12. 実装タスクチェックリスト（依存順・1 タスク 1 コミット・完了条件付き）
+- [ ] T1: 生成スクリプト `scripts/generate_junior1_late_1000.mjs` の作成
+  - 完了条件: `node -c scripts/generate_junior1_late_1000.mjs` 構文エラー 0
+- [ ] T2: 1,000問の生成実行および `junior1_late_1000_seed.sql` の生成
+  - 完了条件: `grep -c "INSERT INTO" junior1_late_1000_seed.sql` >= 1000
+- [ ] T3: Cloudflare D1 への SQL 適用
+  - 完了条件: `npx wrangler d1 execute quest-db --remote --command "SELECT count(*) FROM quiz_questions WHERE grade_level = 'junior_1';"` で件数増加確認
+- [ ] T4: フロントエンド文言更新（`QuizQuest.tsx`）
+  - 完了条件: `npx tsc --noEmit && npm run build` 0 error
+- [ ] T5: 本番デプロイおよび疎通検証
+  - 完了条件: `npm run deploy` ➔ `curl -s -i ...` HTTP 200
 
 ## 13. 未確認事項（E-4）
 | 未確認項目 | 確認手段 | ブロッカー理由 |
 | :--- | :--- | :--- |
-| 未確認: なし | 全項目実測確認完了 | ブロッカーなし |
+| 未確認: なし | すべて実測確認済み | なし |
 
 ## 14. 品質ゲート実行結果（G-11）
-```bash
 $ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh design
 ========================================================
  verify.sh  role=design  base=HEAD  repo=game
- HEAD=7674d22  branch=main
+ HEAD=5f0a612  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
-[PASS] gate-track         ライトトラック宣言と差分（243行）が整合している
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
-```
 
 ## 15. 改訂履歴（差分改訂 / §2-5）
 | 版 | 指摘 # | 変更したセクション | 1 行要約 |
 | :--- | :--- | :--- | :--- |
-| 初版 | - | 全体 | 新規作成 |
-| 第2版 | - | §12 | T1〜T4 実装完了マークと実測証跡の追記 |
+| 初版 | - | 全体 | 初版作成 |
