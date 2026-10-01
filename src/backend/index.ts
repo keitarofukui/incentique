@@ -736,6 +736,32 @@ app.delete('/api/users/:id', async (c) => {
   }
 });
 
+app.patch('/api/users/:id/grade', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json<{ gradeLevel: string }>();
+    const validGrades = ['high_3', 'junior_1', 'other'];
+
+    if (!body || !validGrades.includes(body.gradeLevel)) {
+      return c.json({ success: false, error: 'Invalid grade_level. Must be high_3, junior_1, or other.' }, 400);
+    }
+
+    const existing = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first<{ id: string }>();
+    if (!existing) {
+      return c.json({ success: false, error: 'User not found' }, 404);
+    }
+
+    await c.env.DB.prepare('UPDATE users SET grade_level = ? WHERE id = ?')
+      .bind(body.gradeLevel, id)
+      .run();
+
+    return c.json({ success: true, id, gradeLevel: body.gradeLevel });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
 app.get('/api/rivals', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
@@ -1058,52 +1084,62 @@ app.post('/api/quizzes/answer', async (c) => {
     let pointsEarned = 0;
     let bonusTier = 'normal';
     let bonusLabel = '';
+    let isFoul = false;
+    let foulMessage = '';
 
     if (isCorrect) {
-      // Honour the 'study_quiz' rule the parent portal edits (falls back to 1pt)
-      const quizRule: any = await c.env.DB.prepare(
-        "SELECT points FROM point_rules WHERE category = 'study_quiz'"
-      ).first();
-      basePoints = Number(quizRule?.points) > 0 ? Number(quizRule.points) : 1;
+      // Check for foul: High school user answering junior_1 questions
+      const userRow = await c.env.DB.prepare('SELECT grade_level FROM users WHERE id = ?').bind(body.userId).first<{ grade_level: string }>();
+      const isHighSchool = userRow && (userRow.grade_level || '').startsWith('high');
+      if (isHighSchool && question.grade_level === 'junior_1') {
+        isFoul = true;
+        foulMessage = '高校生は中学生クイズではポイントを獲得できません（反則）';
+      } else {
+        // Honour the 'study_quiz' rule the parent portal edits (falls back to 1pt)
+        const quizRule = await c.env.DB.prepare(
+          "SELECT points FROM point_rules WHERE category = 'study_quiz'"
+        ).first<{ points: number }>();
+        basePoints = quizRule && Number(quizRule.points) > 0 ? Number(quizRule.points) : 1;
 
-      const gacha = rollGachaMultiplier();
-      multiplier = gacha.multiplier;
-      bonusTier = gacha.bonusTier;
-      bonusLabel = gacha.bonusLabel;
-      pointsEarned = basePoints * multiplier;
+        const gacha = rollGachaMultiplier();
+        multiplier = gacha.multiplier;
+        bonusTier = gacha.bonusTier;
+        bonusLabel = gacha.bonusLabel;
+        pointsEarned = basePoints * multiplier;
 
-      await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
-        .bind(pointsEarned, body.userId)
-        .run();
+        await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
+          .bind(pointsEarned, body.userId)
+          .run();
 
-      const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-      const catLabel =
-        question.category === 'english' ? '英語' :
-        question.category === 'math' ? '数学' :
-        question.category === 'science' ? '理科' :
-        question.category === 'social_studies' ? '社会' :
-        question.category === 'japanese' ? '国語' :
-        question.category === 'anime_manga' ? '🍿箸休めアニメ' : 'クイズ';
-      const titlePrefix = multiplier > 1 ? `【クイズ正解】${bonusLabel} ` : `【クイズ正解】`;
+        const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+        const catLabel =
+          question.category === 'english' ? '英語' :
+          question.category === 'math' ? '数学' :
+          question.category === 'science' ? '理科' :
+          question.category === 'social_studies' ? '社会' :
+          question.category === 'japanese' ? '国語' :
+          question.category === 'anime_manga' ? '🍿箸休めアニメ' : 'クイズ';
+        const titlePrefix = multiplier > 1 ? `【クイズ正解】${bonusLabel} ` : `【クイズ正解】`;
 
-      await c.env.DB.prepare(
-        'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
-      )
-        .bind(
-          logId,
-          body.userId,
-          'quiz',
-          `${titlePrefix}${catLabel}`,
-          `問題: ${question.question_text}`,
-          pointsEarned,
-          basePoints,
-          'approved'
+        await c.env.DB.prepare(
+          'INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))'
         )
-        .run();
-    }
+          .bind(
+            logId,
+            body.userId,
+            'quiz',
+            `${titlePrefix}${catLabel}`,
+            `問題: ${question.question_text}`,
+            pointsEarned,
+            basePoints,
+            'approved'
+          )
+          .run();
 
-    // ストリーク更新
-    await updateStreaks(c.env.DB, body.userId);
+        // ストリーク更新
+        await updateStreaks(c.env.DB, body.userId);
+      }
+    }
 
     const user: any = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
       .bind(body.userId)
@@ -1118,6 +1154,8 @@ app.post('/api/quizzes/answer', async (c) => {
       bonusTier,
       bonusLabel,
       pointsEarned,
+      isFoul,
+      message: foulMessage,
       newTotalPoints: user ? user.current_points : 0
     });
   } catch (err: any) {

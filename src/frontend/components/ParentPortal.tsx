@@ -144,6 +144,33 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     }
   };
 
+  const handleUpdateGrade = async (userId: string, userName: string, newGrade: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/grade`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gradeLevel: newGrade }),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[handleUpdateGrade] HTTP error', res.status, errorText);
+        alert(`学年の更新に失敗しました (${res.status}): ${errorText}`);
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        setSaveSuccess(`「${userName}」さんの学年を更新しました！`);
+        onRefresh();
+      } else {
+        console.error('[handleUpdateGrade] Failed response', data.error);
+        alert(data.error || '学年の更新に失敗しました');
+      }
+    } catch (err) {
+      console.error('[handleUpdateGrade] Network exception', err);
+      alert('学年の更新中に通信エラーが発生しました');
+    }
+  };
+
   const DEFAULT_RULES: PointRule[] = [
     { category: 'input_book', title: '📖 読書インプット', points: 300, description: '本を1冊読んで感想を提出（自己申告）' },
     { category: 'input_movie', title: '🎬 映画インプット', points: 120, description: '映画を観てレビューを提出（自己申告）' },
@@ -909,9 +936,16 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                       <span>{user.name}</span>
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">
-                        {user.grade_level === 'high_3' ? '高校レベル' : user.grade_level === 'junior_1' ? '中学レベル' : '一般・その他'}
-                      </span>
+                      <select
+                        value={user.grade_level}
+                        onChange={(e) => handleUpdateGrade(user.id, user.name, e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-xs text-cyan-300 font-bold rounded-lg px-2 py-1 outline-none focus:border-cyan-500 cursor-pointer"
+                        title="学年レベルを変更"
+                      >
+                        <option value="junior_1">🎒 中学レベル</option>
+                        <option value="high_3">🎓 高校レベル</option>
+                        <option value="other">一般・その他</option>
+                      </select>
                       <button
                         type="button"
                         onClick={() => handleDeleteUser(user.id, user.name, user.current_points)}

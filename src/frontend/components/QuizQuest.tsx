@@ -26,8 +26,12 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
   const [sessionPoints, setSessionPoints] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isFoulAnswer, setIsFoulAnswer] = useState<boolean>(false);
+  const [foulMessage, setFoulMessage] = useState<string>('');
 
   if (!currentUser) return null;
+
+  const isHighSchoolUser = (currentUser.grade_level || '').startsWith('high');
 
   const getCategoryLabel = (cat: string) => {
     switch (cat) {
@@ -100,21 +104,14 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
 
     setSelectedOption(index);
     setIsAnswered(true);
+    setIsFoulAnswer(false);
+    setFoulMessage('');
 
     const currentQuiz = quizzes[currentIndex];
     const correct = currentQuiz.correct_index === index;
     setIsCorrect(correct);
 
     if (correct) {
-      setSessionPoints((prev) => prev + 1);
-      setStreak((prev) => prev + 1);
-
-      confetti({
-        particleCount: 35,
-        spread: 60,
-        origin: { y: 0.6 }
-      });
-
       try {
         const res = await fetch('/api/quizzes/answer', {
           method: 'POST',
@@ -127,30 +124,44 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
         });
         const data = await res.json();
         if (data.success) {
-          onPointsUpdate(data.newTotalPoints);
+          if (data.isFoul) {
+            setIsFoulAnswer(true);
+            setFoulMessage(data.message || '高校生は中学生クイズではポイントを獲得できません（反則）');
+            // 反則時はポイント加算なし・ストリークも継続しない
+            setStreak(0);
+          } else {
+            setSessionPoints((prev) => prev + 1);
+            setStreak((prev) => prev + 1);
 
-          // The optimistic +1 above ignores the gacha multiplier — top up the difference
-          const actualPoints = Number(data.pointsEarned) || 1;
-          if (actualPoints > 1) {
-            setSessionPoints((prev) => prev + (actualPoints - 1));
-          }
-
-          if (data.multiplier && data.multiplier > 1 && onGachaResult) {
-            onGachaResult({
-              basePoints: data.basePoints || 1,
-              multiplier: data.multiplier,
-              finalEarnedPoints: data.pointsEarned || data.multiplier,
-              bonusTier: data.bonusTier,
-              bonusLabel: data.bonusLabel,
-              actionTitle: 'クイズ正解',
-              fromQuiz: true,
+            confetti({
+              particleCount: 35,
+              spread: 60,
+              origin: { y: 0.6 }
             });
+
+            onPointsUpdate(data.newTotalPoints);
+
+            // The optimistic +1 above ignores the gacha multiplier — top up the difference
+            const actualPoints = Number(data.pointsEarned) || 1;
+            if (actualPoints > 1) {
+              setSessionPoints((prev) => prev + (actualPoints - 1));
+            }
+
+            if (data.multiplier && data.multiplier > 1 && onGachaResult) {
+              onGachaResult({
+                basePoints: data.basePoints || 1,
+                multiplier: data.multiplier,
+                finalEarnedPoints: data.pointsEarned || data.multiplier,
+                bonusTier: data.bonusTier,
+                bonusLabel: data.bonusLabel,
+                actionTitle: 'クイズ正解',
+                fromQuiz: true,
+              });
+            }
           }
-        } else {
-          onPointsUpdate(currentUser.current_points + 1);
         }
       } catch (err) {
-        onPointsUpdate(currentUser.current_points + 1);
+        console.error('Quiz answer error', err);
       }
     } else {
       setStreak(0);
@@ -162,6 +173,8 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
 
     setIsAnswered(false);
     setSelectedOption(null);
+    setIsFoulAnswer(false);
+    setFoulMessage('');
 
     if (currentIndex + 1 < quizzes.length) {
       const nextIdx = currentIndex + 1;
@@ -230,7 +243,9 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
               { id: 'all', label: '全学年' },
               { id: 'junior_1', label: '🎒 中1レベル(前半)' },
               { id: 'high_3', label: '🎓 高校レベル(高1〜2)' },
-            ].map((g) => (
+            ]
+              .filter((g) => !(isHighSchoolUser && g.id === 'junior_1'))
+              .map((g) => (
               <button
                 key={g.id}
                 onClick={() => setGradeLevelFilter(g.id)}
@@ -377,10 +392,22 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             <>
               {/* Inline Feedback */}
               <div className={`p-4 rounded-2xl border flex items-center justify-between ${
-                isCorrect ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300' : 'bg-red-950/80 border-red-500/40 text-red-300'
+                isFoulAnswer
+                  ? 'bg-amber-950/80 border-amber-500/40 text-amber-300'
+                  : isCorrect
+                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
+                  : 'bg-red-950/80 border-red-500/40 text-red-300'
               }`}>
                 <div className="flex items-center gap-3">
-                  {isCorrect ? (
+                  {isFoulAnswer ? (
+                    <>
+                      <XCircle className="w-7 h-7 text-amber-400 shrink-0" />
+                      <div>
+                        <div className="font-extrabold text-base text-amber-400">⚠️ 反則判定！ (ポイント +0 pt)</div>
+                        <div className="text-xs text-amber-200">{foulMessage}</div>
+                      </div>
+                    </>
+                  ) : isCorrect ? (
                     <>
                       <Award className="w-7 h-7 text-emerald-400 animate-bounce shrink-0" />
                       <div>
