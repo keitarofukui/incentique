@@ -58,7 +58,7 @@ export interface UserGoal {
 
 export interface QuizQuestion {
   id: number;
-  grade_level: 'high_3' | 'junior_1' | 'other';
+  grade_level: string;
   category: 'english' | 'social_studies' | 'science' | string;
   question_text: string;
   options: string[];

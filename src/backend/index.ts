@@ -1088,10 +1088,10 @@ app.post('/api/quizzes/answer', async (c) => {
     let foulMessage = '';
 
     if (isCorrect) {
-      // Check for foul: High school user answering junior_1 questions
+      // Check for foul: High school user answering junior questions
       const userRow = await c.env.DB.prepare('SELECT grade_level FROM users WHERE id = ?').bind(body.userId).first<{ grade_level: string }>();
       const isHighSchool = userRow && (userRow.grade_level || '').startsWith('high');
-      if (isHighSchool && question.grade_level === 'junior_1') {
+      if (isHighSchool && (question.grade_level || '').startsWith('junior')) {
         isFoul = true;
         foulMessage = '高校生は中学生クイズではポイントを獲得できません（反則）';
       } else {

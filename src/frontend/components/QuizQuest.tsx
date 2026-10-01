@@ -40,9 +40,23 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
       case 'science': return '理科';
       case 'social_studies': return '社会';
       case 'japanese': return '国語';
-      case 'general_knowledge': return '📖 小論文・教養';
+      case 'general_knowledge': return '小論文・教養';
       case 'anime_manga': return '🍿 箸休めアニメ';
       default: return cat;
+    }
+  };
+
+  const getGradeLabel = (g: string) => {
+    switch (g) {
+      case 'junior_1_early': return '中1前期';
+      case 'junior_1_late': return '中1後期';
+      case 'junior_2_early': return '中2前期';
+      case 'junior_2_late': return '中2後期';
+      case 'junior_3_early': return '中3前期';
+      case 'junior_3_late': return '中3後期';
+      case 'high_3': return '高校';
+      case 'all': return '全学年';
+      default: return g;
     }
   };
 
@@ -236,21 +250,28 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
         </div>
 
         {/* Filter Controls (Grade & Category) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-          {/* Grade Level Selector */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-bold text-slate-400 mr-1.5 shrink-0">対象学年:</span>
+        <div className="space-y-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+          {/* Grade Level Selector (Top Row) */}
+          <div 
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 no-swipe"
+            onTouchStart={(e) => e.stopPropagation()}
+          >
             {[
               { id: 'all', label: '全学年' },
-              { id: 'junior_1', label: '🎒 中1レベル' },
-              { id: 'high_3', label: '🎓 高校レベル(高1〜2)' },
+              { id: 'junior_1_early', label: '中1前期' },
+              { id: 'junior_1_late', label: '中1後期' },
+              { id: 'junior_2_early', label: '中2前期' },
+              { id: 'junior_2_late', label: '中2後期' },
+              { id: 'junior_3_early', label: '中3前期' },
+              { id: 'junior_3_late', label: '中3後期' },
+              { id: 'high_3', label: '高校' },
             ]
-              .filter((g) => !(isHighSchoolUser && g.id === 'junior_1'))
+              .filter((g) => !(isHighSchoolUser && g.id.startsWith('junior')))
               .map((g) => (
               <button
                 key={g.id}
                 onClick={() => setGradeLevelFilter(g.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   gradeLevelFilter === g.id
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-glow-cyan'
                     : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
@@ -261,12 +282,14 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             ))}
           </div>
 
-          {/* Subject Categories */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
-            <span className="text-xs font-bold text-slate-400 mr-1.5 shrink-0">教科:</span>
+          {/* Subject Categories (Bottom Row) */}
+          <div 
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 no-swipe"
+            onTouchStart={(e) => e.stopPropagation()}
+          >
             {[
-              { id: 'all', label: '全教科・ランダム' },
-              { id: 'general_knowledge', label: '📖 小論文・教養' },
+              { id: 'all', label: '全教科' },
+              { id: 'general_knowledge', label: '小論文・教養' },
               { id: 'english', label: '英語' },
               { id: 'math', label: '数学' },
               { id: 'science', label: '理科' },
@@ -276,7 +299,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
               <button
                 key={cat.id}
                 onClick={() => setCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   category === cat.id
                     ? 'bg-cyber-neonCyan text-slate-950 shadow-glow-cyan font-black'
                     : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
@@ -317,7 +340,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
           <Brain className="w-12 h-12 text-slate-600 mx-auto" />
           <h3 className="text-lg font-bold text-white">該当するクイズが見つかりませんでした</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            選択された【{gradeLevelFilter === 'all' ? '全学年' : gradeLevelFilter === 'junior_1' ? '中1レベル' : '高校レベル'}】×【{getCategoryLabel(category)}】に該当する問題は現在プールにありません。
+            選択された【{getGradeLabel(gradeLevelFilter)}】×【{getCategoryLabel(category)}】に該当する問題は現在プールにありません。
           </p>
           <button
             onClick={() => {
