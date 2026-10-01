@@ -241,7 +241,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             <span className="text-xs font-bold text-slate-400 mr-1.5 shrink-0">対象学年:</span>
             {[
               { id: 'all', label: '全学年' },
-              { id: 'junior_1', label: '🎒 中1レベル(前半)' },
+              { id: 'junior_1', label: '🎒 中1レベル' },
               { id: 'high_3', label: '🎓 高校レベル(高1〜2)' },
             ]
               .filter((g) => !(isHighSchoolUser && g.id === 'junior_1'))
