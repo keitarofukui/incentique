@@ -40,6 +40,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
       case 'science': return '理科';
       case 'social_studies': return '社会';
       case 'japanese': return '国語';
+      case 'general_knowledge': return '📖 小論文・教養';
       case 'anime_manga': return '🍿 箸休めアニメ';
       default: return cat;
     }
@@ -265,6 +266,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             <span className="text-xs font-bold text-slate-400 mr-1.5 shrink-0">教科:</span>
             {[
               { id: 'all', label: '全教科・ランダム' },
+              { id: 'general_knowledge', label: '📖 小論文・教養' },
               { id: 'english', label: '英語' },
               { id: 'math', label: '数学' },
               { id: 'science', label: '理科' },
