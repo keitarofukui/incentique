@@ -343,7 +343,9 @@ export const App: React.FC = () => {
         prev.map((u) => (u.id === currentUser.id ? { ...u, current_points: newPoints } : u))
       );
     }
-    fetchData();
+    // クイズ回答ごとの fetchData()（action_logs 500件等の全件再取得）は停止する。
+    // クイズ画面ではポイント表示のみを即時更新し、ログ一覧や他データはタブ遷移時等の通常取得で十分。
+    // これによりクイズ1問ごとの 21,000+ rows_read 浪費を完全に防止。
   };
 
   const handleLogout = () => {

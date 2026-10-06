@@ -353,6 +353,7 @@ async function updateStreaks(db: any, userId: string): Promise<void> {
              ${categoryFlags}
       FROM action_logs
       WHERE user_id = ?
+      AND created_at >= datetime('now', '-36 hours')
       AND category != 'bonus'
       AND date(datetime(created_at, '+5 hours')) = ?
     `).bind(userId, logicalToday).first();
@@ -651,10 +652,11 @@ app.get('/api/users/:id/daily-stats', async (c) => {
         SUM(earned_points) as points
       FROM action_logs
       WHERE user_id = ?
+        AND created_at >= datetime('now', '-' || (? + 5) || ' days')
         AND date(datetime(created_at, '+5 hours')) >= date('now', '-' || ? || ' days')
       GROUP BY dateStr, category
       ORDER BY dateStr ASC
-    `).bind(userId, days).all();
+    `).bind(userId, days, days).all();
 
     // 日別に集計して整形
     const dateMap: { [dateStr: string]: any } = {};
@@ -1436,28 +1438,34 @@ app.get('/api/action-logs', async (c) => {
     const offset = (page - 1) * limit;
 
     let baseQuery = ' FROM action_logs JOIN users ON action_logs.user_id = users.id';
+    let countBaseQuery = ' FROM action_logs';
     const conditions: string[] = [];
+    const countConditions: string[] = [];
     const params: any[] = [];
 
     if (userId) {
       conditions.push('action_logs.user_id = ?');
+      countConditions.push('user_id = ?');
       params.push(userId);
     }
     if (status) {
       conditions.push('action_logs.status = ?');
+      countConditions.push('status = ?');
       params.push(status);
     }
     if (date) {
       conditions.push("date(datetime(action_logs.created_at, '+5 hours')) = ?");
+      countConditions.push("date(datetime(created_at, '+5 hours')) = ?");
       params.push(date);
     }
 
     if (conditions.length > 0) {
       baseQuery += ' WHERE ' + conditions.join(' AND ');
+      countBaseQuery += ' WHERE ' + countConditions.join(' AND ');
     }
 
-    // 総件数の取得
-    const countQuery = 'SELECT COUNT(*) as total' + baseQuery;
+    // 総件数の取得（users JOIN を省いて rows_read を半減）
+    const countQuery = 'SELECT COUNT(*) as total' + countBaseQuery;
     const countResult: any = await c.env.DB.prepare(countQuery).bind(...params).first();
     const totalCount = countResult?.total || 0;
 
