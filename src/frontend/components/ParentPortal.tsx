@@ -592,17 +592,17 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                         </p>
                         <button
                           onClick={() => setApprovingItem(item)}
-                          className={`w-full py-2.5 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg ${
+                          className={`w-full py-2.5 px-3 rounded-xl text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-lg active:scale-98 ${
                             isCash
                               ? 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-emerald-950'
                               : 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-glow-gold'
                           }`}
                         >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          <span className="leading-snug">
                             {isCash
-                              ? `💵 現金 ${cashAmount.toLocaleString()}円を渡した！pt引き落とし (-${item.required_points.toLocaleString()} pt)`
-                              : `🎁 物品を渡した！ポイントを引き落とす (-${item.required_points.toLocaleString()} pt)`
+                              ? `現金 ${cashAmount.toLocaleString()}円を渡した (-${item.required_points.toLocaleString()} pt)`
+                              : `物品を渡した (-${item.required_points.toLocaleString()} pt)`
                             }
                           </span>
                         </button>
@@ -670,11 +670,11 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                       <table className="w-full text-left border-collapse min-w-[37.5rem]">
                         <thead>
                           <tr className="border-b border-slate-700/50 text-xs text-slate-400">
-                            <th className="pb-2 font-medium">日時</th>
-                            <th className="pb-2 font-medium">ユーザー</th>
+                            <th className="pb-2 font-medium whitespace-nowrap">日時</th>
+                            <th className="pb-2 font-medium whitespace-nowrap min-w-[5rem]">ユーザー</th>
                             <th className="pb-2 font-medium">カテゴリー / 内容</th>
-                            <th className="pb-2 font-medium text-right">獲得ポイント</th>
-                            <th className="pb-2 font-medium text-center">操作</th>
+                            <th className="pb-2 font-medium text-right whitespace-nowrap">獲得ポイント</th>
+                            <th className="pb-2 font-medium text-center whitespace-nowrap">操作</th>
                           </tr>
                         </thead>
                         <tbody className="text-xs">
@@ -697,10 +697,10 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
                             return (
                               <tr key={log.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                                <td className="py-2.5 text-slate-400 font-mono text-xs">
+                                <td className="py-2.5 text-slate-400 font-mono text-xs whitespace-nowrap">
                                   {formatLogDateTime(log.created_at)}
                                 </td>
-                                <td className="py-2.5 text-white font-bold">{log.user_name || 'ユーザー'}</td>
+                                <td className="py-2.5 text-white font-bold whitespace-nowrap min-w-[5rem]">{log.user_name || 'ユーザー'}</td>
                                 <td className="py-2.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
