@@ -1,181 +1,136 @@
-# 機能設計仕様書: ライバル画面表示改善・記録更新お知らせ速報・保護者履歴改行解消
+# 機能設計仕様書: ログイン画面アカウント選択カードのコンパクト化・スマホ2列表示
 
-- 作成日時: 2026-10-08 09:10
+- 作成日時: 2026-10-08 09:35
 - 対象リポジトリ/ブランチ: game / main
-- 対象コミット: 0fa97d4
-- 上流 Artifact: docs/investigation-report.md（対象コミット: 0fa97d4）
+- 対象コミット: 75c7259
+- 上流 Artifact: なし（UIスリム化新規設計）
 
-## 0. 上流の抜き取り再実測（§2-3・軽量コマンド 3 件）
-### [EV-1] 上流 [EV-1] の再実行（RivalBoard.tsx カード構造）
-$ git show HEAD:src/frontend/components/RivalBoard.tsx | sed -n '73,95p'
+## 0. 実測エビデンス（§2-3）
+### [EV-1] LoginSelectScreen.tsx 現行グリッド・カード構造
+$ sed -n '62,88p' src/frontend/components/LoginSelectScreen.tsx
 ```tsx
-          return (
-            <div
-              key={user.id}
-              className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
-                isMe
-                  ? 'bg-slate-900/90 border-cyber-neonCyan/60 shadow-glow-cyan'
-                  : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-2xl border border-slate-700 shrink-0">
-                  {user.avatar || '⚡'}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {users.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={() => onSelectUser(user)}
+                  className="glass-card glass-card-hover p-5 rounded-2xl border border-slate-800 hover:border-cyber-neonCyan/60 cursor-pointer text-center space-y-3 group transition-all transform hover:-translate-y-1"
+                >
+                  <div className="text-5xl group-hover:scale-110 transition-transform">
+                    {user.avatar || '⚡'}
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <h3 className="text-lg font-black text-white group-hover:text-cyber-neonCyan transition-colors">
+                      {user.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono">
+                      学年: {user.grade_level === 'high_3' ? '高3' : user.grade_level === 'junior_1' ? '中1' : 'その他'}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                    <span>所持pt</span>
+                    <span className="font-mono font-black text-amber-400">
+                      {user.current_points.toLocaleString()} pt
+                    </span>
+                  </div>
                 </div>
+              ))}
+            </div>
 ```
-- 【実測】上流と完全に一致。左右2分割 flex 構造と横幅不足を確認 [EV-1]。
+- 【実測】モバイル幅で `grid-cols-1` となり1人ずつ縦積みされ、アバターが `text-5xl`、パディング `p-5` で高さが過大（180px超）になっていることを確認 [EV-1]。
 
-### [EV-2] 上流 [EV-2] の再実行（ParentPortal.tsx テーブル構造）
-$ sed -n '675,690p' src/frontend/components/ParentPortal.tsx
-```tsx
-                            <th className="pb-2 font-medium">カテゴリー / 内容</th>
-                            <th className="pb-2 font-medium text-right">獲得ポイント</th>
-                            <th className="pb-2 font-medium text-center">操作</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-xs">
-                          {allLogs.map((log) => {
-```
-- 【実測】上流と完全に一致。ユーザー列に whitespace-nowrap が無いことを確認 [EV-2]。
-
-### [EV-3] 上流 [EV-3] の再実行（TrainingModal.tsx 変更履歴）
-$ git log -n 3 --oneline -- src/frontend/components/TrainingModal.tsx
-```
-1efa365 feat: 夏休みバナー撤去および未活動日数に応じたポイント失効機能の実装
-8f2db70 feat: auto-scroll to YouTube player on training menu select and audit release
-a3276dc feat: audited and deployed font scale accessibility improvements to production
-```
-- 【実測】上流と完全に一致。直近のコミットで変更がなくデグレでないことを確認 [EV-3]。
-
-### [EV-4] 本番APIのユーザーデータとストリーク実測値
-$ curl -s https://quest-habit-app.keitaro-fukui.workers.dev/api/users
-```json
-{"success":true,"users":[{"name":"チチ","current_streak_days":10},{"name":"りょーたろ","current_streak_days":34,"current_50pt_streak_days":34,"current_100pt_streak_days":14},{"name":"シュンタロウ","current_streak_days":10}]}
-```
-- 【実測】本番APIにおいてりょーたろが34日連続達成（神ストリーク14日連続）を保持していることを確認 [EV-4]。
-
-### [EV-5] ビルド動作確認
+### [EV-2] プロダクションビルド動作確認
 $ npm run build
 ```
-✓ built in 1.68s
+✓ built in 1.61s
 ```
-- 【実測】プロダクションビルドが成功することを確認 [EV-5]。
+- 【実測】ビルド成功、エラー 0 件 [EV-2]。
 
-### [EV-6] 型チェック動作確認
+### [EV-3] TypeScript型チェック動作確認
 $ npx tsc --noEmit
 ```
 (出力なし、終了コード 0)
 ```
-- 【実測】型エラー 0 件で合格することを確認 [EV-6]。
+- 【実測】型エラー 0 件で合格 [EV-3]。
 
-## 0-1. 確定済みの前提（上流から引き継ぎ・再実測しない / §2-5）
+## 0-1. 確定済みの前提（§2-5）
 | 事実 | 根拠 |
 | :--- | :--- |
-| `users` テーブル・APIに連続達成日数（`current_streak_days` 等）が保持されている | [EV-4] |
-| `npm run build` は正常に通る | [EV-5] |
-| `npx tsc --noEmit` は型エラー0件で合格 | [EV-6] |
+| `npm run build` は 1.61s で成功 | [EV-2] |
+| `npx tsc --noEmit` は型エラー 0 件で合格 | [EV-3] |
 
-- トラック: ライト（UI表示改善・速報バナー新設・スタイル修正であり、スキーマ・認証・機密に触れず差分200行未満のため / §2-6）
-- トラック自己照合: §12 の変更対象パス = `src/frontend/components/RivalBoard.tsx`, `src/frontend/components/ParentPortal.tsx` / リスクパス・他レーン共有パスへの抵触: 無し
+- トラック: ライト（UI表示レイアウトのスリム化のみであり、DB・API・認証・スキーマに一切触れず、コード差分約30行のため / §2-6）
+- トラック自己照合: §12 の変更対象パス = `src/frontend/components/LoginSelectScreen.tsx` / リスクパスへの抵触: 無し
 
 ## 1. 概要・目的
-1. **ライバルランキングの視認性向上**: モバイル画面幅において、ランキングカード内の名前が「シュン / タロウ」のように不愉快に文字改行される問題を解消し、順位・アバター・名前・所持ポイントが美しく一目で把握できるレイアウトへ刷新する。
-2. **すごい記録更新中速報バナーの新設**: ライバル画面の先頭に、連続達成日数（ストリーク）の保持者や神ストリーク更新中を称えるハイライト速報バナーを新設し、家族間の競争・モチベーションを高める。
-3. **保護者履歴の名前1文字改行解消**: 「全員のアクション履歴」テーブルにおいて、名前が1文字ずつ縦改行される不具合を `whitespace-nowrap` および適切な最小幅により解消する。
-4. **YouTube横画面回転**: デグレでない旨の確認と、端末の縦向きロック解除・全画面ボタン操作の案内。
+ログイン（アカウント選択）画面において、各ユーザーカードがスマホ画面で巨大な1列縦積みになっており画面の大半を専有している問題を解消する。
+Nintendo Switch / Netflix 風のスマートな2列グリッド（`grid-cols-2 sm:grid-cols-3 md:grid-cols-4`）を採用し、カードの余白・アバターサイズを最適化することで、スマホの1画面内にスクロール不要ですっきり全員が収まる快適なUIを実現する。
 
 ## 2. 機能要件 / 非機能要件
 ### 機能要件
-- **FR-1**: `RivalBoard.tsx` において、モバイル時は上段（順位・アバター・名前・YOU）と下段（クリア達成数・所持ポイント）の2段構成、PC時は1行構成とするレスポンシブデザインを適用。名前の途中で改行させない（`whitespace-nowrap`）。
-- **FR-2**: `RivalBoard.tsx` の上部に「🔥 注目の記録更新中！」ハイライト速報カードを配置。
-  - ストリーク日数トップのユーザー、またはストリーク >= 3日以上のユーザーが存在する場合に表示。
-  - 例: 「🔥【りょーたろ】が 34日連続記録 を猛烈更新中！（神ストリーク14日連続）」
-  - 表示条件: ストリーク継続中のユーザーが存在する場合。
-- **FR-3**: `ParentPortal.tsx` の履歴テーブルのユーザー列に `whitespace-nowrap min-w-[5rem]` を適用し、名前が常に1行で表示されるようにする。
+- **FR-1**: スマホ表示時（デフォルト）に `grid-cols-2`、タブレット・PCで `sm:grid-cols-3 md:grid-cols-4` の2列以上グリッドとする。
+- **FR-2**: アバター表示を `w-12 h-12` 前後の角丸アイコン枠（`text-2xl sm:text-3xl`）とし、コンパクトで美しいデザインにする。
+- **FR-3**: パディングを `p-3.5 sm:p-4`、間隔を `space-y-2` にスリム化し、名前を `truncate` で保護。学年をコンパクトバッジ化。
+- **FR-4**: タップ操作時の心地よいホバー・アクティブ演出（`active:scale-95`）を維持する。
 
 ### 非機能要件
-- **NFR-1**: D1データベースへの追加クエリや負荷は一切発生させない（既存の `/api/users` から渡される `users` 配列のデータのみで完結）。
-- **NFR-2**: TypeScript型エラー0件、既存のビルド・テストをパスすること。
+- **NFR-1**: 既存のユーザー選択ロジック（`onSelectUser`）やデータバインディングに影響を与えないこと。
+- **NFR-2**: TypeScript型エラー0件、ビルド成功を維持すること。
 
 ## 3. データフロー全経路
-1. **既存経路**:
-   - `src/frontend/App.tsx:L170-L175` ➔ `/api/users` 呼び出し ➔ 全ユーザー情報（`current_streak_days`, `current_50pt_streak_days`, `current_100pt_streak_days` 含む）を取得
-   - `src/frontend/App.tsx:L459-L464` ➔ `<RivalBoard users={users} currentUser={currentUser} actionLogs={actionLogs} />` に props 渡し
-2. **変更後経路**:
-   - `RivalBoard.tsx` 内で `users` 配列からストリーク記録トップのユーザー（`topStreaker`）を算出。
-   - 上部ヘッダー直下に「🔥 注目の記録更新中！」ハイライト速報バナーをレンダリング。
-   - ランキングカード一覧をモバイル最適化レイアウトでレンダリング。
+1. `src/frontend/App.tsx:L396` ➔ `<LoginSelectScreen users={users} onSelectUser={handleUserSelect} ... />`
+2. `LoginSelectScreen.tsx` 内部で `users` 配列をマップして新グリッドレイアウトでカード描画。
 
 ## 4. 🛡️ 機密フィールド台帳と漏洩遮断設計（G-7）
-| フィールド | 機密度 | 既存の露出経路（実測） | 遮断策（具体実装） |
-| :--- | :--- | :--- | :--- |
-| なし（新フィールド追加なし） | - | - | 既存の公開フィールド（`name`, `current_streak_days` 等）のみを使用し、機密情報は扱わない。 |
+新フィールド追加なし。該当なし。
 
 ## 5. 🗄️ DB マイグレーション DDL（全文 / G-4）
-本改修では DB スキーマの変更は行わない（該当なし）。
+DB変更なし。該当なし。
 
 ## 6. API 契約
-本改修では新しい API エンドポイントの新設・変更は行わない（既存の `/api/users` をそのまま使用）。
+API変更なし。該当なし。
 
 ## 7. 🙈 エラーハンドリング仕様（G-5・5 状態の表）
 | 状態 | UI挙動 | 表示メッセージ | ログ出力 |
 | :--- | :--- | :--- | :--- |
-| 正常系（データあり） | 速報バナーおよびランキングカードを正常表示 | - | なし |
-| データなし（users空） | カード一覧を非表示またはローディング | - | なし |
-| ストリーク該当者なし | 速報バナーを非表示 | - | なし |
-| 4xx / 5xx / ネットワーク断 | 既存の `App.tsx` のエラーハンドリングに準拠 | エラーメッセージ表示 | `console.error` |
+| 正常系（users >= 1） | 2列グリッドで全カード表示 | - | なし |
+| 空データ（users == 0） | 「まだユーザーが登録されていません」＋登録ボタン表示 | - | なし |
 
 ## 8. 🏛️ アーキテクチャ選定と却下案（G-8）
-- **採用方式**:
-  - クライアントサイドでの既存データ（`users` プロパティ）活用による速報バナー生成。
-  - モバイルファーストのFlexbox/Tailwind CSSによるカードレイアウト再設計。
-- **却下案**:
-  - **却下案1: D1への日別最高記録集計APIの新設**:
-    - 理由: `action_logs` の全件スキャンが発生し、先日最適化した D1 rows_read クォータを消費するリスクがあるため却下。まずは負荷ゼロの連続記録（ストリーク）と本日記録を活用する。
-  - **却下案2: CSS での単純な `truncate`（省略表記）**:
-    - 理由: 名前が途中で「シュン...」のように途切れてしまい、ライバルとしての愛着や認識性が損なわれるため却下。縦積みレイアウトにより名前の全文を1行で表示する。
+- **採用方式**: モバイル2列グリッド（`grid-cols-2`）。正方形に近いカードで情報が整理され、ゲーム的な選択感と視認性のバランスが最良。
+- **却下案**: 横型リスト（バー形式）。縦には縮むが、各行が横に広がりアバターの存在感が薄れ、ゲームらしい楽しさが減少するため却下。
 
 ## 9. 🧪 受け入れ基準（検証コマンド付き）
-1. `npm run build` がエラーなく成功すること: `$ npm run build` (exit 0)
-2. `npx tsc --noEmit` が型エラー 0 件で合格すること: `$ npx tsc --noEmit` (exit 0)
-3. `RivalBoard.tsx` において、`whitespace-nowrap` が適用され、名前が1行で表示されること: `$ grep -rn "whitespace-nowrap" src/frontend/components/RivalBoard.tsx`
-4. `ParentPortal.tsx` において、ユーザー列に `whitespace-nowrap` が適用されること: `$ grep -rn "whitespace-nowrap" src/frontend/components/ParentPortal.tsx`
+1. `npm run build` が成功すること: `$ npm run build` (exit 0)
+2. `npx tsc --noEmit` が合格すること: `$ npx tsc --noEmit` (exit 0)
+3. `grid-cols-2` が適用されていること: `$ grep -rn "grid-cols-2" src/frontend/components/LoginSelectScreen.tsx`
 
 ## 10. 📋 前提条件・ブロッカー
-- ブロッカーなし。すべて手元のコードベースおよび既存APIデータのみで完結。
+ブロッカーなし。
 
 ## 11. UI / コンポーネント設計
-### RivalBoard.tsx
-1. **ハイライト速報カード**:
-   - 背景: `bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30`
-   - アイコン: `Flame` / `Crown`
-   - 文言: `🔥【りょーたろ】が 34日連続記録 を猛烈更新中！（神ストリーク14日連続）`
-2. **ランキングカード**:
-   - モバイル: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3`
-   - 上段（モバイル）: 順位バッジ + アバター + 名前（`whitespace-nowrap`） + YOUバッジ
-   - 下段（モバイル）: クリア達成数 + 所持ポイント（`text-amber-400 font-mono`）
-   - PC（sm以上）: 横1行に整列
-
-### ParentPortal.tsx
-- 履歴テーブルの `<th>ユーザー</th>` および `<td>` に `whitespace-nowrap min-w-[5rem]` を追加。
+- グリッド: `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4`
+- カード: `glass-card glass-card-hover p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-cyber-neonCyan/60 cursor-pointer text-center space-y-2 sm:space-y-2.5 group transition-all transform hover:-translate-y-1 active:scale-95`
+- アイコン枠: `w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-105 transition-transform shadow-inner`
+- 名前: `text-sm sm:text-base font-black text-white group-hover:text-cyber-neonCyan transition-colors truncate`
+- 学年: `text-[10px] bg-slate-800/90 text-slate-300 font-mono px-1.5 py-0.5 rounded border border-slate-700/60 inline-block`
+- 所持pt: `pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] sm:text-xs text-slate-400 font-mono`
 
 ## 12. 実装タスクチェックリスト（依存順・1 タスク 1 コミット・完了条件付き）
-- [x] T1: `src/frontend/components/RivalBoard.tsx` のカードレイアウト改善と記録更新中速報バナーの実装 / 完了条件: `npx tsc --noEmit` 0 error ＋ `npm run build` 成功
-  → 実装: `src/frontend/components/RivalBoard.tsx` / モバイル縦積み＋whitespace-nowrap＋ストリーク速報バナー追加 / tsc 0 error / build 成功
-- [x] T2: `src/frontend/components/ParentPortal.tsx` のユーザー列改行防止（`whitespace-nowrap min-w-[5rem]`）の実装 / 完了条件: `npx tsc --noEmit` 0 error ＋ `npm run build` 成功
-  → 実装: `src/frontend/components/ParentPortal.tsx:L674, L703` / whitespace-nowrap min-w-[5rem] 追加 / tsc 0 error / build 成功
+- [x] T1: `src/frontend/components/LoginSelectScreen.tsx` のカード2列グリッド化とコンパクトスタイリング / 完了条件: `npx tsc --noEmit` 0 error ＋ `npm run build` 成功
+  → 実装完了: `src/frontend/components/LoginSelectScreen.tsx:L62-L89` / grid-cols-2化・w-12 h-12アイコン化・p-3.5スリム化 / tsc 0 error / build 成功
 
 ## 13. 未確認事項（E-4）
-| 未確認項目 | 確認手段 | ブロッカー理由 |
-| :--- | :--- | :--- |
-| 実機（iPhone）での画面回転ロック状態 | ユーザーへの案内 | 端末側の物理操作であるため |
+なし。
 
 ## 14. 品質ゲート実行結果（G-11）
 $ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh design
 ```
 ========================================================
  verify.sh  role=design  base=HEAD  repo=game
- HEAD=d5ee1e3  branch=main
+ HEAD=75c7259  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------

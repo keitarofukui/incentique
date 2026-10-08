@@ -59,30 +59,30 @@ export const LoginSelectScreen: React.FC<LoginSelectScreenProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
               {users.map((user) => (
                 <div
                   key={user.id}
                   onClick={() => onSelectUser(user)}
-                  className="glass-card glass-card-hover p-5 rounded-2xl border border-slate-800 hover:border-cyber-neonCyan/60 cursor-pointer text-center space-y-3 group transition-all transform hover:-translate-y-1"
+                  className="glass-card glass-card-hover p-3.5 sm:p-4 rounded-2xl border border-slate-800 hover:border-cyber-neonCyan/60 cursor-pointer text-center space-y-2 sm:space-y-2.5 group transition-all transform hover:-translate-y-1 active:scale-95 shadow-md flex flex-col justify-between"
                 >
-                  <div className="text-5xl group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-105 transition-transform shadow-inner shrink-0">
                     {user.avatar || '⚡'}
                   </div>
 
-                  <div className="space-y-0.5">
-                    <h3 className="text-lg font-black text-white group-hover:text-cyber-neonCyan transition-colors">
+                  <div className="space-y-1 min-w-0">
+                    <h3 className="text-sm sm:text-base font-black text-white group-hover:text-cyber-neonCyan transition-colors truncate">
                       {user.name}
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">
-                      学年: {user.grade_level === 'high_3' ? '高3' : user.grade_level === 'junior_1' ? '中1' : 'その他'}
-                    </p>
+                    <span className="text-[10px] bg-slate-800/90 text-slate-300 font-mono px-1.5 py-0.5 rounded border border-slate-700/60 inline-block">
+                      {user.grade_level === 'high_3' ? '高3' : user.grade_level === 'junior_1' ? '中1' : 'その他'}
+                    </span>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                    <span>所持pt</span>
-                    <span className="font-mono font-black text-amber-400">
-                      {user.current_points.toLocaleString()} pt
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] sm:text-xs text-slate-400 font-mono">
+                    <span className="text-[10px] text-slate-500">所持</span>
+                    <span className="font-mono font-black text-amber-400 truncate ml-1">
+                      {user.current_points.toLocaleString()} <span className="text-[9px] text-amber-300 font-normal">pt</span>
                     </span>
                   </div>
                 </div>
