@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { User, ActionLog } from '../types';
-import { Flame, Swords, Crown, Sunrise } from 'lucide-react';
-import { logLogicalDateStr, todayLogicalDateStr, toLocalDateStr } from '../dateUtils';
+import { Flame, Swords, Crown, Sunrise, ChevronDown, ChevronUp, Clock, Sparkles } from 'lucide-react';
+import { logLogicalDateStr, todayLogicalDateStr, toLocalDateStr, parseLogDate } from '../dateUtils';
 
 interface RivalPulseProps {
   users: User[];
@@ -128,6 +128,7 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
 }) => {
   const [rulePoints, setRulePoints] = useState<{ [cat: string]: number }>(DEFAULT_RULE_POINTS);
   const [ruleDescriptions, setRuleDescriptions] = useState<{ [cat: string]: string }>({});
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/point-rules')
@@ -302,6 +303,38 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
+  // ユーザーごとの本日ログを抽出・整形するヘルパー
+  const getTodayLogsForUser = (userId: string) => {
+    return actionLogs
+      .filter((l) => l.user_id === userId && l.status !== 'rejected' && logLogicalDateStr(l.created_at) === todayStr)
+      .sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeB - timeA;
+      });
+  };
+
+  const getCategoryBadge = (category: string) => {
+    if (category === 'quiz' || category === 'study') return { icon: '🧠', label: 'クイズ', bg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' };
+    if (category.startsWith('input_book')) return { icon: '📚', label: '読書', bg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+    if (category.startsWith('input_movie')) return { icon: '🎬', label: '映画', bg: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+    if (category.startsWith('input_drama')) return { icon: '📺', label: 'ドラマ', bg: 'bg-pink-500/20 text-pink-300 border-pink-500/30' };
+    if (category.startsWith('input_manga')) return { icon: '📖', label: '漫画', bg: 'bg-teal-500/20 text-teal-300 border-teal-500/30' };
+    if (category === 'training') return { icon: '🏋️', label: '運動', bg: 'bg-orange-500/20 text-orange-300 border-orange-500/30' };
+    if (category === 'housework') return { icon: '🧹', label: '家事', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+    if (category === 'eat_rice' || category === 'eat_meat') return { icon: '🍚', label: '食事', bg: 'bg-lime-500/20 text-lime-300 border-lime-500/30' };
+    if (category === 'bonus') return { icon: '🎁', label: 'ボーナス', bg: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30' };
+    return { icon: '⚡', label: '記録', bg: 'bg-slate-700/50 text-slate-300 border-slate-600' };
+  };
+
+  const formatLogTimeOnly = (raw?: string) => {
+    const d = parseLogDate(raw);
+    if (!d) return '';
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${h}:${min}`;
+  };
+
   return (
     <div className="glass-card p-5 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 shadow-2xl space-y-4">
 
@@ -314,88 +347,161 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
           <div className="min-w-0">
             <h3 className="text-sm font-black text-amber-300">⚔️ 今日の勝負</h3>
             <p className="text-xs text-slate-400 truncate">
-              毎日0ptスタート。今日やった分だけが今日の順位になる！
+              タップして本日の活動ログを確認できます
             </p>
           </div>
         </div>
-
-        <button
-          onClick={() => onNavigate('rivals')}
-          className="px-3 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 font-bold text-xs transition-all flex items-center gap-1 shrink-0"
-        >
-          <Swords className="w-3.5 h-3.5 text-indigo-400" />
-          <span>順位表 ➔</span>
-        </button>
       </div>
 
       {/* Today's standings */}
       <div className="space-y-2">
         {rows.map((row, idx) => {
           const isMe = row.user.id === currentUser.id;
+          const isExpanded = expandedUserId === row.user.id;
           const totalPercent = Math.max(row.todayPoints > 0 ? 6 : 0, Math.round((row.todayPoints / maxToday) * 100));
           const basePercent = row.todayPoints > 0 ? Math.round((row.todayBase / row.todayPoints) * totalPercent) : 0;
           const bonusPercent = Math.max(0, totalPercent - basePercent);
+          const userTodayLogs = isExpanded ? getTodayLogsForUser(row.user.id) : [];
 
           return (
             <div
               key={row.user.id}
-              className={`p-3 rounded-2xl border ${
+              className={`rounded-2xl border transition-all overflow-hidden ${
                 isMe
                   ? 'bg-slate-950 border-cyber-neonCyan/50 shadow-glow-cyan'
-                  : 'bg-slate-950/70 border-slate-800/80'
+                  : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
               }`}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-lg shrink-0">{row.user.avatar || '⚡'}</span>
-                  <span className={`text-xs font-black truncate ${isMe ? 'text-cyber-neonCyan' : 'text-white'}`}>
-                    {row.user.name}
-                  </span>
-                  {idx === 0 && row.todayPoints > 0 && (
-                    <span className="text-xs shrink-0">👑</span>
-                  )}
-                  {row.streak >= 2 && (
-                    <span className="text-xs font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-                      🔥{row.streak}日連続
+              {/* Clickable Card Header */}
+              <div
+                onClick={() => setExpandedUserId(isExpanded ? null : row.user.id)}
+                className="p-3 cursor-pointer select-none active:bg-slate-900/60 transition-colors"
+                role="button"
+                tabIndex={0}
+              >
+                <div className="flex items-center justify-between gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-base sm:text-lg shrink-0">{row.user.avatar || '⚡'}</span>
+                    <span className={`text-xs sm:text-sm font-black whitespace-nowrap ${isMe ? 'text-cyber-neonCyan' : 'text-white'}`}>
+                      {row.user.name}
                     </span>
+                    {idx === 0 && row.todayPoints > 0 && (
+                      <span className="text-xs shrink-0">👑</span>
+                    )}
+                    {row.streak >= 2 && (
+                      <span className="text-[10px] sm:text-xs font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                        🔥{row.streak}日連続
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 pl-1">
+                    <div className="text-right">
+                      <span className="text-sm sm:text-base font-mono font-black text-amber-400 whitespace-nowrap">
+                        {row.todayPoints.toLocaleString()}
+                        <span className="text-xs font-normal ml-0.5">pt</span>
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono ml-1.5 whitespace-nowrap">{row.todayCount}件</span>
+                    </div>
+                    <div className="text-slate-500 hover:text-slate-300 transition-colors">
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-amber-400" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stacked bar: solid part is the base points, the lighter tail is
+                    the gacha/milestone uplift — so luck is visibly separate from effort. */}
+                <div className="mt-1.5 h-1.5 w-full bg-slate-900 rounded-full overflow-hidden flex">
+                  <div
+                    className={`h-full transition-all duration-700 ${
+                      isMe ? 'bg-gradient-to-r from-cyan-500 to-cyber-neonCyan' : 'bg-gradient-to-r from-amber-600 to-amber-400'
+                    }`}
+                    style={{ width: `${basePercent}%` }}
+                  />
+                  <div
+                    className="h-full bg-fuchsia-500/60 transition-all duration-700"
+                    style={{ width: `${bonusPercent}%` }}
+                  />
+                </div>
+
+                {row.todayPoints > 0 && (
+                  <div className="mt-1.5 flex items-center gap-2 text-xs font-mono">
+                    <span className={isMe ? 'text-cyan-300' : 'text-amber-300'}>
+                      素点 {row.todayBase.toLocaleString()}
+                    </span>
+                    <span className="text-slate-600">＋</span>
+                    <span className={row.todayBonus > 0 ? 'text-fuchsia-300' : 'text-slate-600'}>
+                      ボーナス {row.todayBonus.toLocaleString()}
+                    </span>
+                    <span className="text-slate-600">＝</span>
+                    <span className="text-white font-bold">{row.todayPoints.toLocaleString()}pt</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Accordion: User Today's Action Logs */}
+              {isExpanded && (
+                <div className="border-t border-slate-800/80 bg-slate-900/60 p-3 space-y-2 animate-fade-in">
+                  <div className="flex items-center justify-between text-xs text-slate-400 px-1 pb-1">
+                    <span className="font-bold flex items-center gap-1 text-slate-300">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{row.user.name} の本日の活動記録</span>
+                    </span>
+                    <span className="font-mono text-[11px]">計 {userTodayLogs.length} 件</span>
+                  </div>
+
+                  {userTodayLogs.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-slate-500 font-medium">
+                      今日はまだ記録がありません
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                      {userTodayLogs.map((log) => {
+                        const badge = getCategoryBadge(log.category);
+                        const timeStr = formatLogTimeOnly(log.created_at);
+                        const base = log.base_points ?? log.earned_points;
+                        const hasBonus = log.earned_points > base && log.category !== 'bonus';
+
+                        return (
+                          <div
+                            key={log.id}
+                            className="p-2 rounded-xl bg-slate-950/80 border border-slate-800/70 flex items-center justify-between gap-2 text-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {timeStr && (
+                                <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                                  {timeStr}
+                                </span>
+                              )}
+                              <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold border shrink-0 flex items-center gap-1 ${badge.bg}`}>
+                                <span>{badge.icon}</span>
+                                <span>{badge.label}</span>
+                              </span>
+                              <span className="font-bold text-slate-200 truncate">
+                                {log.title_or_menu}
+                              </span>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="font-mono font-black text-amber-400 whitespace-nowrap">
+                                +{log.earned_points.toLocaleString()}
+                                <span className="text-[10px] font-normal text-amber-300 ml-0.5">pt</span>
+                              </span>
+                              {hasBonus && (
+                                <span className="block text-[9px] text-fuchsia-400 font-mono">
+                                  (素点{base}pt)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-sm font-mono font-black text-amber-400">
-                    {row.todayPoints.toLocaleString()}
-                    <span className="text-xs font-normal ml-0.5">pt</span>
-                  </span>
-                  <span className="text-xs text-slate-400 font-mono ml-1.5">{row.todayCount}件</span>
-                </div>
-              </div>
-
-              {/* Stacked bar: solid part is the base points, the lighter tail is
-                  the gacha/milestone uplift — so luck is visibly separate from effort. */}
-              <div className="mt-1.5 h-1.5 w-full bg-slate-900 rounded-full overflow-hidden flex">
-                <div
-                  className={`h-full transition-all duration-700 ${
-                    isMe ? 'bg-gradient-to-r from-cyan-500 to-cyber-neonCyan' : 'bg-gradient-to-r from-amber-600 to-amber-400'
-                  }`}
-                  style={{ width: `${basePercent}%` }}
-                />
-                <div
-                  className="h-full bg-fuchsia-500/60 transition-all duration-700"
-                  style={{ width: `${bonusPercent}%` }}
-                />
-              </div>
-
-              {row.todayPoints > 0 && (
-                <div className="mt-1.5 flex items-center gap-2 text-xs font-mono">
-                  <span className={isMe ? 'text-cyan-300' : 'text-amber-300'}>
-                    素点 {row.todayBase.toLocaleString()}
-                  </span>
-                  <span className="text-slate-600">＋</span>
-                  <span className={row.todayBonus > 0 ? 'text-fuchsia-300' : 'text-slate-600'}>
-                    ボーナス {row.todayBonus.toLocaleString()}
-                  </span>
-                  <span className="text-slate-600">＝</span>
-                  <span className="text-white font-bold">{row.todayPoints.toLocaleString()}pt</span>
                 </div>
               )}
             </div>
@@ -447,36 +553,51 @@ export const RivalPulse: React.FC<RivalPulseProps> = ({
 
       {/* Weekly champions — everyone can hold a crown somewhere */}
       {champions.length > 0 && (
-        <div className="pt-3 border-t border-slate-800 space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Crown className="w-3.5 h-3.5 text-amber-400" />
-            <h4 className="text-xs font-black text-amber-300">今週のチャンピオン（直近7日）</h4>
+        <div className="pt-3 border-t border-slate-800 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <h4 className="text-xs font-black text-amber-300">今週の部門別チャンピオン（直近7日）</h4>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">日曜更新</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {champions.map((c) => {
               const isMe = c.holder.user.id === currentUser.id;
               return (
                 <div
                   key={c.key}
-                  className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 ${
+                  className={`p-2.5 sm:p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
                     isMe
-                      ? 'bg-cyber-neonCyan/10 border-cyber-neonCyan/40'
-                      : 'bg-slate-950/70 border-slate-800'
+                      ? 'bg-gradient-to-r from-cyan-950/40 to-slate-900 border-cyber-neonCyan/50 shadow-sm'
+                      : 'bg-slate-950/80 border-slate-800/90'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm shrink-0">{c.icon}</span>
-                    <div className="min-w-0">
-                      <div className="text-xs text-slate-400 font-bold leading-none">{c.title}</div>
-                      <div className={`text-xs font-black truncate ${isMe ? 'text-cyber-neonCyan' : 'text-white'}`}>
-                        {c.holder.user.name}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-center text-base shrink-0 shadow-inner">
+                      {c.icon}
+                    </div>
+                    <div className="min-w-0 space-y-0.5 flex-1">
+                      <div className="text-[11px] font-extrabold text-slate-400 leading-none">{c.title}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-xs sm:text-sm font-black whitespace-nowrap ${isMe ? 'text-cyber-neonCyan' : 'text-white'}`}>
+                          {c.holder.user.name}
+                        </span>
+                        {isMe && (
+                          <span className="text-[9px] bg-cyber-neonCyan/20 text-cyber-neonCyan font-black px-1.5 py-0.2 rounded-full border border-cyber-neonCyan/30 shrink-0 whitespace-nowrap">
+                            YOU
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-black text-amber-400 shrink-0">
-                    {c.format(c.holder.week[c.key])}
-                  </span>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-xs sm:text-sm font-mono font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                      {c.format(c.holder.week[c.key])}
+                    </span>
+                  </div>
                 </div>
               );
             })}
