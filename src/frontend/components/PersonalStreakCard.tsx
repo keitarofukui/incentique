@@ -176,24 +176,30 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       {/* Background glow decoration */}
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-orange-500/15 blur-3xl pointer-events-none" />
 
-      {/* 👑 TOP STATUS BAR: 本日の成果サマリー (素点 / ボーナス / 本日合計pt) */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">📊</span>
-          <span className="text-xs font-black text-slate-300">本日の獲得成果サマリー</span>
+      {/* 👑 TOP STATUS BAR: 本日の成果サマリー (素点 / ボーナス / 本日合計) */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 shadow-inner">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-extrabold text-slate-300">本日の獲得成果</span>
+          <span className="text-[10px] text-slate-500 font-mono">当日分</span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
-          <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-            <span className="text-xs font-semibold text-slate-400 block">⚡ 実力素点</span>
-            <span className="text-xs font-mono font-black text-cyan-300">+{todayBase.toLocaleString()} pt</span>
+        <div className="grid grid-cols-3 divide-x divide-slate-800/80 bg-slate-950/80 rounded-xl border border-slate-800/90 overflow-hidden">
+          <div className="py-2 px-1 text-center">
+            <span className="text-[10px] font-bold text-slate-400 block whitespace-nowrap">実力素点</span>
+            <span className="text-xs sm:text-sm font-mono font-black text-cyan-300 whitespace-nowrap block mt-0.5">
+              +{todayBase.toLocaleString()} <span className="text-[9px] font-normal text-slate-400">pt</span>
+            </span>
           </div>
-          <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-            <span className="text-xs font-semibold text-slate-400 block">🎁 ボーナス等</span>
-            <span className="text-xs font-mono font-black text-purple-300">+{todayBonus.toLocaleString()} pt</span>
+          <div className="py-2 px-1 text-center">
+            <span className="text-[10px] font-bold text-slate-400 block whitespace-nowrap">ボーナス等</span>
+            <span className="text-xs sm:text-sm font-mono font-black text-purple-300 whitespace-nowrap block mt-0.5">
+              +{todayBonus.toLocaleString()} <span className="text-[9px] font-normal text-slate-400">pt</span>
+            </span>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-center shadow-md">
-            <span className="text-xs font-bold text-amber-300 block">🏆 本日獲得合計</span>
-            <span className="text-sm font-mono font-black text-amber-300">+{todayTotal.toLocaleString()} pt</span>
+          <div className="py-2 px-1 text-center bg-amber-500/10">
+            <span className="text-[10px] font-black text-amber-300 block whitespace-nowrap">本日合計</span>
+            <span className="text-xs sm:text-sm font-mono font-black text-amber-300 whitespace-nowrap block mt-0.5">
+              +{todayTotal.toLocaleString()} <span className="text-[9px] font-normal text-amber-300/80">pt</span>
+            </span>
           </div>
         </div>
       </div>
@@ -235,36 +241,37 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         </div>
       )}
 
-      {/* 🏆 これまでの累計獲得: 本日バーが「今日」、こちらが「これまで」。
-          時間軸が違うので同じバーに混ぜず、上下に並べて対比させる */}
+      {/* 🏆 これまでの累計獲得: 本日バーと対をなす3分割バー */}
       {hasLifetime && (
-        <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            <span className="text-lg">🏆</span>
-            <span className="text-xs font-black text-slate-300">これまでの累計獲得</span>
-            {lifetimeMilestone !== undefined && (
-              <span className="text-xs font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
-                🎖️ {(lifetimeMilestone / 10000).toLocaleString()}万pt達成
-              </span>
-            )}
+        <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 shadow-inner">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-slate-300">これまでの累計獲得</span>
+              {lifetimeMilestone !== undefined && (
+                <span className="text-[10px] font-black px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
+                  {(lifetimeMilestone / 10000).toLocaleString()}万pt達成
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">通算</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
-            <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-center shadow-glow-gold">
-              <span className="text-xs font-bold text-amber-300 block">💰 累計獲得</span>
-              <span className="text-lg font-mono font-black text-amber-300 leading-tight whitespace-nowrap">
-                {lifetimeEarned.toLocaleString()} pt
+          <div className="grid grid-cols-3 divide-x divide-slate-800/80 bg-slate-950/80 rounded-xl border border-slate-800/90 overflow-hidden">
+            <div className="py-2 px-1 text-center bg-amber-500/10">
+              <span className="text-[10px] font-black text-amber-300 block whitespace-nowrap">累計獲得</span>
+              <span className="text-xs sm:text-sm font-mono font-black text-amber-300 whitespace-nowrap block mt-0.5">
+                {lifetimeEarned.toLocaleString()} <span className="text-[9px] font-normal text-amber-300/80">pt</span>
               </span>
             </div>
-            <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-              <span className="text-xs font-semibold text-slate-400 block">🎁 交換に使った</span>
-              <span className="text-xs font-mono font-black text-slate-300 whitespace-nowrap">
-                {lifetimeSpent.toLocaleString()} pt
+            <div className="py-2 px-1 text-center">
+              <span className="text-[10px] font-bold text-slate-400 block whitespace-nowrap">交換済み</span>
+              <span className="text-xs sm:text-sm font-mono font-black text-slate-300 whitespace-nowrap block mt-0.5">
+                {lifetimeSpent.toLocaleString()} <span className="text-[9px] font-normal text-slate-400">pt</span>
               </span>
             </div>
-            <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
-              <span className="text-xs font-semibold text-slate-400 block">👛 いま使える</span>
-              <span className="text-xs font-mono font-black text-amber-400 whitespace-nowrap">
-                {lifetimeBalance.toLocaleString()} pt
+            <div className="py-2 px-1 text-center">
+              <span className="text-[10px] font-bold text-emerald-400 block whitespace-nowrap">いま使える</span>
+              <span className="text-xs sm:text-sm font-mono font-black text-emerald-300 whitespace-nowrap block mt-0.5">
+                {lifetimeBalance.toLocaleString()} <span className="text-[9px] font-normal text-slate-400">pt</span>
               </span>
             </div>
           </div>

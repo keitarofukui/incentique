@@ -76,7 +76,8 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
 
     if (categoryFilter === 'input' && !cat.startsWith('input_')) return false;
     if (categoryFilter === 'training' && cat !== 'training') return false;
-    if (categoryFilter === 'eat_rice' && cat !== 'eat_rice' && cat !== 'eat_meat') return false;
+    if (categoryFilter === 'housework' && cat !== 'housework') return false;
+    if ((categoryFilter === 'eat' || categoryFilter === 'eat_rice') && cat !== 'eat_rice' && cat !== 'eat_meat') return false;
     if (categoryFilter === 'quiz' && cat !== 'quiz' && cat !== 'study') return false;
 
     if (searchQuery) {
@@ -258,20 +259,23 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
         </div>
 
         {/* Category Filters */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <div 
+          className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none no-swipe touch-pan-x"
+          onTouchStart={(e) => e.stopPropagation()}
+        >
           <span className="text-xs font-bold text-slate-400 shrink-0">絞り込み:</span>
           {[
             { id: 'all', label: 'すべて表示' },
             { id: 'input', label: '📚 読書・映画・ドラマ' },
             { id: 'training', label: '🏋️‍♂️ 運動' },
             { id: 'housework', label: '🧹 家事' },
-            { id: 'eat_rice', label: '🍚🥩 食事' },
+            { id: 'eat', label: '🍚🥩 食事' },
             { id: 'quiz', label: '🧠 クイズ' },
           ].map((f) => (
             <button
               key={f.id}
               onClick={() => setCategoryFilter(f.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                 categoryFilter === f.id
                   ? 'bg-cyber-neonCyan text-slate-950 shadow-glow-cyan'
                   : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'

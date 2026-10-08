@@ -396,21 +396,22 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                   {/* Claim / Status Actions */}
                   <div className="pt-2 space-y-1.5">
                     {item.is_approved ? (
-                      <div className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-center font-extrabold text-xs flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4" /> {isCash ? `💵 現金 ${cashAmount.toLocaleString()}円 還元完了！` : '🎁 物品受け取り ＆ ポイント消費完了！'}
+                      <div className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-center font-extrabold text-xs flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        <span>{isCash ? `💵 現金 ${cashAmount.toLocaleString()}円 還元完了！` : '🎁 物品受取＆ポイント消費完了！'}</span>
                       </div>
                     ) : isParentMode ? (
                       <div className="space-y-2">
                         {item.is_claimed ? (
                           <button
                             onClick={() => setApprovingItem(item)}
-                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
+                            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold active:scale-98"
                           >
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            <span className="leading-snug">
                               {isCash
-                                ? `💵 現金 ${cashAmount.toLocaleString()}円を渡した！(-${item.required_points.toLocaleString()} pt)`
-                                : `🎁 物品を渡した！ポイント引き落とし (-${item.required_points.toLocaleString()} pt)`
+                                ? `現金 ${cashAmount.toLocaleString()}円を渡した (-${item.required_points.toLocaleString()} pt)`
+                                : `物品を渡した (-${item.required_points.toLocaleString()} pt)`
                               }
                             </span>
                           </button>
@@ -428,24 +429,25 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                       </div>
                     ) : item.is_claimed ? (
                       <div className="space-y-1">
-                        <div className="w-full py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-center font-extrabold text-xs flex items-center justify-center gap-1.5">
-                          <Clock className="w-4 h-4 animate-spin" /> {isCash ? `💵 親のお金手渡し待ち (${cashAmount.toLocaleString()}円)` : '📦 親の調達・手渡し待ち'}
+                        <div className="w-full py-2.5 px-3 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-center font-extrabold text-xs flex items-center justify-center gap-1.5">
+                          <Clock className="w-4 h-4 shrink-0 animate-spin" />
+                          <span>{isCash ? `親のお金手渡し待ち (${cashAmount.toLocaleString()}円)` : '親の調達・手渡し待ち'}</span>
                         </div>
-                        <p className="text-xs text-slate-400 text-center">※保護者が現金・物品を手渡した時にポイントを引き落とします</p>
+                        <p className="text-[11px] text-slate-400 text-center">※手渡された後にポイントが引き落とされます</p>
                       </div>
                     ) : canClaim ? (
                       <div className="space-y-1">
                         <button
                           onClick={() => handleClaim(item)}
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold"
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-glow-gold active:scale-98"
                         >
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>{isCash ? `💵 現金 ${cashAmount.toLocaleString()}円と交換申請！` : '🎁 これと交換したい！親にリクエスト'}</span>
+                          <ShoppingCart className="w-4 h-4 shrink-0" />
+                          <span className="leading-snug">{isCash ? `現金 ${cashAmount.toLocaleString()}円と交換申請！` : 'これと交換したい！親にリクエスト'}</span>
                         </button>
                       </div>
                     ) : (
-                      <div className="w-full py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-center font-bold text-xs flex items-center justify-center gap-1.5">
-                        <AlertCircle className="w-4 h-4" />
+                      <div className="w-full py-2.5 px-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-center font-bold text-xs flex items-center justify-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>あと {(item.required_points - currentPoints).toLocaleString()} pt で交換可能</span>
                       </div>
                     )}
@@ -539,55 +541,68 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
 
               {/* Cash: Amount Input & Point Reverse-Calculation / Goods: Point Input */}
               {itemType === 'cash' ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <label className="font-bold text-slate-300">換金希望金額 (円)</label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-mono">
-                        所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
-                        <span className="text-xs text-emerald-400 ml-1">
-                          (最大 {maxCash.toLocaleString()} 円換金可)
-                        </span>
+                <div className="space-y-3">
+                  {/* Header info badge & quick action */}
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-300">所持ポイント</span>
+                      <span className="font-mono font-black text-amber-400">
+                        {userCurrentPoints.toLocaleString()} <span className="text-[10px] text-slate-400">pt</span>
                       </span>
-                      {!isParentMode && maxCash > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCashAmountStr(String(maxCash))}
-                          className="px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black hover:bg-emerald-500/30 transition-all shrink-0"
-                        >
-                          全額換金
-                        </button>
-                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800/80">
+                      <span className="text-slate-400 font-medium">最大換金可能額:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-emerald-400 text-sm">
+                          ¥{maxCash.toLocaleString()}
+                        </span>
+                        {!isParentMode && maxCash > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setCashAmountStr(String(maxCash))}
+                            className="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black hover:bg-emerald-500/30 transition-all shrink-0 active:scale-95"
+                          >
+                            全額
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3.5 text-emerald-400 font-black text-sm select-none">¥</span>
-                    <input
-                      type="number"
-                      placeholder="例: 700"
-                      step={1}
-                      min={1}
-                      max={!isParentMode ? maxCash : undefined}
-                      value={cashAmountStr}
-                      onChange={(e) => setCashAmountStr(e.target.value)}
-                      className={`w-full bg-slate-900 border rounded-xl pl-8 pr-4 py-2 text-sm text-white font-mono focus:outline-none ${
-                        isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-400'
-                      }`}
-                    />
+                  {/* Input field */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-300 block">換金希望金額 (円)</label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 text-emerald-400 font-black text-base select-none">¥</span>
+                      <input
+                        type="number"
+                        placeholder="例: 700"
+                        step={1}
+                        min={1}
+                        max={!isParentMode ? maxCash : undefined}
+                        value={cashAmountStr}
+                        onChange={(e) => setCashAmountStr(e.target.value)}
+                        className={`w-full bg-slate-900 border rounded-xl pl-8 pr-4 py-2.5 text-base text-white font-mono font-bold focus:outline-none transition-colors ${
+                          isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-400'
+                        }`}
+                      />
+                    </div>
                   </div>
 
                   {cashAmount > 0 && (
-                    <div className="p-3 bg-slate-900 border border-emerald-500/40 rounded-xl space-y-1.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-300 font-bold">💵 必要ポイント (7掛け還元):</span>
+                    <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-300 font-bold flex items-center gap-1">
+                          <span>💵 必要ポイント</span>
+                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">70%還元</span>
+                        </span>
                         <span className="text-base font-black text-amber-400 font-mono">
-                          {requiredPointsForCash.toLocaleString()} pt
+                          {requiredPointsForCash.toLocaleString()} <span className="text-xs font-normal text-slate-400">pt</span>
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-xs text-slate-400 font-mono pt-1.5 border-t border-slate-800">
-                        <span>交換後残りポイント:</span>
-                        <span className={userCurrentPoints - requiredPointsForCash < 0 ? 'text-red-400 font-bold' : 'text-slate-300'}>
+                      <div className="flex items-center justify-between text-xs text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
+                        <span>交換後の残り所持:</span>
+                        <span className={`font-bold ${userCurrentPoints - requiredPointsForCash < 0 ? 'text-red-400' : 'text-slate-200'}`}>
                           {(userCurrentPoints - requiredPointsForCash).toLocaleString()} pt
                         </span>
                       </div>
@@ -595,46 +610,54 @@ export const WishlistSection: React.FC<WishlistSectionProps> = ({
                   )}
 
                   {isPointsExceeded && (
-                    <p className="text-xs font-bold text-red-400 flex items-center gap-1 mt-1">
-                      ⚠️ 所持ポイント（{userCurrentPoints.toLocaleString()} pt）で換金できるのは最大 {maxCash.toLocaleString()} 円までです。
-                    </p>
+                    <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-start gap-1.5 leading-relaxed">
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <span>所持ポイント（{userCurrentPoints.toLocaleString()} pt）での換金は最大 <strong>¥{maxCash.toLocaleString()}</strong> までです。</span>
+                    </div>
                   )}
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <label className="font-bold text-slate-300">交換ポイント (pt)</label>
+                <div className="space-y-3">
+                  {/* Header info badge & quick action */}
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-300">所持ポイント</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-mono">
-                        所持: <strong className="text-amber-400 font-bold">{userCurrentPoints.toLocaleString()} pt</strong>
+                      <span className="font-mono font-black text-amber-400">
+                        {userCurrentPoints.toLocaleString()} <span className="text-[10px] text-slate-400">pt</span>
                       </span>
                       {!isParentMode && userCurrentPoints > 0 && (
                         <button
                           type="button"
                           onClick={() => setNewPointsStr(String(userCurrentPoints))}
-                          className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black hover:bg-amber-500/30 transition-all"
+                          className="px-2.5 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black hover:bg-amber-500/30 transition-all shrink-0 active:scale-95"
                         >
                           全額
                         </button>
                       )}
                     </div>
                   </div>
-                  <input
-                    type="number"
-                    placeholder="例: 1000"
-                    step={1}
-                    min={1}
-                    max={!isParentMode ? userCurrentPoints : undefined}
-                    value={newPointsStr}
-                    onChange={(e) => setNewPointsStr(e.target.value)}
-                    className={`w-full bg-slate-900 border rounded-xl px-4 py-2 text-sm text-white font-mono focus:outline-none ${
-                      isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-amber-400'
-                    }`}
-                  />
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-300 block">交換ポイント (pt)</label>
+                    <input
+                      type="number"
+                      placeholder="例: 1000"
+                      step={1}
+                      min={1}
+                      max={!isParentMode ? userCurrentPoints : undefined}
+                      value={newPointsStr}
+                      onChange={(e) => setNewPointsStr(e.target.value)}
+                      className={`w-full bg-slate-900 border rounded-xl px-4 py-2.5 text-base text-white font-mono font-bold focus:outline-none transition-colors ${
+                        isPointsExceeded ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-amber-400'
+                      }`}
+                    />
+                  </div>
+
                   {isPointsExceeded && (
-                    <p className="text-xs font-bold text-red-400 flex items-center gap-1 mt-1">
-                      ⚠️ 所持ポイント（{userCurrentPoints.toLocaleString()} pt）を超えて入力することはできません。
-                    </p>
+                    <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-start gap-1.5 leading-relaxed">
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <span>所持ポイント（{userCurrentPoints.toLocaleString()} pt）を超えて入力することはできません。</span>
+                    </div>
                   )}
                 </div>
               )}
