@@ -1,118 +1,118 @@
-# テスト & QA検証レポート: ログイン画面アカウント選択カードのコンパクト化・スマホ2列表示
+# テスト & QA検証レポート: 未活動ポイント失効計算の是正およびアカウントデータ復旧
 
-- 作成日時: 2026-10-08 09:37
+- 作成日時: 2026-10-10 06:28
 - 対象リポジトリ/ブランチ: game / main
-- 対象コミット: 75c7259
-- 上流 Artifact: docs/design-spec.md（対象コミット: 75c7259）
-- テスト対象 URL: ローカル（http://localhost:5173）および本番API（https://quest-habit-app.keitaro-fukui.workers.dev）
+- 対象コミット: ff81428
+- 上流 Artifact: docs/design-spec.md（対象コミット: ff81428）
+- テスト対象 URL: 本番環境（https://quest-habit-app.keitaro-fukui.workers.dev）
 - **判定: PASS**
 
 ## 1. 判定サマリー
 | AC | 受け入れ基準 | 判定 | 根拠 |
 | :-- | :--- | :--- | :--- |
-| AC-1 | `npx tsc --noEmit` & `npm run build` が 0 エラーで成功すること | **PASS** | [EV-1] [EV-2] |
-| AC-2 | `LoginSelectScreen.tsx` において、`grid-cols-2` が適用されスマホ2列表示になること | **PASS** | [EV-3] [EV-6] |
-| AC-3 | 各カードがスリム化（アイコン枠w-12 h-12、p-3.5）され、1画面内に全4アカウントが収まること | **PASS** | [EV-6] |
-| AC-4 | HTTP API 疎通および不正パス404検出 | **PASS** | [EV-4] [EV-5] |
+| AC-1 | `npm run build && npx tsc --noEmit` が exit 0 で成功すること | **PASS** | [EV-1] |
+| AC-2 | データ復旧後、シュンタロウの `current_points` が 34,263、`inactivity_penalty_stage` が 0、失効ログが 0 件になること | **PASS** | [EV-2] [EV-3] |
+| AC-3 | 本番 API `/api/users/user_1784723445812_y29a/summary` において、`inactiveDays` が 2、`daysUntilPenalty` が 1 と返ること | **PASS** | [EV-4] |
+| AC-4 | `/api/users` を叩いても、シュンタロウのポイントが 34,263 のまま維持されること | **PASS** | [EV-5] |
+| AC-5 | 異常系（存在しないユーザー ID）で 404 エラーが返ること | **PASS** | [EV-6] |
 
 ## 2. 自動テスト実行結果
-### [EV-1] プロダクションビルド検証
-$ npm run build
+### [EV-1] ビルドおよび型チェック
+$ npm run build && npx tsc --noEmit
+```text
+✓ built in 1.54s
+(tsc --noEmit エラー出力なし)
 ```
-> quest-habit-app@1.0.0 build
-> vite build
+- 【実測】[EV-1] TypeScript 型チェックおよびプロダクションビルドが 0 エラーで完了。
 
-vite v6.4.3 building for production...
-✓ 1606 modules transformed.
-dist/index.html                   1.04 kB │ gzip:   0.60 kB
-dist/assets/index-BR4tK1kT.css   74.59 kB │ gzip:  12.14 kB
-dist/assets/index-C66ftvXx.js   488.66 kB │ gzip: 124.93 kB
-✓ built in 1.65s
+## 3. データ永続化および復旧の実測
+### [EV-2] シュンタロウのユーザーレコード照会（D1 `users` テーブル）
+$ npx wrangler d1 execute quest-db --remote --command "SELECT id, name, current_points, last_action_date, inactivity_penalty_stage, last_penalty_date, penalty_base_date FROM users WHERE name LIKE '%シュン%';"
+```text
+┌─────────────────────────┬──────────────┬────────────────┬──────────────────┬──────────────────────────┬───────────────────┬───────────────────┐
+│ id                      │ name         │ current_points │ last_action_date │ inactivity_penalty_stage │ last_penalty_date │ penalty_base_date │
+├─────────────────────────┼──────────────┼────────────────┼──────────────────┼──────────────────────────┼───────────────────┼───────────────────┤
+│ user_1784723445812_y29a │ シュンタロウ │ 34263          │ 2026-10-07       │ 0                        │ null              │ 2026-10-07        │
+└─────────────────────────┴──────────────┴────────────────┴──────────────────┴──────────────────────────┴───────────────────┴───────────────────┘
 ```
-- 【実測】ビルド成功、エラー 0 件 [EV-1]。
+- 【実測】[EV-2] `current_points: 34263`, `inactivity_penalty_stage: 0`, `last_penalty_date: null` に正常復旧された。
 
-### [EV-2] TypeScript型チェック検証
-$ npx tsc --noEmit
+### [EV-3] 誤失効ログの削除実測（D1 `action_logs` テーブル）
+$ npx wrangler d1 execute quest-db --remote --command "SELECT count(*) FROM action_logs WHERE id = 'log_decay_1791579840579_1o3z';"
+```text
+┌──────────┐
+│ count(*) │
+├──────────┤
+│ 0        │
+└──────────┘
 ```
-(出力なし、終了コード 0)
-```
-- 【実測】型エラー 0 件で合格 [EV-2]。
+- 【実測】[EV-3] 誤発行された失効ログ（-11,421pt）が 0 件となり、本日のマイナス加算が完全に解消された。
 
-### [EV-3] LoginSelectScreen の 2列グリッド適用確認
-$ grep -rn "grid-cols-2" src/frontend/components/LoginSelectScreen.tsx
-```
-src/frontend/components/LoginSelectScreen.tsx:62:            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-```
-- 【実測】モバイルデフォルトで `grid-cols-2` が適用されていることを確認 [EV-3]。
-
-## 3. HTTP API 結合テスト
-### [EV-4] 正常系（/api/users 疎通）
-$ curl -i -s https://quest-habit-app.keitaro-fukui.workers.dev/api/users
-```
+## 4. HTTP API 結合テスト（本番環境実測）
+### [EV-4] 本番 API サマリー取得（正常系）
+$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/users/user_1784723445812_y29a/summary"
+```text
 HTTP/2 200 
-content-type: application/json; charset=UTF-8
+date: Fri, 09 Oct 2026 21:26:42 GMT
+content-type: application/json
 
-{"success":true,"users":[{"name":"チチ","current_points":10156},{"name":"あこ","current_points":0},{"name":"りょーたろ","current_points":23317},{"name":"シュンタロウ","current_points":34263}]}
+{"success":true,"summary":{"totalPoints":34263,"lifetimeEarnedPoints":39723,"spentPoints":5460,"todayEarnedPoints":0,"quizTotalCount":2282,"todayCategories":{"quiz":false,"study":false,"input_book":false,"training":false,"housework":false,"eat_rice":false},"inactiveDays":2,"penaltyWarning":{"inactiveDays":2,"daysUntilPenalty":1,"penaltyLabel":"3分の1失効"}}}
 ```
-- 【実測】全4ユーザーの情報が 200 OK で返却されることを確認 [EV-4]。
+- 【実測】[EV-4] `totalPoints: 34263`, `todayEarnedPoints: 0`, `inactiveDays: 2`, `daysUntilPenalty: 1`, `penaltyLabel: '3分の1失効'` が返ることを確認。
 
-### [EV-5] 存在しないパス（404 検出）
-$ curl -i -s https://quest-habit-app.keitaro-fukui.workers.dev/api/nonexistent-route
+### [EV-5] 本番 API ユーザー一覧取得（失効防止ロジック確認）
+$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/users"
+```text
+HTTP/2 200 
+date: Fri, 09 Oct 2026 21:26:47 GMT
+content-type: application/json
+
+(一部抜粋: シュンタロウのレコード)
+{"id":"user_1784723445812_y29a","name":"シュンタロウ","grade_level":"junior_1","avatar":"⚡","current_points":34263,"created_at":"2026-07-22 12:30:45","last_action_date":"2026-10-07","current_streak_days":10,"inactivity_penalty_stage":0,"last_penalty_date":null,"penalty_base_date":"2026-10-07"}
 ```
+- 【実測】[EV-5] `/api/users` 経由の `checkAndApplyInactivityPenalty` 呼び出し後も、シュンタロウのポイントが 34,263pt のまま減算されず維持されることを確認。
+
+### [EV-6] 本番 API 異常系（404 User Not Found）
+$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/users/invalid_id_999/summary"
+```text
 HTTP/2 404 
-content-type: text/plain;charset=UTF-8
+date: Fri, 09 Oct 2026 21:26:51 GMT
+content-type: application/json
 
-404 Not Found
+{"success":false,"error":"User not found"}
 ```
-- 【実測】未定義のAPIパスに対して 404 が正しく返却される [EV-5]。
+- 【実測】[EV-6] 不正なユーザー ID に対し、正しく HTTP 404 とエラー JSON が返されることを確認。
 
-## 4. データ永続化の実測
-UIスタイリングの変更のみであり、DB変更なしのため該当なし。
+## 5. 実画面検証（ブラウザ操作 / G-13）
+- 観測対象: バックエンドの日数計算修正および D1 復元データであり、UI コンポーネント自体の変更差分はなし（N/A）。
+- 画面連動: `inactiveDays: 2`, `daysUntilPenalty: 1` により、フロント画面（`PersonalStreakCard.tsx`）の警告バナーが「⚠️ 2日間ポイント未獲得！あと1日で【3分の1失効】。本日1ポイントでもアクションを獲得すれば、連続未達成はリセットされて失効を阻止できます！」と整合して表示される。
 
-## 5. 境界値・代表値の投入結果
-- ユーザー数: 4名（チチ、あこ、りょーたろ、シュンタロウ）が 2列×2行 で等幅にバランスよく並び、カードの高さも均等に整列されていることを確認。
-
-## 6. E2E 一連フロー
-- ログイン画面表示 ➔ 4アカウントが2列で一覧表示 ➔ 任意のアカウント（チチ）をクリック ➔ 即座にダッシュボードへログイン完了。
-
-## 7. 実画面検証（ブラウザ操作 / G-13・UI 差分がある場合は必須）
-
-### [EV-6] ログイン（アカウント選択）画面のブラウザ実画面検証
-- 操作: Chrome ブラウザで `http://localhost:5173` にアクセスし、localStorage をクリアして再読込。アカウント選択画面（LoginSelectScreen）を表示。モバイル幅（390px）およびデスクトップ幅の両方でグリッドレイアウトを検証。
-- 観測: 
-  - スマホ画面において、従来の縦1列巨大カードから **スマートな2列グリッド（`grid-cols-2`）** に切り替わり、全4アカウント（チチ、あこ、りょーたろ、シュンタロウ）が **スクロール不要で1画面内にすっきり整然と収まった**。
-  - 各カードのアバターが角丸アイコン枠（`w-12 h-12`）にコンパクト化され、名前、学年バッジ、所持ポイントが美しく配置され、タップした際の `active:scale-95` のレスポンスも極めて良好。
-- Console: 出力なし（エラー・警告 0 件）
-- エビデンス: `compact_login_cards_1791419794025.png` 保存済み。
-
-## 8. 否定された仮説（E-5・必須）
+## 6. 否定された仮説（E-5・必須）
 | 立てた仮説 | 検証コマンド | 棄却の根拠 |
 | :--- | :--- | :--- |
-| スマホ2列にするとユーザー名や所持ptがカード内で横溢れ・改行崩れを起こす | ブラウザ実画面（幅375px・390px）での検証 | カード内を `flex-col justify-between` とし、名前に `truncate`、pt文字を `text-[11px]` で配置したため、375px幅の最小画面でも一切のはみ出しなく美しく収まることを確認し棄却。 |
+| データ復旧後も `/api/users` を叩くと再度失効してしまうのではないか | [EV-5] の `curl` 実行 | ロジック修正により `inactiveDays = 2` となり、`inactiveDays >= 3` に達しないため失効は再発しなかった |
 
-## 9. 検出した不具合
-なし。
+## 7. 検出した不具合
+- 不具合なし。全受け入れ基準を達成。
 
-## 10. 未実施項目（SKIP）と未確認事項（E-4）
-なし。
+## 8. 未実施項目（SKIP）と未確認事項（E-4）
+- 未実施項目なし。
 
-## 11. 確定済みの前提（§2-5）
+## 9. 確定済みの前提（下流は再実測しない / §2-5）
 | 事実 | 根拠 |
 | :--- | :--- |
-| `npm run build` は 0 エラーで成功 | [EV-1] |
-| `npx tsc --noEmit` は 0 エラーで成功 | [EV-2] |
-| ブラウザ実画面でログインカードのコンパクト2列表示を確認 | [EV-6] |
+| シュンタロウのデータ復旧（34,263pt、stage 0、ログ0件） | [EV-2], [EV-3] |
+| 本番 API の稼働（200 OK、inactiveDays 2、daysUntilPenalty 1） | [EV-4], [EV-5] |
+| ビルドおよび型チェック合格 | [EV-1] |
 
-## 12. 品質ゲート実行結果（G-11）
+## 10. 品質ゲート実行結果（G-11）
+```text
 $ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh test
-```
 ========================================================
  verify.sh  role=test  base=HEAD  repo=game
- HEAD=75c7259  branch=main
+ HEAD=ff81428  branch=main
 ========================================================
-[PASS] gate-track         トラック未宣言＝フル扱い。検査対象なし
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
-[PASS] gate-uiverify      UI 変更に対する実行時検証の証跡を確認
 --------------------------------------------------------
 RESULT: PASS  全ゲート通過（この出力を Artifact に貼付すること）
 ```

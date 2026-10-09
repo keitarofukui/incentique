@@ -1,81 +1,78 @@
-# 設計レビュー結果レポート: ログイン画面アカウント選択カードのコンパクト化・スマホ2列表示
+# 設計レビュー結果レポート: 未活動ポイント失効計算の是正およびアカウントデータ復旧
 
-- 作成日時: 2026-10-08 09:36
+- 作成日時: 2026-10-10 06:27
 - 対象リポジトリ/ブランチ: game / main
-- 対象コミット: 75c7259
-- 上流 Artifact: docs/design-spec.md（対象コミット: 75c7259）
+- 対象コミット: ff81428
+- 上流 Artifact: docs/design-spec.md（対象コミット: ff81428）
 - **判定: APPROVED**
 
 ## 0. 上流の抜き取り再実測（§2-3）
-### [EV-1] 上流 [EV-1] の再実行（LoginSelectScreen.tsx 現行コード）
-$ sed -n '62,75p' src/frontend/components/LoginSelectScreen.tsx
-```tsx
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => onSelectUser(user)}
-                  className="glass-card glass-card-hover p-5 rounded-2xl border border-slate-800 hover:border-cyber-neonCyan/60 cursor-pointer text-center space-y-3 group transition-all transform hover:-translate-y-1"
-                >
-                  <div className="text-5xl group-hover:scale-110 transition-transform">
-                    {user.avatar || '⚡'}
-                  </div>
+### [EV-1] 上流 [EV-1] の再実測（日数計算ロジック）
+$ sed -n '124,129p' src/backend/index.ts
+```ts
+function getDaysDifference(date1: string, date2: string): number {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  const diffTime = Math.abs(d2.getTime() - d1.getTime());
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
 ```
-- 【実測】上流と完全に一致。grid-cols-1 および text-5xl を確認 [EV-1]。
+- 【実測】[EV-1] 上流と完全に一致。
 
-### [EV-2] 上流 [EV-2] の再実行（ビルド確認）
-$ npm run build
+### [EV-2] 上流 [EV-2] の再実測（失効判定条件コード）
+$ grep -n "inactiveDays >=" src/backend/index.ts
+```text
+171:  if (inactiveDays >= 3 && currentStage < 1 && currentPoints > 0) {
+193:  if (inactiveDays >= 5 && currentStage < 2 && currentPoints > 0) {
+215:  if (inactiveDays >= 10 && currentStage < 3 && currentPoints > 0) {
 ```
-✓ built in 1.61s
-```
-- 【実測】上流と一致。ビルド成功を確認 [EV-2]。
+- 【実測】[EV-2] 上流と完全に一致。
 
-### [EV-3] 上流 [EV-3] の再実行（型チェック確認）
-$ npx tsc --noEmit
+### [EV-3] 上流 [EV-3] の再実測（シュンタロウの現状データ）
+$ npx wrangler d1 execute quest-db --remote --command "SELECT id, name, current_points, last_action_date, inactivity_penalty_stage, last_penalty_date, penalty_base_date FROM users WHERE name LIKE '%シュン%';"
+```text
+┌─────────────────────────┬──────────────┬────────────────┬──────────────────┬──────────────────────────┬───────────────────┬───────────────────┐
+│ id                      │ name         │ current_points │ last_action_date │ inactivity_penalty_stage │ last_penalty_date │ penalty_base_date │
+├─────────────────────────┼──────────────┼────────────────┼──────────────────┼──────────────────────────┼───────────────────┼───────────────────┤
+│ user_1784723445812_y29a │ シュンタロウ │ 22842          │ 2026-10-07       │ 1                        │ 2026-10-10        │ 2026-10-07        │
+└─────────────────────────┴──────────────┴────────────────┴──────────────────┴──────────────────────────┴───────────────────┴───────────────────┘
 ```
-(出力なし、終了コード 0)
-```
-- 【実測】上流と一致。型エラー 0 件を確認 [EV-3]。
+- 【実測】[EV-3] 上流と完全に一致。
 
-## 1. 無条件差し戻し条件の判定（全 11 項目・未判定禁止）
+## 1. 無条件差し戻し条件の判定（全 11 項目）
 | # | 条件 | 判定 | 根拠（設計書の該当箇所を引用） |
 | :-- | :--- | :--- | :--- |
-| 1 | 🗄️ DB スキーマ変更があるのに `migrations/*.sql` の DDL 全文と適用手順が無い | 該当なし（PASS） | §5「DB変更なし。該当なし」 |
-| 2 | 🛡️ 新規フィールドがあるのに機密フィールド台帳と漏洩遮断設計が無い | 該当なし（PASS） | §4「新フィールド追加なし。該当なし」 |
-| 3 | 🙈 API 呼び出しがあるのに 4xx / 5xx / 通信断時の UI 挙動とログ出力が未定義 | 該当なし（PASS） | API呼び出しのない純粋UIプレゼンテーション修正 |
-| 4 | 🧪 受け入れ基準が「ビルドが通ること」等の抽象表現で、検証コマンドが無い | PASS | §9 に `$ npm run build`, `$ npx tsc --noEmit`, `$ grep -rn "grid-cols-2" ...` のコマンド明記 |
-| 5 | 🏛️ 短命・非標準な回避策を採用し、却下理由付きの代替検討が無い | PASS | §8 に横型リストの却下理由明記 |
-| 6 | 📐 API 契約と TypeScript 型の具象コードが無い | 該当なし（PASS） | 既存の `User` 型を引き続き利用 |
-| 7 | 🔤 API のキー名と型のプロパティ名が不一致、またはハードコードされる設計 | 該当なし（PASS） | 該当なし |
-| 8 | 📋 未確定の前提がブロッカーとして明示されていない | PASS | §10「ブロッカーなし」 |
-| 9 | 🧩 タスク分解が依存順でない / 粒度が大きすぎる / 完了条件が無い | PASS | §12 に T1 のタスクと完了条件明記 |
-| 10 | 🤖 LLM / Gemini API 利用時に既定モデルの指定が無い | 該当なし（PASS） | LLM APIを利用しない改修 |
-| 11 | 🕒 上流 `investigation-report.md` の実測と設計内容が矛盾 | 該当なし（PASS） | 設計起点であり、上流不在リスクなし |
+| 1 | DB スキーマ変更 DDL | PASS | スキーマ変更なし。データ復旧 SQL（UPDATE, DELETE）が §5 に記載されている [EV-3] |
+| 2 | 機密フィールド台帳と漏洩遮断 | PASS | 新規機密フィールド追加なし。§4 に棚卸し記載あり |
+| 3 | エラーハンドリング仕様 | PASS | §7 に 5 状態（200/404/500/ネットワーク断/タイムアウト）の挙動表あり |
+| 4 | 受け入れ基準と検証コマンド | PASS | §9 に 4 項目の具体的検証コマンド（ビルド、D1照会、本番curl）記載あり |
+| 5 | アーキテクチャ選定と却下案 | PASS | §8 に `Math.max(0, diff - 1)` 採用理由と条件式のみ変更案の却下理由が明記されている |
+| 6 | API 契約と TypeScript 型 | PASS | §6 に既存契約維持が明記され、破壊的変更なし |
+| 7 | キー名とプロパティ名の一致 | PASS | 不一致なし |
+| 8 | 未確定前提・ブロッカー | PASS | §10 にブロッカーなしと明記 |
+| 9 | タスク分解と完了条件 | PASS | §12 に 3 つの依存順タスク（コード修正 ➔ データ復元 ➔ デプロイ疎通）と完了条件あり |
+| 10 | LLM モデル指定 | PASS | LLM 使用なし |
+| 11 | 上流調査報告との整合 | PASS | 上流 `investigation-report.md` のフライング失効分析と完全に整合 |
 
-## 2. 内容妥当性レビュー（要件網羅性 / データ構造 / 拡張性 / 実装容易性）
-- **要件網羅性**: スマホでの2列表示（`grid-cols-2`）への変更とアバター・パディングのスリム化により、カードの高さが約35%削減され、4人家族が1画面内に綺麗に収まる設計となっている。
-- **実装容易性**: 変更対象が `LoginSelectScreen.tsx` 1ファイルに完全に閉じられており、安全かつ迅速に製造可能。
+無条件差し戻し項目は全て確認し、該当なし。
 
-## 3. 指摘事項 & 改善提案（引用必須）
-指摘事項なし。無条件差し戻し11項目はすべて確認し、該当なしまたはPASS。
+## 2. 内容妥当性レビュー
+- **要件網羅性**: 10/7活動の場合、10/8（0日）、10/9（1日）、10/10（2日、本日アクションでセーフ）、10/11（3日、Stage 1失効）と遷移し、ユーザーの直感およびフロントエンドの警告表示文言と完全に一致する。
+- **データ復旧**: シュンタロウの誤失効額（-11,421pt）の加算、ステージの0リセット、失効ログの削除による本日の日計マイナス解消まで網羅されている。
+- **実装容易性**: 修正対象行が明確で、バックエンドのみの軽微な修正で安全にデプロイ可能。
 
-## 4. 実測による前提検証（読み取り専用）
-### [EV-4] ファイル存在確認
-$ wc -l src/frontend/components/LoginSelectScreen.tsx
-```
-     122 src/frontend/components/LoginSelectScreen.tsx
-```
-- 【実測】ファイルが存在し 122 行であることを確認 [EV-4]。
+## 3. 指摘事項 & 改善提案
+- 指摘事項なし（軽微な改善提案等も不要）。
 
-## 5. 未確認事項（E-4）
-なし。
+## 4. 未確認事項（E-4）
+- 特になし。
 
-## 6. 品質ゲート実行結果（G-11）
+## 5. 品質ゲート実行結果（G-11）
+```text
 $ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh design-review
-```
 ========================================================
  verify.sh  role=design-review  base=HEAD  repo=game
- HEAD=75c7259  branch=main
+ HEAD=ff81428  branch=main
 ========================================================
 [PASS] gate-evidence      証跡フォーマット・鮮度・未確認記載の要件を満たしている
 --------------------------------------------------------

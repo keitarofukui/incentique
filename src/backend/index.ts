@@ -163,7 +163,8 @@ async function checkAndApplyInactivityPenalty(
     return { updatedPoints: currentPoints, penaltyApplied: false };
   }
 
-  const inactiveDays = getDaysDifference(baseDate, logicalToday);
+  const daysDiff = getDaysDifference(baseDate, logicalToday);
+  const inactiveDays = Math.max(0, daysDiff - 1);
   let currentStage = Number(user.inactivity_penalty_stage) || 0;
   let penaltyApplied = false;
 
@@ -559,7 +560,8 @@ app.get('/api/users/:id/summary', async (c) => {
     if (user.last_action_date && user.last_action_date > baseDate) {
       baseDate = user.last_action_date;
     }
-    const inactiveDays = baseDate >= logicalToday ? 0 : getDaysDifference(baseDate, logicalToday);
+    const daysDiff = baseDate >= logicalToday ? 0 : getDaysDifference(baseDate, logicalToday);
+    const inactiveDays = Math.max(0, daysDiff - 1);
 
     // 次回失効までの日数と警告情報
     let nextPenaltyDays = null;
