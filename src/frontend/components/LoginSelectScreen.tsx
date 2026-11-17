@@ -16,7 +16,7 @@ export const LoginSelectScreen: React.FC<LoginSelectScreenProps> = ({
   onOpenRegisterModal,
 }) => {
   return (
-    <div className="min-h-screen bg-cyber-dark text-slate-100 flex flex-col justify-between p-4 sm:p-8">
+    <div className="min-h-screen bg-cyber-dark text-slate-100 flex flex-col justify-between p-4 sm:p-8 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-[max(2rem,env(safe-area-inset-bottom))]">
       
       {/* Background Glow Elements */}
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-cyber-neonCyan/10 blur-3xl pointer-events-none"></div>

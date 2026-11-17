@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Deep Cyber Dark Background -->
+    <radialGradient id="bgGrad" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#1A2442" />
+      <stop offset="60%" stop-color="#0E1424" />
+      <stop offset="100%" stop-color="#080B14" />
+    </radialGradient>
+
+    <!-- Neon Cyan to Purple Gradient -->
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#7000FF" />
+    </linearGradient>
+
+    <!-- Gold Trophy Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF099" />
+      <stop offset="35%" stop-color="#FFD700" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+
+    <!-- Gold Dark Accent -->
+    <linearGradient id="goldShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#92400E" />
+    </linearGradient>
+
+    <!-- Subtle Cyan Glow -->
+    <radialGradient id="centerGlow" cx="50%" cy="46%" r="42%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.22" />
+      <stop offset="60%" stop-color="#7000FF" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#0B0F19" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Opaque Full-Bleed Background (no transparency, no rounded corners) -->
+  <rect x="0" y="0" width="512" height="512" fill="url(#bgGrad)" />
+
+  <!-- Ambient Center Glow -->
+  <rect x="0" y="0" width="512" height="512" fill="url(#centerGlow)" />
+
+  <!-- Subtle Cyber Grid Lines -->
+  <g stroke="#00F0FF" stroke-opacity="0.06" stroke-width="2">
+    <line x1="0" y1="128" x2="512" y2="128" />
+    <line x1="0" y1="256" x2="512" y2="256" />
+    <line x1="0" y1="384" x2="512" y2="384" />
+    <line x1="128" y1="0" x2="128" y2="512" />
+    <line x1="256" y1="0" x2="256" y2="512" />
+    <line x1="384" y1="0" x2="384" y2="512" />
+  </g>
+
+  <!-- Outer Cyber Hexagon Frame -->
+  <polygon
+    points="256,52 432,154 432,358 256,460 80,358 80,154"
+    fill="#111829"
+    fill-opacity="0.85"
+    stroke="url(#neonGrad)"
+    stroke-width="14"
+    stroke-linejoin="round"
+  />
+
+  <!-- Inner Subtle Ring -->
+  <polygon
+    points="256,76 410,165 410,347 256,436 102,347 102,165"
+    fill="none"
+    stroke="#00F0FF"
+    stroke-opacity="0.22"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+
+  <!-- Trophy Handles (Left & Right) -->
+  <path
+    d="M174 176 C132 176 122 232 154 256 C166 265 182 266 192 262"
+    fill="none"
+    stroke="url(#goldGrad)"
+    stroke-width="16"
+    stroke-linecap="round"
+  />
+  <path
+    d="M338 176 C380 176 390 232 358 256 C346 265 330 266 320 262"
+    fill="none"
+    stroke="url(#goldGrad)"
+    stroke-width="16"
+    stroke-linecap="round"
+  />
+
+  <!-- Trophy Cup Body -->
+  <path
+    d="M172 152 L340 152 L326 248 C320 288 292 314 256 314 C220 314 192 288 186 248 Z"
+    fill="url(#goldGrad)"
+  />
+
+  <!-- Trophy Cup Highlight -->
+  <path
+    d="M188 164 L224 164 L216 248 C213 272 224 290 242 299 C216 294 198 274 194 246 Z"
+    fill="#FFF8CC"
+    fill-opacity="0.45"
+  />
+
+  <!-- Trophy Stem & Base -->
+  <rect x="240" y="310" width="32" height="44" rx="4" fill="url(#goldShadow)" />
+  <path d="M196 354 L316 354 L328 384 L184 384 Z" fill="url(#goldGrad)" />
+  <rect x="176" y="380" width="160" height="16" rx="8" fill="url(#goldShadow)" />
+
+  <!-- Center Star Emblem inside Trophy -->
+  <polygon
+    points="256,184 268,210 296,214 275,233 280,261 256,247 232,261 237,233 216,214 244,210"
+    fill="#0B0F19"
+    fill-opacity="0.85"
+  />
+
+  <!-- Neon Cyan Sparkle (Top Right) -->
+  <path
+    d="M376 92 L384 114 L406 122 L384 130 L376 152 L368 130 L346 122 L368 114 Z"
+    fill="#00F0FF"
+  />
+
+  <!-- Small Neon Pink Sparkle (Bottom Left) -->
+  <path
+    d="M132 356 L137 370 L151 375 L137 380 L132 394 L127 380 L113 375 L127 370 Z"
+    fill="#FF007A"
+  />
+</svg>

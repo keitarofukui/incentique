@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [activeTab]);
 
   return (
-    <header className="bg-slate-950/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+    <header className="bg-slate-950/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md pt-[env(safe-area-inset-top)]">
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-1.5 sm:gap-3">
 
         {/* Brand — owns the left side. Kept shrink-0 so title never truncates on mobile */}

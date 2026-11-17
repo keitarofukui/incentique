@@ -73,7 +73,7 @@ export const UpdateAvailableBanner: React.FC = () => {
   if (!updateReady) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-4 pb-5 pointer-events-none">
+    <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pointer-events-none">
       <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-cyber-neonCyan/60 bg-slate-950/95 px-4 py-3 shadow-2xl shadow-cyan-500/20 backdrop-blur-md flex items-center gap-3">
         <RefreshCw className="w-5 h-5 shrink-0 text-cyber-neonCyan" />
         <div className="min-w-0 flex-1">
