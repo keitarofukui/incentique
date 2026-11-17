@@ -4,6 +4,9 @@ import { Brain, CheckCircle2, XCircle, Award, RefreshCw, ChevronRight, Zap, Flam
 import confetti from 'canvas-confetti';
 
 import { GachaResult } from './LuckyGachaModal';
+import { API_ROUTES } from '../../shared/apiRoutes';
+import { TrafficSignSvg } from './TrafficSignSvg';
+import { MockExamView } from './MockExamView';
 
 interface QuizQuestProps {
   currentUser: User | null;
@@ -12,6 +15,7 @@ interface QuizQuestProps {
 }
 
 export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdate, onGachaResult }) => {
+  const [quizMode, setQuizMode] = useState<'school' | 'driving' | 'mock'>('school');
   const [gradeLevelFilter, setGradeLevelFilter] = useState<string>(currentUser?.grade_level || 'all');
   const [category, setCategory] = useState<string>('all');
   const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
@@ -42,6 +46,11 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
       case 'japanese': return '国語';
       case 'general_knowledge': return '小論文・教養';
       case 'anime_manga': return '🍿 箸休めアニメ';
+      case 'driving_all': return '全免許分野';
+      case 'driving_karimen': return '仮免学科';
+      case 'driving_honmen': return '本免学科';
+      case 'driving_hazard': return '危険予測';
+      case 'driving_aptitude': return '適性検査';
       default: return cat;
     }
   };
@@ -64,12 +73,18 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
     setLoading(true);
     setNextBatchBuffer(null);
     try {
-      let url = `/api/quizzes?grade_level=${gradeLevelFilter}`;
+      let url = `${API_ROUTES.QUIZZES}?grade_level=${gradeLevelFilter}`;
       if (category !== 'all') {
         url += `&category=${category}`;
       }
 
       const res = await fetch(url);
+      if (!res.ok) {
+        console.error('[QUIZZES] fetch failed', res.status);
+        setQuizzes([]);
+        setTotalCount(0);
+        return;
+      }
       const data = await res.json();
 
       if (data.success && data.quizzes) {
@@ -80,8 +95,8 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
         setQuizzes([]);
         setTotalCount(0);
       }
-    } catch (err) {
-      console.error('Quiz fetch error', err);
+    } catch (err: unknown) {
+      console.error('[QUIZZES] fetch error', err);
       setQuizzes([]);
       setTotalCount(0);
     } finally {
@@ -93,7 +108,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
     if (isPrefetching) return;
     setIsPrefetching(true);
     try {
-      let url = `/api/quizzes?grade_level=${gradeLevelFilter}`;
+      let url = `${API_ROUTES.QUIZZES}?grade_level=${gradeLevelFilter}`;
       if (category !== 'all') {
         url += `&category=${category}`;
       }
@@ -110,9 +125,18 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
   };
 
   useEffect(() => {
+    if (quizMode === 'mock') return;
     setNextBatchBuffer(null);
     fetchQuizzes();
-  }, [gradeLevelFilter, category, currentUser.id]);
+  }, [gradeLevelFilter, category, currentUser.id, quizMode]);
+
+  const switchMode = (mode: 'school' | 'driving' | 'mock') => {
+    setQuizMode(mode);
+    setIsAnswered(false);
+    setSelectedOption(null);
+    if (mode === 'driving') setCategory('driving_all');
+    if (mode === 'school') setCategory('all');
+  };
 
   const handleSelectOption = async (index: number) => {
     if (isAnswered || isFetchingNextBatch) return;
@@ -128,7 +152,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
 
     if (correct) {
       try {
-        const res = await fetch('/api/quizzes/answer', {
+        const res = await fetch(API_ROUTES.QUIZZES_ANSWER, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -249,9 +273,32 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
           </div>
         </div>
 
+        {/* Mode Switcher */}
+        <div className="grid grid-cols-3 gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+          {[
+            { id: 'school' as const, label: '📚 教科学習' },
+            { id: 'driving' as const, label: '🚗 自動車学校' },
+            { id: 'mock' as const, label: '📝 模擬試験' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              onClick={() => switchMode(m.id)}
+              className={`py-2 px-3 rounded-xl text-xs font-black transition-all ${
+                quizMode === m.id
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-glow-cyan'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         {/* Filter Controls (Grade & Category) */}
+        {quizMode !== 'mock' && (
         <div className="space-y-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-          {/* Grade Level Selector (Top Row) */}
+          {/* Grade Level Selector (Top Row - School mode only) */}
+          {quizMode === 'school' && (
           <div 
             className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 no-swipe"
             onTouchStart={(e) => e.stopPropagation()}
@@ -281,21 +328,31 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
               </button>
             ))}
           </div>
+          )}
 
           {/* Subject Categories (Bottom Row) */}
           <div 
             className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 no-swipe"
             onTouchStart={(e) => e.stopPropagation()}
           >
-            {[
-              { id: 'all', label: '全教科' },
-              { id: 'general_knowledge', label: '小論文・教養' },
-              { id: 'english', label: '英語' },
-              { id: 'math', label: '数学' },
-              { id: 'science', label: '理科' },
-              { id: 'social_studies', label: '社会' },
-              { id: 'japanese', label: '国語' },
-            ].map((cat) => (
+            {(quizMode === 'driving'
+              ? [
+                  { id: 'driving_all', label: '全免許分野' },
+                  { id: 'driving_karimen', label: '仮免学科' },
+                  { id: 'driving_honmen', label: '本免学科' },
+                  { id: 'driving_hazard', label: '危険予測' },
+                  { id: 'driving_aptitude', label: '適性検査' },
+                ]
+              : [
+                  { id: 'all', label: '全教科' },
+                  { id: 'general_knowledge', label: '小論文・教養' },
+                  { id: 'english', label: '英語' },
+                  { id: 'math', label: '数学' },
+                  { id: 'science', label: '理科' },
+                  { id: 'social_studies', label: '社会' },
+                  { id: 'japanese', label: '国語' },
+                ]
+            ).map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setCategory(cat.id)}
@@ -310,7 +367,13 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             ))}
           </div>
         </div>
+        )}
       </div>
+
+      {quizMode === 'mock' ? (
+        <MockExamView currentUser={currentUser} onPointsUpdate={onPointsUpdate} />
+      ) : (
+      <>
 
       {/* Session Earned Bar */}
       <div className="flex items-center justify-between bg-slate-950/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
@@ -364,7 +427,8 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {currentQuiz.image_key && <TrafficSignSvg imageKey={currentQuiz.image_key} />}
             <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
               {currentQuiz.question_text}
             </h3>
@@ -460,6 +524,14 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
                 </button>
               </div>
 
+              {/* Explanation Box */}
+              {currentQuiz.explanation && (
+                <div className="p-4 rounded-2xl bg-slate-950/90 border border-cyan-500/30 text-xs sm:text-sm text-cyan-100 leading-relaxed">
+                  <span className="font-black text-cyber-neonCyan mr-1.5">💡 解説:</span>
+                  {currentQuiz.explanation}
+                </div>
+              )}
+
               {/* Fixed Bottom Bar for Mobile (Always visible without scrolling!) */}
               <div className="fixed bottom-3 left-3 right-3 z-40 max-w-xl mx-auto sm:hidden animate-in slide-in-from-bottom duration-200">
                 <button
@@ -485,6 +557,8 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
             再読み込みする
           </button>
         </div>
+      )}
+      </>
       )}
 
     </div>

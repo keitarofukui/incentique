@@ -172,7 +172,8 @@ export interface MockSubmitResponse {
   → 実装: `migrations/0003_quiz_explanation_and_image.sql` を作成し `--local` / `--remote` 双方へ適用完了。`PRAGMA table_info(quiz_questions)` で `explanation` (cid=8), `image_key` (cid=9) の実在を確認。
 - [x] T2: `src/shared/apiRoutes.ts`, `src/frontend/types.ts`, `src/backend/index.ts`（通常出題の除外＆新カラム返却＋`/api/quizzes/mock`＋`/api/quizzes/mock-submit`）実装 / 完了条件: `npx tsc --noEmit` 0 error
   → 実装: `src/shared/apiRoutes.ts`, `src/frontend/types.ts:L59-105`, `src/backend/index.ts:L914-1290` 実装完了。`tsc 0 error` / `npm run build` 成功 / `verify.sh dev` PASS。
-- [ ] T3: `src/frontend/components/TrafficSignSvg.tsx`, `MockExamView.tsx`, `QuizQuest.tsx`（モード切替・解説表示・SVG・模試統合）実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
+- [x] T3: `src/frontend/components/TrafficSignSvg.tsx`, `MockExamView.tsx`, `QuizQuest.tsx`（モード切替・解説表示・SVG・模試統合）実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
+  → 実装: `TrafficSignSvg.tsx` (`e8d9410`), `MockExamView.tsx` (`d504fbd`), `QuizQuest.tsx:L6-555` 実装完了。`tsc 0 error` / `npm run build` 成功。
 - [ ] T4: `scripts/seeds/driving_school_seed.sql` 生成・品質検証スクリプト（`scripts/seeds/validate_driving_seed.mjs`）実行・local/remote D1 投入 / 完了条件: 検証スクリプト 0 error ＋ remote `COUNT(*)` 600 問以上
 
 ## 13. 未確認事項（E-4）
