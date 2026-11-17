@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 // Imported as types (not via tsconfig "types") so the Workers globals don't
 // override the DOM lib the frontend compiles against.
 import type { D1Database } from '@cloudflare/workers-types';
+import { API_ROUTES } from '../shared/apiRoutes';
 
 export type Bindings = {
   DB: D1Database;
@@ -910,45 +911,75 @@ app.post('/api/goals', async (c) => {
 // ==========================================
 // 3. Quizzes & Gemini API
 // ==========================================
-app.get('/api/quizzes', async (c) => {
+const QUIZ_SELECT_COLUMNS =
+  'id, grade_level, category, question_text, options_json, correct_index, difficulty, explanation, image_key, created_at';
+
+/** 配列から重複なしで最大 k 件を Fisher-Yates で抽出する */
+function sampleRandom<T>(arr: T[], k: number): T[] {
+  if (arr.length <= k) return [...arr];
+  const copy = [...arr];
+  for (let i = 0; i < k; i++) {
+    const j = i + Math.floor(Math.random() * (copy.length - i));
+    const temp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = temp;
+  }
+  return copy.slice(0, k);
+}
+
+/** quiz_questions 行を API 返却形式へ整形する */
+function formatQuizRow(q: Record<string, unknown>) {
+  return {
+    ...q,
+    options: JSON.parse(typeof q.options_json === 'string' ? q.options_json : '[]') as string[],
+  };
+}
+
+/** カテゴリコードを表示ラベルに変換する */
+function getQuizCategoryLabel(cat: string): string {
+  const labels: Record<string, string> = {
+    english: '英語',
+    math: '数学',
+    science: '理科',
+    social_studies: '社会',
+    japanese: '国語',
+    anime_manga: '🍿箸休めアニメ',
+    driving_karimen: '仮免学科',
+    driving_honmen: '本免学科',
+    driving_hazard: '危険予測',
+    driving_aptitude: '適性検査',
+  };
+  return labels[cat] || 'クイズ';
+}
+
+app.get(API_ROUTES.QUIZZES, async (c) => {
   try {
     const gradeLevel = c.req.query('grade_level');
     const category = c.req.query('category');
+    const isDriving = Boolean(category && category.startsWith('driving_'));
 
     let studyWhere = " WHERE category != 'anime_manga'";
-    const studyParams: any[] = [];
+    const studyParams: (string | number)[] = [];
 
-    // Category filter for academic subjects
-    if (category && category !== 'all') {
+    if (category === 'driving_all') {
+      studyWhere += " AND category LIKE 'driving_%'";
+    } else if (category && category !== 'all') {
       studyWhere += ' AND category = ?';
       studyParams.push(category);
+    } else {
+      // 通常の「全教科」には自動車学校問題を混入させない
+      studyWhere += " AND category NOT LIKE 'driving_%'";
     }
 
-    // Grade Level filter for academic subjects
-    if (gradeLevel && gradeLevel !== 'all' && gradeLevel !== 'other') {
+    if (!isDriving && gradeLevel && gradeLevel !== 'all' && gradeLevel !== 'other') {
       studyWhere += " AND (grade_level = ? OR grade_level = 'all')";
       studyParams.push(gradeLevel);
     }
 
-    const studyWhereAnd = studyWhere.replace(/^ WHERE /, ' AND ');
-
     // id is an INTEGER PRIMARY KEY, so MAX(id) is a single b-tree lookup (1 row
     // read). It drives the cache invalidation signal when questions are added.
-    const maxRow: any = await c.env.DB.prepare('SELECT MAX(id) as maxId FROM quiz_questions').first();
+    const maxRow = await c.env.DB.prepare('SELECT MAX(id) as maxId FROM quiz_questions').first<{ maxId: number }>();
     const maxId = Number(maxRow?.maxId) || 0;
-
-    // Helper: Pick k random items from an array without replacement (Fisher-Yates sample)
-    const sampleRandom = <T>(arr: T[], k: number): T[] => {
-      if (arr.length <= k) return [...arr];
-      const copy = [...arr];
-      for (let i = 0; i < k; i++) {
-        const j = i + Math.floor(Math.random() * (copy.length - i));
-        const temp = copy[i];
-        copy[i] = copy[j];
-        copy[j] = temp;
-      }
-      return copy.slice(0, k);
-    };
 
     // 1. Get filtered study quiz IDs (cached in app_settings with 24h TTL, invalidated on maxId bump)
     const cacheKey = `quiz_ids_${category || 'all'}_${gradeLevel || 'all'}`;
@@ -989,19 +1020,19 @@ app.get('/api/quizzes', async (c) => {
     const NEEDED = 45;
 
     // 2. Sample 45 study quiz IDs and fetch ONLY those rows (Row Read: at most 45 rows)
-    let studyQuizzes: any[] = [];
+    let studyQuizzes: Record<string, unknown>[] = [];
     if (studyIds.length > 0) {
       const sampledStudyIds = sampleRandom(studyIds, NEEDED);
       const inClause = sampledStudyIds.join(',');
       const rowsRes = await c.env.DB.prepare(
-        `SELECT * FROM quiz_questions WHERE id IN (${inClause})`
+        `SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id IN (${inClause})`
       ).all();
-      studyQuizzes = rowsRes.results || [];
+      studyQuizzes = (rowsRes.results || []) as Record<string, unknown>[];
     }
 
-    // 3. Fetch Anime Break-time Quizzes (3 items) - using ID sampling to eliminate ORDER BY RANDOM()
-    let animeQuizzes: any[] = [];
-    if (studyQuizzes.length > 0) {
+    // 3. Fetch Anime Break-time Quizzes (3 items) - skip during driving school mode
+    let animeQuizzes: Record<string, unknown>[] = [];
+    if (studyQuizzes.length > 0 && !isDriving) {
       const animeCacheKey = 'quiz_ids_anime_manga';
       let animeIds: number[] | null = null;
 
@@ -1038,9 +1069,9 @@ app.get('/api/quizzes', async (c) => {
         const sampledAnimeIds = sampleRandom(animeIds, 3);
         const inClause = sampledAnimeIds.join(',');
         const animeRowsRes = await c.env.DB.prepare(
-          `SELECT * FROM quiz_questions WHERE id IN (${inClause})`
+          `SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id IN (${inClause})`
         ).all();
-        animeQuizzes = animeRowsRes.results || [];
+        animeQuizzes = (animeRowsRes.results || []) as Record<string, unknown>[];
       }
     }
 
@@ -1051,22 +1082,184 @@ app.get('/api/quizzes', async (c) => {
       [combined[i], combined[j]] = [combined[j], combined[i]];
     }
 
-    const formatted = combined.map((q: any) => ({
-      ...q,
-      options: JSON.parse(q.options_json || '[]')
-    }));
+    const formatted = combined.map(formatQuizRow);
 
     return c.json({
       success: true,
       quizzes: formatted,
       totalCount: totalCount
     });
-  } catch (err: any) {
-    return c.json({ success: false, error: err.message }, 500);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json({ success: false, error: message }, 500);
   }
 });
 
-app.post('/api/quizzes/answer', async (c) => {
+app.get(API_ROUTES.QUIZZES_MOCK, async (c) => {
+  try {
+    const examType = c.req.query('examType');
+    if (examType !== 'karimen' && examType !== 'honmen') {
+      return c.json({ success: false, error: 'Invalid examType' }, 400);
+    }
+
+    if (examType === 'karimen') {
+      const idsRes = await c.env.DB.prepare(
+        "SELECT id FROM quiz_questions WHERE category = 'driving_karimen'"
+      ).all<{ id: number }>();
+      const sampledIds = sampleRandom((idsRes.results || []).map((r) => Number(r.id)), 50);
+      if (sampledIds.length === 0) {
+        return c.json({ success: false, error: '仮免問題が登録されていません' }, 404);
+      }
+      const rowsRes = await c.env.DB.prepare(
+        `SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id IN (${sampledIds.join(',')})`
+      ).all();
+      const shuffled = sampleRandom((rowsRes.results || []) as Record<string, unknown>[], 50).map((q) => ({
+        ...formatQuizRow(q),
+        points: 2,
+      }));
+      return c.json({
+        success: true,
+        examType,
+        timeLimitMinutes: 30,
+        passScore: 90,
+        totalScore: shuffled.length * 2,
+        questions: shuffled,
+      });
+    }
+
+    // honmen: 文章90問(1点) + 危険予測5問(2点)
+    const textIdsRes = await c.env.DB.prepare(
+      "SELECT id FROM quiz_questions WHERE category IN ('driving_karimen', 'driving_honmen')"
+    ).all<{ id: number }>();
+    const hazardIdsRes = await c.env.DB.prepare(
+      "SELECT id FROM quiz_questions WHERE category = 'driving_hazard'"
+    ).all<{ id: number }>();
+
+    const sampledTextIds = sampleRandom((textIdsRes.results || []).map((r) => Number(r.id)), 90);
+    const sampledHazardIds = sampleRandom((hazardIdsRes.results || []).map((r) => Number(r.id)), 5);
+
+    const textRows = sampledTextIds.length > 0
+      ? ((await c.env.DB.prepare(`SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id IN (${sampledTextIds.join(',')})`).all()).results || []) as Record<string, unknown>[]
+      : [];
+    const hazardRows = sampledHazardIds.length > 0
+      ? ((await c.env.DB.prepare(`SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id IN (${sampledHazardIds.join(',')})`).all()).results || []) as Record<string, unknown>[]
+      : [];
+
+    const textQuestions = sampleRandom(textRows, 90).map((q) => ({ ...formatQuizRow(q), points: 1 }));
+    const hazardQuestions = sampleRandom(hazardRows, 5).map((q) => ({ ...formatQuizRow(q), points: 2 }));
+    const questions = [...textQuestions, ...hazardQuestions];
+
+    return c.json({
+      success: true,
+      examType,
+      timeLimitMinutes: 50,
+      passScore: 90,
+      totalScore: textQuestions.length + hazardQuestions.length * 2,
+      questions,
+    });
+  } catch (err) {
+    console.error('[QUIZZES_MOCK] error:', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
+app.post(API_ROUTES.QUIZZES_MOCK_SUBMIT, async (c) => {
+  try {
+    const body = await c.req.json<{
+      userId: string;
+      examType: 'karimen' | 'honmen';
+      answers: { questionId: number; selectedIndex: number | null }[];
+    }>();
+
+    if (!body.userId || (body.examType !== 'karimen' && body.examType !== 'honmen') || !Array.isArray(body.answers)) {
+      return c.json({ success: false, error: 'Invalid request payload' }, 400);
+    }
+
+    const userRow = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
+      .bind(body.userId)
+      .first<{ current_points: number }>();
+    if (!userRow) {
+      return c.json({ success: false, error: 'User not found' }, 404);
+    }
+
+    const validAnswers = body.answers.filter((a) => Number.isInteger(a.questionId) && a.questionId > 0);
+    const questionIds = Array.from(new Set(validAnswers.map((a) => a.questionId)));
+
+    const answerKeyMap = new Map<number, { category: string; correctIndex: number }>();
+    if (questionIds.length > 0) {
+      const rowsRes = await c.env.DB.prepare(
+        `SELECT id, category, correct_index FROM quiz_questions WHERE id IN (${questionIds.join(',')})`
+      ).all<{ id: number; category: string; correct_index: number }>();
+      for (const r of rowsRes.results || []) {
+        answerKeyMap.set(Number(r.id), { category: r.category, correctIndex: Number(r.correct_index) });
+      }
+    }
+
+    let score = 0;
+    let correctCount = 0;
+    for (const ans of validAnswers) {
+      const key = answerKeyMap.get(ans.questionId);
+      if (key && ans.selectedIndex === key.correctIndex) {
+        correctCount += 1;
+        score += body.examType === 'karimen' || key.category === 'driving_hazard' ? 2 : 1;
+      }
+    }
+
+    const passed = score >= 90;
+    const answeredCount = validAnswers.filter((a) => a.selectedIndex !== null).length;
+    let pointsEarned = 0;
+    if (answeredCount > 0) {
+      const baseCompletion = body.examType === 'karimen' ? 10 : 20;
+      const passBonus = passed ? (body.examType === 'karimen' ? 30 : 50) : 0;
+      pointsEarned = baseCompletion + passBonus;
+
+      await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
+        .bind(pointsEarned, body.userId)
+        .run();
+
+      const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      const examLabel = body.examType === 'karimen' ? '仮免学科' : '本免学科';
+      const resultLabel = passed ? '合格' : '不合格';
+      await c.env.DB.prepare(
+        "INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))"
+      )
+        .bind(
+          logId,
+          body.userId,
+          'quiz',
+          `【模擬試験】${examLabel} (${score}点・${resultLabel})`,
+          `正答数: ${correctCount}/${validAnswers.length}問`,
+          pointsEarned,
+          pointsEarned,
+          'approved'
+        )
+        .run();
+
+      await updateStreaks(c.env.DB, body.userId);
+    }
+
+    const updatedUser = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
+      .bind(body.userId)
+      .first<{ current_points: number }>();
+
+    return c.json({
+      success: true,
+      score,
+      correctCount,
+      totalCount: validAnswers.length,
+      passed,
+      pointsEarned,
+      newTotalPoints: updatedUser ? updatedUser.current_points : userRow.current_points,
+    });
+  } catch (err) {
+    console.error('[QUIZZES_MOCK_SUBMIT] error:', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
+app.post(API_ROUTES.QUIZZES_ANSWER, async (c) => {
   try {
     const body = await c.req.json<{
       userId: string;
@@ -1074,9 +1267,17 @@ app.post('/api/quizzes/answer', async (c) => {
       selectedIndex: number;
     }>();
 
-    const question: any = await c.env.DB.prepare('SELECT * FROM quiz_questions WHERE id = ?')
+    const question = await c.env.DB.prepare(
+      `SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id = ?`
+    )
       .bind(body.questionId)
-      .first();
+      .first<{
+        id: number;
+        grade_level: string;
+        category: string;
+        question_text: string;
+        correct_index: number;
+      }>();
 
     if (!question) {
       return c.json({ success: false, error: 'Question not found' }, 404);
@@ -1116,13 +1317,7 @@ app.post('/api/quizzes/answer', async (c) => {
           .run();
 
         const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-        const catLabel =
-          question.category === 'english' ? '英語' :
-          question.category === 'math' ? '数学' :
-          question.category === 'science' ? '理科' :
-          question.category === 'social_studies' ? '社会' :
-          question.category === 'japanese' ? '国語' :
-          question.category === 'anime_manga' ? '🍿箸休めアニメ' : 'クイズ';
+        const catLabel = getQuizCategoryLabel(question.category);
         const titlePrefix = multiplier > 1 ? `【クイズ正解】${bonusLabel} ` : `【クイズ正解】`;
 
         await c.env.DB.prepare(

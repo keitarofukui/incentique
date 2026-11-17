@@ -59,12 +59,58 @@ export interface UserGoal {
 export interface QuizQuestion {
   id: number;
   grade_level: string;
-  category: 'english' | 'social_studies' | 'science' | string;
+  category:
+    | 'english'
+    | 'social_studies'
+    | 'science'
+    | 'driving_karimen'
+    | 'driving_honmen'
+    | 'driving_hazard'
+    | 'driving_aptitude'
+    | string;
   question_text: string;
   options: string[];
   correct_index: number;
   difficulty: number;
+  explanation?: string | null;
+  image_key?: string | null;
   created_at: string;
+}
+
+export interface MockExamQuestion extends QuizQuestion {
+  points: number;
+}
+
+export interface MockExamAnswer {
+  questionId: number;
+  selectedIndex: number | null;
+}
+
+export interface MockSubmitRequest {
+  userId: string;
+  examType: 'karimen' | 'honmen';
+  answers: MockExamAnswer[];
+}
+
+export interface MockSubmitResponse {
+  success: boolean;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  passed: boolean;
+  pointsEarned: number;
+  newTotalPoints: number;
+  error?: string;
+}
+
+export interface MockExamResponse {
+  success: boolean;
+  examType: 'karimen' | 'honmen';
+  timeLimitMinutes: number;
+  passScore: number;
+  totalScore: number;
+  questions: MockExamQuestion[];
+  error?: string;
 }
 
 export interface WishItem {
