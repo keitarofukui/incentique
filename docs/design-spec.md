@@ -174,7 +174,8 @@ export interface MockSubmitResponse {
   → 実装: `src/shared/apiRoutes.ts`, `src/frontend/types.ts:L59-105`, `src/backend/index.ts:L914-1290` 実装完了。`tsc 0 error` / `npm run build` 成功 / `verify.sh dev` PASS。
 - [x] T3: `src/frontend/components/TrafficSignSvg.tsx`, `MockExamView.tsx`, `QuizQuest.tsx`（モード切替・解説表示・SVG・模試統合）実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
   → 実装: `TrafficSignSvg.tsx` (`e8d9410`), `MockExamView.tsx` (`d504fbd`), `QuizQuest.tsx:L6-555` 実装完了。`tsc 0 error` / `npm run build` 成功。
-- [ ] T4: `scripts/seeds/driving_school_seed.sql` 生成・品質検証スクリプト（`scripts/seeds/validate_driving_seed.mjs`）実行・local/remote D1 投入 / 完了条件: 検証スクリプト 0 error ＋ remote `COUNT(*)` 600 問以上
+- [x] T4: `scripts/seeds/driving_school_seed.sql` 生成・品質検証スクリプト（`scripts/seeds/validate_driving_seed.mjs`）実行・local/remote D1 投入 / 完了条件: 検証スクリプト 0 error ＋ remote `COUNT(*)` 600 問以上
+  → 実装: コア問題＋`gemini-3.1-flash-lite` で生成後、`validate_driving_seed.mjs` で重複・整合検証し 686 問（仮免 314 / 本免 270 / 危険予測 46 / 適性検査 56）を local/remote D1 へ投入完了。
 
 ## 13. 未確認事項（E-4）
 なし。
