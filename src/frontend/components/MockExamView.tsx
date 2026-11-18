@@ -144,7 +144,7 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
               title: '仮免学科 模擬試験',
               desc: '文章問題50問（1問2点）。90点（45問正解）以上で合格！毎回ランダムで異なる問題セットを出題します。',
               btnClass: 'from-cyan-500 to-blue-600',
-              btnText: '仮免模試スタート (完了+10pt / 合格+40pt)',
+              btnText: '仮免模試スタート (完了+10pt / 合格さらに+50pt)',
             },
             {
               type: 'honmen' as const,
@@ -154,7 +154,7 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
               title: '本免学科 模擬試験',
               desc: '文章90問（各1点）＋危険予測イラスト5問（各2点）。90点以上で合格！本番と同じ配点・時間で毎回新規出題。',
               btnClass: 'from-amber-500 to-orange-600',
-              btnText: '本免模試スタート (完了+20pt / 合格+70pt)',
+              btnText: '本免模試スタート (完了+20pt / 合格さらに+100pt)',
             },
           ].map((item) => (
             <div key={item.type} className="glass-card p-5 rounded-3xl border border-slate-800 space-y-3">

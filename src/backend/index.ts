@@ -1211,7 +1211,7 @@ app.post(API_ROUTES.QUIZZES_MOCK_SUBMIT, async (c) => {
     let pointsEarned = 0;
     if (answeredCount > 0) {
       const baseCompletion = body.examType === 'karimen' ? 10 : 20;
-      const passBonus = passed ? (body.examType === 'karimen' ? 30 : 50) : 0;
+      const passBonus = passed ? (body.examType === 'karimen' ? 50 : 100) : 0;
       pointsEarned = baseCompletion + passBonus;
 
       await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
