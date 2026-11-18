@@ -122,7 +122,8 @@ export interface MockExamResponse {
   → 実装: `src/frontend/types.ts:L59-115`, `src/backend/index.ts:L945-1305` 実装完了。`tsc 0 error`。
 - [x] T2: `src/frontend/components/QuizQuest.tsx`, `src/frontend/components/MockExamView.tsx`（4期間×9教科 UI・`passScore` 動的表示・高校生非表示）実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
   → 実装: `QuizQuest.tsx:L46-375`, `MockExamView.tsx:L13-270` 実装完了。`tsc 0 error` / `npm run build` 成功。
-- [ ] T3: `scripts/seeds/generate_junior1_4terms.mjs`（`.dev.vars` / 環境変数 `GEMINI_API_KEY` 参照、`gemini-3.1-flash-lite` で 4期間×9教科×各55〜60問・計約2,000問・全問 `explanation` 必須生成）& `validate_junior1_seed.mjs` で検証し local/remote D1 投入 / 完了条件: remote `COUNT(*)` 1,800問以上
+- [x] T3: `scripts/seeds/generate_junior1_4terms.mjs`（`.dev.vars` / 環境変数 `GEMINI_API_KEY` 参照、`gemini-3.1-flash-lite` で 4期間×9教科×各55〜60問・計約2,000問・全問 `explanation` 必須生成）& `validate_junior1_seed.mjs` で検証し local/remote D1 投入 / 完了条件: remote `COUNT(*)` 1,800問以上
+  → 実装: 4期間×全9教科 合計 2,109 問を生成・検証し、`local` / `remote` D1 へ投入完了（Database size 6.91 MB）。
 
 ## 13. 未確認事項（E-4）
 なし。
