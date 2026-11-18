@@ -217,25 +217,18 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
   const embedUrl = selectedMenu ? getYouTubeEmbedUrl(selectedMenu.video_url) : null;
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="glass-card w-full rounded-3xl p-6 sm:p-8 border border-slate-700/80 shadow-2xl space-y-6">
+    <div className="space-y-3 max-w-3xl mx-auto">
+      <div className="glass-card w-full rounded-2xl p-4 sm:p-6 border border-slate-700/80 shadow-xl space-y-3.5">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-glow-emerald">
-              <Dumbbell className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-white">🏋️‍♂️ トレーニング成果報告</h3>
-              <p className="text-xs text-slate-400 mt-0.5">動画を見ながら運動を実践してポイントを獲得しよう！</p>
-            </div>
+        <div className="flex items-center gap-2.5 border-b border-slate-800 pb-2.5">
+          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <Dumbbell className="w-5 h-5" />
           </div>
+          <h3 className="text-base sm:text-lg font-black text-white">🏋️‍♂️ トレーニング報告</h3>
         </div>
 
-
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
 
           {/* Menu Header & Add Custom Menu Toggle */}
           <div className="flex items-center justify-between">
@@ -309,7 +302,7 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
           )}
 
           {/* Training Menu Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {trainingMenus.map((menu) => {
               const isSelected = selectedMenu?.id === menu.id;
 
@@ -317,7 +310,7 @@ export const TrainingModal: React.FC<TrainingModalProps> = ({
                 <div
                   key={menu.id}
                   onClick={() => handleSelectMenu(menu)}
-                  className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-2 ${
+                  className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between gap-1.5 ${
                     isSelected
                       ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg shadow-emerald-500/20 scale-102'
                       : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'

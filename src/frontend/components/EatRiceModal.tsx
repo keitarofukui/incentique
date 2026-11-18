@@ -216,22 +216,15 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="glass-card w-full rounded-3xl p-6 sm:p-8 border border-amber-500/40 shadow-2xl space-y-5">
+    <div className="space-y-3 max-w-3xl mx-auto">
+      <div className="glass-card w-full rounded-2xl p-4 sm:p-6 border border-amber-500/40 shadow-xl space-y-3">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-glow-gold">
-              <Utensils className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-white flex items-center gap-2">
-                <span>🍚🥩 食べて稼ぐ！食事記録</span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">主食（炭水化物）とお肉（タンパク質）をバランスよく摂って強い身体を作ろう！</p>
-            </div>
+        <div className="flex items-center gap-2.5 border-b border-slate-800 pb-2">
+          <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
+            <Utensils className="w-5 h-5" />
           </div>
+          <h3 className="text-base sm:text-lg font-black text-white">🍚🥩 食べて稼ぐ！食事記録</h3>
         </div>
 
         {/* Sub-Tabs Selector (Rice vs Meat) */}
@@ -269,45 +262,32 @@ export const EatRiceModal: React.FC<EatRiceModalProps> = ({
         </div>
 
         {/* Today's Consumed Meal Stats Badge */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-rose-950/60 border border-amber-500/40 flex items-center justify-between gap-3 shadow-lg">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl animate-bounce">{activeSubTab === 'rice' ? '🍚' : '🥩'}</span>
-            <div>
-              <div className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-                <span>本日の食べる実績</span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                🍚 主食: <strong className="text-amber-300 font-mono">{stats.riceTodayGrams}g</strong> ({stats.riceTodayCount}回)
-                <span className="mx-1.5 text-slate-600">|</span>
-                🥩 お肉: <strong className="text-rose-300 font-mono">{stats.meatTodayGrams}g</strong> ({stats.meatTodayCount}回)
-              </p>
-            </div>
+        <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-rose-950/60 border border-amber-500/40 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{activeSubTab === 'rice' ? '🍚' : '🥩'}</span>
+            <p className="text-[11px] sm:text-xs text-slate-300">
+              主食 <strong className="text-amber-300 font-mono">{stats.riceTodayGrams}g</strong>({stats.riceTodayCount}回)
+              <span className="mx-1 text-slate-600">|</span>
+              肉 <strong className="text-rose-300 font-mono">{stats.meatTodayGrams}g</strong>({stats.meatTodayCount}回)
+            </p>
           </div>
-          <div className="text-right shrink-0">
-            <div className="text-xl font-black font-mono text-amber-400">
-              {activeSubTab === 'rice' ? stats.riceTodayGrams : stats.meatTodayGrams} <span className="text-xs font-bold text-amber-300">g</span>
-            </div>
-            <div className="text-xs text-slate-400 font-mono">
-              今月累計: {((activeSubTab === 'rice' ? stats.riceMonthGrams : stats.meatMonthGrams) / 1000).toFixed(1)}kg
-            </div>
+          <div className="text-right shrink-0 font-mono font-black text-sm text-amber-400">
+            {activeSubTab === 'rice' ? stats.riceTodayGrams : stats.meatTodayGrams}g
           </div>
         </div>
 
         {/* Grade & Rate Info Banner */}
-        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🎒</span>
-            <span className="font-bold text-slate-200">
-              {currentUser.name}さん（{isJunior ? '中学生' : isHigh ? '高校生' : '一般'}）
-            </span>
-          </div>
-          <div className={`font-mono font-black text-sm px-3 py-1 rounded-xl border ${
+        <div className="px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2 text-[11px]">
+          <span className="font-bold text-slate-300 truncate">
+            🎒 {currentUser.name} ({isJunior ? '中学' : isHigh ? '高校' : '一般'})
+          </span>
+          <span className={`font-mono font-black px-2 py-0.5 rounded-lg border shrink-0 ${
             activeSubTab === 'meat'
-              ? 'text-rose-300 bg-rose-500/20 border-rose-500/40 shadow-glow-purple animate-pulse'
+              ? 'text-rose-300 bg-rose-500/20 border-rose-500/40'
               : 'text-amber-400 bg-amber-500/10 border-amber-500/30'
           }`}>
-            {activeSubTab === 'meat' ? '🔥 肉ボーナス ' : ''}還元率 {currentRatePercent}% ({isJunior ? `${currentGrams}g ➔ ${calculatedPoints}pt` : `${currentGrams}g ➔ ${calculatedPoints}pt`})
-          </div>
+            還元{currentRatePercent}% ({currentGrams}g→{calculatedPoints}pt)
+          </span>
         </div>
 
         {errorMsg && (
