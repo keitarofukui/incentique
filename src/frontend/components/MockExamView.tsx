@@ -198,6 +198,11 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
           <div className="text-xs text-slate-300">
             正答数: {result.correctCount} / {result.totalCount}問 ・ 獲得ポイント: +{result.pointsEarned} pt
           </div>
+          {result.pointsEarned === 0 && (
+            <div className="text-[11px] text-amber-300">
+              ※ 未回答の問題が残っているため、ポイントは付与されませんでした（全問回答で完了ポイント獲得）
+            </div>
+          )}
           <div className="flex gap-2 justify-center pt-2">
             <button onClick={() => setPhase('select')} className="px-5 py-2.5 rounded-xl bg-slate-800 text-white font-bold text-xs">
               模試選択に戻る

@@ -1207,9 +1207,11 @@ app.post(API_ROUTES.QUIZZES_MOCK_SUBMIT, async (c) => {
     }
 
     const passed = score >= 90;
+    const requiredCount = body.examType === 'karimen' ? 50 : 95;
     const answeredCount = validAnswers.filter((a) => a.selectedIndex !== null).length;
+    const isCompletedAll = validAnswers.length >= requiredCount && answeredCount >= requiredCount;
     let pointsEarned = 0;
-    if (answeredCount > 0) {
+    if (isCompletedAll) {
       const baseCompletion = body.examType === 'karimen' ? 10 : 20;
       const passBonus = passed ? (body.examType === 'karimen' ? 50 : 100) : 0;
       pointsEarned = baseCompletion + passBonus;
