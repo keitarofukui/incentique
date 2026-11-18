@@ -279,161 +279,97 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
       )}
 
       {/* Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/20 to-rose-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0 shadow-lg">
-            <Flame className="w-6 h-6 text-orange-400 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-black text-white tracking-tight">📊 ダッシュボード</h2>
-              <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
-                doneToday
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-glow-emerald'
-                  : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-              }`}>
-                {doneToday ? '✅ 今日は記録済み' : '❌ 今日は未記録'}
-              </span>
-            </div>
-          </div>
+      <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <Flame className="w-5 h-5 text-orange-400 shrink-0" />
+          <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate">📊 ダッシュボード</h2>
+          <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border shrink-0 ${
+            doneToday
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+          }`}>
+            {doneToday ? '✅ 記録済' : '❌ 未記録'}
+          </span>
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => onNavigate('streak_bonus_info')}
-            className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold transition-all flex items-center gap-1"
-          >
-            <span>ルール解説</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button
+          onClick={() => onNavigate('streak_bonus_info')}
+          className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-[11px] font-bold shrink-0 flex items-center gap-1"
+        >
+          <span>ルール</span>
+          <ArrowRight className="w-3 h-3" />
+        </button>
       </div>
 
-      {/* 3段階ストリーク常時表示カード (今日達成で +◯pt 獲得表示つき) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* ① デイリー連続 */}
-        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 transition-all ${
-          doneToday ? 'bg-indigo-950/50 border-indigo-500/40 shadow-md' : 'bg-slate-900/80 border-slate-800'
-        }`}>
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-xs font-black text-indigo-300 flex items-center gap-1">
-              <span>🔥 デイリー</span>
-              <span className="text-[0.625rem] text-slate-500 font-mono ml-1">1pt+</span>
-            </span>
-            <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
-              streakDaily > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
-            }`}>
-              {streakDaily}日連続
-            </span>
-          </div>
-          <div className="space-y-1">
-            <div className="text-xs">
-              {doneToday ? (
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>本日クリア！</span>
+      {/* 3段階ストリーク（スマホでも横3列コンパクト表示） */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          {
+            title: '🔥デイリー',
+            req: '1pt+',
+            streak: streakDaily,
+            done: doneToday,
+            remainText: 'あと1pt',
+            progress: doneToday ? 100 : 0,
+            bonus: dailyBonusPayout,
+            activeCls: 'bg-indigo-950/50 border-indigo-500/40',
+            accentCls: 'text-indigo-300',
+            barCls: 'from-indigo-500 to-cyan-400',
+          },
+          {
+            title: '💥中級',
+            req: `${midThreshold}pt`,
+            streak: streakMid,
+            done: todayBase >= midThreshold,
+            remainText: `あと${Math.max(0, midThreshold - todayBase)}`,
+            progress: Math.min(100, (todayBase / midThreshold) * 100),
+            bonus: midBonusPayout,
+            activeCls: 'bg-rose-950/50 border-rose-500/40',
+            accentCls: 'text-rose-300',
+            barCls: 'from-rose-500 to-amber-400',
+          },
+          {
+            title: '👑神',
+            req: `${godThreshold}pt`,
+            streak: streakGod,
+            done: todayBase >= godThreshold,
+            remainText: `あと${Math.max(0, godThreshold - todayBase)}`,
+            progress: Math.min(100, (todayBase / godThreshold) * 100),
+            bonus: godBonusPayout,
+            activeCls: 'bg-amber-950/50 border-amber-500/40',
+            accentCls: 'text-amber-300',
+            barCls: 'from-amber-500 to-amber-300',
+          },
+        ].map((s) => (
+          <div
+            key={s.title}
+            className={`p-2 sm:p-3 rounded-xl border flex flex-col justify-between gap-1 ${
+              s.done ? s.activeCls : 'bg-slate-900/80 border-slate-800'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-0.5">
+              <span className={`text-[11px] sm:text-xs font-black truncate ${s.accentCls}`}>{s.title}</span>
+              <span className="text-[10px] font-mono font-black text-amber-300 shrink-0">{s.streak}日</span>
+            </div>
+            <div className="text-[10px] sm:text-xs leading-tight">
+              {s.done ? (
+                <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                  <span>達成!</span>
                 </span>
               ) : (
-                <span className="text-amber-300 font-bold">
-                  今日あと <span className="font-mono text-white font-black">1pt</span>
-                </span>
+                <span className="text-slate-300 font-mono">{s.remainText}</span>
               )}
             </div>
-            {/* 今日達成したら何ptもらえるか */}
-            <div className="p-1.5 rounded-lg bg-indigo-950/80 border border-indigo-500/30 text-xs font-bold text-indigo-200 flex items-center justify-between">
-              <span>獲得ボーナス:</span>
-              <span className="font-mono font-black text-amber-300">+{dailyBonusPayout} pt</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ② 中級連続 */}
-        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 transition-all ${
-          todayBase >= midThreshold ? 'bg-rose-950/50 border-rose-500/40 shadow-md' : 'bg-slate-900/80 border-slate-800'
-        }`}>
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-xs font-black text-rose-300 flex items-center gap-1">
-              <span>💥 中級</span>
-              <span className="text-[0.625rem] text-slate-500 font-mono ml-1">{midThreshold}pt+</span>
-            </span>
-            <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
-              streakMid > 0 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-400'
-            }`}>
-              {streakMid}日連続
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            <div className="text-xs">
-              {todayBase >= midThreshold ? (
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>本日達成！</span>
-                </span>
-              ) : (
-                <span className="text-slate-300">
-                  素点あと <span className="font-mono text-rose-300 font-black">{(midThreshold - todayBase).toLocaleString()}pt</span>
-                </span>
-              )}
-            </div>
-            {todayBase < midThreshold && (
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-rose-500 to-amber-400 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (todayBase / midThreshold) * 100)}%` }}
-                />
+            {!s.done && (
+              <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div className={`h-full bg-gradient-to-r ${s.barCls}`} style={{ width: `${s.progress}%` }} />
               </div>
             )}
-            {/* 今日達成したら何ptもらえるか */}
-            <div className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-500/30 text-xs font-bold text-rose-200 flex items-center justify-between">
-              <span>達成時ボーナス:</span>
-              <span className="font-mono font-black text-amber-300">+{midBonusPayout} pt</span>
+            <div className="text-[10px] font-mono font-black text-amber-300 text-right">
+              +{s.bonus}pt
             </div>
           </div>
-        </div>
-
-        {/* ③ 神連続 */}
-        <div className={`p-3.5 rounded-2xl border flex flex-col justify-between space-y-2.5 transition-all ${
-          todayBase >= godThreshold ? 'bg-amber-950/50 border-amber-500/40 shadow-md' : 'bg-slate-900/80 border-slate-800'
-        }`}>
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-xs font-black text-amber-300 flex items-center gap-1">
-              <span>👑 神</span>
-              <span className="text-[0.625rem] text-slate-500 font-mono ml-1">{godThreshold}pt+</span>
-            </span>
-            <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-lg ${
-              streakGod > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
-            }`}>
-              {streakGod}日連続
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            <div className="text-xs">
-              {todayBase >= godThreshold ? (
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>本日達成！</span>
-                </span>
-              ) : (
-                <span className="text-slate-300">
-                  素点あと <span className="font-mono text-amber-300 font-black">{(godThreshold - todayBase).toLocaleString()}pt</span>
-                </span>
-              )}
-            </div>
-            {todayBase < godThreshold && (
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (todayBase / godThreshold) * 100)}%` }}
-                />
-              </div>
-            )}
-            {/* 今日達成したら何ptもらえるか */}
-            <div className="p-1.5 rounded-lg bg-amber-950/80 border border-amber-500/30 text-xs font-bold text-amber-200 flex items-center justify-between">
-              <span>達成時ボーナス:</span>
-              <span className="font-mono font-black text-amber-300">+{godBonusPayout} pt</span>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* 今日の行動・リスク・ネクストアクションバー */}
@@ -479,55 +415,41 @@ export const PersonalStreakCard: React.FC<PersonalStreakCardProps> = ({
         </div>
       )}
 
-      {/* 全カテゴリ制覇ウィジェット（5カテゴリの達成チェック。件数は categories から導出し、
-          カテゴリを増減しても表記がズレないようにする） */}
-      <div className={`p-3.5 rounded-2xl border space-y-2.5 transition-all ${
+      {/* 全カテゴリ制覇（1行コンパクト＋タップで即遷移） */}
+      <div className={`p-2.5 rounded-xl border space-y-2 transition-all ${
         allCategoryAwarded ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-slate-900/80 border-slate-800'
       }`}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-base">👑</span>
-            <span className="text-xs font-black text-white">本日の全カテゴリ制覇進捗</span>
-          </div>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-black text-white">👑 本日全制覇ボーナス</span>
+          <span className={`font-bold px-2 py-0.5 rounded-full border ${
             allCategoryAwarded
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
               : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
           }`}>
-            {allCategoryAwarded ? '🏆 本日制覇完了！' : `達成: ${completedCategoriesCount} / ${categories.length} カテゴリ`}
+            {allCategoryAwarded ? '🏆 達成!' : `${completedCategoriesCount}/${categories.length} タップで挑戦`}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {categories.map((c) => (
-            <div
-              key={c.key}
-              className={`p-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
-                c.done
-                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-200'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400'
-              }`}
-            >
-              <span className="text-sm">{c.icon}</span>
-              <span className="truncate">{c.label}</span>
-              <span className="ml-auto text-xs">{c.done ? '✅' : '⚪'}</span>
-            </div>
-          ))}
+        <div className="grid grid-cols-5 gap-1">
+          {categories.map((c) => {
+            const targetTab = c.key === 'input' ? 'input_book' : c.key;
+            return (
+              <button
+                key={c.key}
+                onClick={() => onNavigate(targetTab)}
+                className={`py-1.5 px-1 rounded-lg border flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold transition-all ${
+                  c.done
+                    ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-200'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-cyan-500/40 hover:text-white'
+                }`}
+              >
+                <span className="text-sm leading-none">{c.icon}</span>
+                <span className="truncate w-full text-center leading-tight">{c.label.split('/')[0]}</span>
+                <span className="text-[9px] leading-none">{c.done ? '✅' : '挑戦'}</span>
+              </button>
+            );
+          })}
         </div>
-
-        <p className="text-xs text-slate-300 leading-relaxed">
-          {allCategoryAwarded ? (
-            <span className="text-emerald-300 font-bold">✨ すばらしい！本日全{categories.length}カテゴリを達成し、制覇ボーナスを獲得しました！</span>
-          ) : (
-            <>
-              残りを埋めると全制覇ボーナス！ あと{' '}
-              <strong className="text-amber-300">
-                {missingCategories.map((c) => `【${c.label}】`).join('・')}
-              </strong>{' '}
-              を記録しよう！
-            </>
-          )}
-        </p>
       </div>
     </div>
   );
