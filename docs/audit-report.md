@@ -1,160 +1,223 @@
-# セキュリティ & コード品質監査レポート
+# セキュリティ & コード品質監査レポート: 中学1年 定期テスト4期間×全9教科対応
 
-- 作成日時: 2026-11-18 14:39
+- 作成日時: 2026-11-18 15:15
 - 対象リポジトリ/ブランチ: game / main
-- 対象コミット: dea20fe
-- トピック: driving-school-quiz
-- 上流 Artifact: docs/test-report.md（対象コミット: 5104c1e）
+- 対象コミット: 5d24efb
+- トピック: junior_1_4terms_9subjects
+- 上流 Artifact: docs/test-report.md（対象コミット: 24d4fde）
+- トラック: ミドル
 - **総合判定: PASS**
 
-## 0. 確定済みの前提・鮮度検証・上流抜き取り再実測（§2-2, §2-3, §2-5）
-### 確定済みの前提（上流から引き継ぎ）
+## 0. 鮮度検証（§2-2）・確定済みの前提・上流抜き取り再実測（§2-3）
+
+### [EV-0] 鮮度検証
+```bash
+$ git diff 24d4fde..HEAD --stat
+ docs/test-report.md | 115 +++++++++++++++++++++-------------------------------
+ 1 file changed, 47 insertions(+), 68 deletions(-)
+```
+- 【実測】上流 `test-report.md`（`24d4fde`）から `HEAD`（`5d24efb`）への差分は `docs/test-report.md` のみであり、製品コード・シードへの影響はない [EV-0]。
+
+### 確定済みの前提（上流から引き継ぎ / §2-5）
 | 事実 | 根拠 |
 | :--- | :--- |
-| ローカル HTTP API（通常出題・仮免/本免模試・採点・400/404 異常系）全件通過 | [EV-2], [EV-3]（upstream: docs/test-report.md） |
-| `npx tsc --noEmit && npm run build` 0 エラー成功 | [EV-1]（upstream: docs/test-report.md） |
+| ローカル HTTP 正常系（45問・25問模試・毎回ランダム）・400/403 異常系通過 | [EV-2], [EV-3]（upstream: docs/test-report.md） |
+| remote D1 に 4 期間計 2,109 問登録済み | [EV-4]（upstream: docs/test-report.md） |
 
-### 鮮度検証（`5104c1e..dea20fe`）
-- 【実測】上流 `docs/test-report.md`（`5104c1e`）から `HEAD`（`dea20fe`）の差分は `docs/test-report.md` のみであり、製品コードへの追加変更はゼロである [EV-1]。
-
-### [EV-1] 鮮度検証・Git 状態・上流 `[EV-1][EV-4][EV-5]` 再実測
+### 上流 `[EV-n]` 抜き取り再実測（3 件）
+#### [EV-1] 上流 `design-spec.md [EV-1]` 再実測（`QUIZZES_MOCK` 呼び出し箇所）
 ```bash
-$ git branch --show-current && git rev-parse --short HEAD && git diff 5104c1e..HEAD --stat
-main
-dea20fe
- docs/test-report.md | 178 ++++++++++++++++++++++++----------------------------
- 1 file changed, 81 insertions(+), 97 deletions(-)
+$ grep -rn "QUIZZES_MOCK" src/
+src/frontend/components/MockExamView.tsx:75:      const res = await fetch(`${API_ROUTES.QUIZZES_MOCK}?${query}`, {
+src/frontend/components/MockExamView.tsx:80:        console.error('[QUIZZES_MOCK] failed', res.status, body);
+…(8 行省略)
+src/shared/apiRoutes.ts:6:  QUIZZES_MOCK_SUBMIT: '/api/quizzes/mock-submit',
+```
+- 【実測】上流と一致し、`MockExamView.tsx` と `src/backend/index.ts` で API ルートが接続されている [EV-1]。
+
+#### [EV-2] 上流 `test-report.md [EV-1]` 再実測（TypeScript 型チェック）
+```bash
 $ npx tsc --noEmit && echo "TSC_OK"
 TSC_OK
-$ npx wrangler d1 execute quest-db --local --command "PRAGMA table_info(quiz_questions);"
-│ 8   │ explanation   │ TEXT     │ 0       │ null              │ 0  │
-│ 9   │ image_key     │ TEXT     │ 0       │ null              │ 0  │
-…(0〜7 省略)
-$ npx wrangler d1 execute quest-db --remote --command "SELECT category, COUNT(*) as cnt FROM quiz_questions WHERE category LIKE 'driving_%' GROUP BY category;"
-│ driving_aptitude │ 56  │
-│ driving_hazard   │ 46  │
-│ driving_honmen   │ 270 │
-│ driving_karimen  │ 314 │
-$ grep -rn "/api/quizzes" src/
-src/frontend/types.ts:141:  // 'quiz' is written by POST /api/quizzes/answer, 'bonus' by the streak /
-src/backend/index.ts:1365:app.post('/api/quizzes/generate', async (c) => {
-src/shared/apiRoutes.ts:3:  QUIZZES: '/api/quizzes',
-…(4〜6 省略)
 ```
-- 【実測】上流の軽量 `[EV-n]` 4 件（型検査、local スキーマ、remote 問題件数 686 問、`/api/quizzes` 呼び出し箇所）がすべて再現した [EV-1]。
+- 【実測】型チェックはエラー 0 で通過した [EV-2]。
+
+#### [EV-3] 上流 `test-report.md [EV-4]` 再実測（remote D1 4期間件数）
+```bash
+$ npx wrangler d1 execute quest-db --remote --command "SELECT grade_level, COUNT(*) as cnt FROM quiz_questions WHERE grade_level LIKE 'junior_1_%_mid' OR grade_level LIKE 'junior_1_%_final' GROUP BY grade_level;"
+│ junior_1_early_final │ 540 │
+│ junior_1_early_mid   │ 502 │
+│ junior_1_late_final  │ 535 │
+│ junior_1_late_mid    │ 532 │
+```
+- 【実測】4 期間合計 2,109 問（1,800 問以上）が remote D1 に実在する [EV-3]。
+
+---
 
 ## 1. Phase 1: 上流証跡品質（メタ監査・全 6 項目）
 | # | 検査 | 判定 | 根拠 |
 | :--- | :--- | :--- | :--- |
-| 1 | `test-report.md` の HTTP レスポンス証跡 | PASS | `docs/test-report.md:L42-55` に `[EV-2][EV-3]`（200/400/404 生 JSON）あり |
-| 2 | 実行時証跡・UI 検証（G-13） | PASS（条件付承認） | Chrome `DevToolsActivePort` 未接続のためデプロイ後手動確認とするユーザー明示承認あり（`AGENTS.md` 優先順位①） |
-| 3 | `investigation-report.md` / `design-spec.md` の実測根拠 | PASS | 各 `[EV-n]` と `path:L行` 生スニペットあり（`design-spec.md:L38-47` 等） |
-| 4 | 受け入れ基準の判定 | PASS | AC-1〜AC-4 は PASS、AC-5 はユーザー承認済みの手動確認扱い（`test-report.md:L24-30`） |
-| 5 | 鮮度乖離の評価記録 | PASS | 本レポート §0 に `git diff 5104c1e..HEAD --stat` を記録済み [EV-1] |
-| 6 | `docs/code-review.md` の状態 | PASS | ミドルトラックのため本トピックでは省略（既存 `code-review.md` は別トピック `APPROVED`） |
+| 1 | `test-report.md` の生 HTTP レスポンス | PASS | `docs/test-report.md:L40-L48` に 200 要約と 400/403 生 JSON あり |
+| 2 | 実行時証跡（G-13 UI 実画面） | ユーザー承認済み例外 | Chrome `DevToolsActivePort` 未接続のためデプロイ後手動確認前提（未確認事項 §6 に記録） |
+| 3 | `investigation-report.md` / `design-spec.md` の実測エビデンス | PASS | `investigation-report.md` `[EV-1]`〜`[EV-5]`、`design-spec.md` `[EV-1]` 及び `path:L行` 実在 |
+| 4 | 受け入れ基準判定の欠落・SKIP 扱い | PASS | `docs/test-report.md:L23-L27` で AC-1〜AC-3 すべて PASS |
+| 5 | 鮮度差評価記録 | PASS | 本レポート §0 にて `git diff 24d4fde..HEAD --stat` を実測記録 |
+| 6 | `docs/code-review.md` 未解消チェック | PASS | `docs/code-review.md:L1-L7` は別トピック（`2c638f2`, `APPROVED`） |
+
+---
 
 ## 2. Phase 2: 実測監査結果（全 7 項目）
 | # | 項目 | 判定 | 根拠（EV 参照） |
 | :--- | :--- | :--- | :--- |
-| 1 | シークレット混入 | PASS | [EV-2] 製品コード・コミットに実キー値/トークン等の混入なし |
-| 2 | `.gitignore` 保護 | PASS | [EV-2] `.env`, `.dev.vars` 等は追跡対象外 |
-| 3 | 機密漏洩の実 HTTP 確認（G-7） | PASS | [EV-6] 本番 API 応答に `token`/`secret`/`password` なし、`SELECT *` 廃止確認（`src/backend/index.ts:L914-915`） |
-| 4 | インジェクション（SQLi / XSS） | PASS | [EV-2] `IN (...)` は整数フィルタ済み ID のみ、文字列は `.bind()`、XSS 危険 API なし（`src/backend/index.ts:L1008-1029`） |
-| 5 | 設計差分・ロジック穴 | PASS | `design-spec.md` T1〜T4 全 `[x]` 実装済み（`src/shared/apiRoutes.ts:L2-7`, `src/backend/index.ts:L955-1260`） |
-| 6 | Git 状態 | PASS | [EV-1] `main` ブランチ、`dea20fe`（設計・実装・テスト済み） |
-| 7 | 機械ゲート一括検証 | PASS | §7 `verify.sh audit` exit 0（`RESULT: PASS`） |
+| 1 | シークレット混入 | PASS | [EV-4], [EV-5] |
+| 2 | `.gitignore` 保護 | PASS | [EV-6] |
+| 3 | 機密漏洩の実 HTTP 確認（G-7） | PASS | [EV-7] |
+| 4 | インジェクション（SQLi / XSS） | PASS | [EV-8], `src/backend/index.ts:L1126-L1153` |
+| 5 | 設計差分・ロジック穴 | PASS | `docs/design-spec.md:L121-L127`（T1〜T3 すべて `- [x]`、コミット `a110f94`, `e469ca8`, `24d4fde` と一致） |
+| 6 | Git 状態 | PASS | [EV-9] |
+| 7 | 機械ゲート一括検証（`verify.sh audit`） | PASS | §7 |
 
-### [EV-2] シークレット・`.gitignore`・インジェクション実測
+### [EV-4] ソースコード差分のシークレットスキャン
 ```bash
-$ git diff e468f74..HEAD -- ':!docs/*' ':!scripts/seeds/*.sql' | grep -niE "api[_-]?key|secret|token|password|BEGIN .*PRIVATE KEY" || echo "NO_SECRET_MATCH"
-586:+// .dev.vars から GEMINI_API_KEY を読み込む
-588:+let apiKey = process.env.GEMINI_API_KEY || '';
-…(シード生成スクリプト内の環境変数参照のみ・実値なし)
-$ git ls-files .env .dev.vars '.env.*' || echo "NONE"
-(出力なし＝追跡対象ゼロ)
-$ grep -rn "dangerouslySetInnerHTML\|innerHTML" src/ || echo "NO_XSS_SINK"
-NO_XSS_SINK
+$ git diff 4c46251..HEAD -- src/ | grep -niE "api[_-]?key|secret|token|password|BEGIN .*PRIVATE KEY" || echo "NO_SECRETS_FOUND"
+NO_SECRETS_FOUND
 ```
-- 【実測】シークレット実値の混入、機密ファイルの追跡、および XSS 危険 API の使用はいずれも 0 件である [EV-2]。
+- 【実測】`src/` 差分にシークレット・秘密鍵の混入なし [EV-4]。
 
-## 3. 指摘事項・修正要求（REJECT の場合）
-該当なし（総合判定: PASS）。
+### [EV-5] シード生成スクリプトの API キー参照確認
+```bash
+$ git diff 4c46251..HEAD -- scripts/seeds/generate_junior1_4terms.mjs | grep -niE "api[_-]?key|secret|token|password" | head -n 20
+11:+let apiKey = process.env.GEMINI_API_KEY || '';
+12:+if (!apiKey && fs.existsSync(devVarsPath)) {
+15:+    const m = line.match(/^GEMINI_API_KEY=(.+)$/);
+```
+- 【実測】環境変数または `.dev.vars` からの動的読み込みのみで、実値のハードコードなし [EV-5]。
 
-## 4. 🚀 本番適用証跡（G-9・必須）
-### [EV-3] ビルド
+### [EV-6] `.gitignore` と追跡対象外の確認
+```bash
+$ cat .gitignore && echo "---" && git ls-files .env .dev.vars
+node_modules
+dist
+.wrangler
+.dev.vars
+.env
+.env.*
+…(10 行省略)
+---
+```
+- 【実測】`.env`, `.dev.vars` は `.gitignore` に含まれ、Git 追跡対象外である [EV-6]。
+
+### [EV-7] 汎用 API からの機密漏洩確認（G-7）
+```bash
+$ curl -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/users" | grep -niE "token|secret|password" || echo "NO_SECRETS_IN_API"
+NO_SECRETS_IN_API
+$ curl -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/settings" | grep -niE "token|secret|password" || echo "NO_SECRETS_IN_SETTINGS"
+NO_SECRETS_IN_SETTINGS
+```
+- 【実測】`/api/users`, `/api/settings` ともに機密フィールドの出力なし [EV-7]。
+
+### [EV-8] SQL インジェクション・パラメータバインド確認
+```bash
+$ git diff 4c46251..HEAD -- src/backend/index.ts | grep -nE "prepare|bind|\$\{" | head -n 20
+74:+      const idsRes = await c.env.DB.prepare(
+76:+      ).bind(...params).all<{ id: number }>();
+81:+      const rowsRes = await c.env.DB.prepare(
+121:+    const userRow = await c.env.DB.prepare('SELECT current_points, grade_level FROM users WHERE id = ?')
+122:       .bind(body.userId)
+```
+- 【実測】`src/backend/index.ts:L1126-L1153` は `SCHOOL_VALID_GRADES.has(gradeLevel)` / `SCHOOL_VALID_SUBJECTS.has(subject)` の厳格なホワイトリスト検証と `.bind(...params)` によるプレースホルダ束縛、および `Number(r.id)` 変換のみを使用しており、SQL インジェクション経路はない [EV-8]。
+
+### [EV-9] Git 状態確認
+```bash
+$ git branch --show-current && git log --oneline -5
+main
+5d24efb (HEAD -> main) docs(qa): add test report for junior_1 4-term x 9-subject exam
+24d4fde feat(seed): add 2109 validated junior_1 4-term x 9-subject questions (T3)
+e469ca8 feat(ui): add junior_1 4-term & 9-subject filter and school mock exam UI (T2)
+a110f94 feat(api): add junior_1 4-term and 9-subject school mock exam endpoints (T1)
+4c46251 (origin/main, origin/HEAD) feat(points): require full completion (all questions answered) for mock exam points
+```
+- 【実測】`main` ブランチ上で T1〜T3 及び QA レポートのコミットが揃っている [EV-9]。
+
+---
+
+## 4. 🚀 本番適用証跡（G-9・PASS のため完遂）
+
+### [EV-10] ビルド
 ```bash
 $ npm run build
 ✓ 1609 modules transformed.
 dist/index.html                   1.66 kB │ gzip:   0.75 kB
 dist/assets/index-CllXgWuM.css   75.56 kB │ gzip:  12.34 kB
-dist/assets/index-D2EcGO3W.js   507.40 kB │ gzip: 130.20 kB
-✓ built in 1.62s
+dist/assets/index-DQq-mket.js   511.22 kB │ gzip: 131.20 kB
+✓ built in 1.60s
 ```
-- 【実測】Vite プロダクションビルドが 0 エラーで完了した [EV-3]。
 
-### [EV-4] マイグレーション本番適用
+### [EV-11] マイグレーション本番適用
 ```bash
 $ npx wrangler d1 migrations apply quest-db --remote
 ✅ No migrations to apply!
 ```
-- 【実測】remote D1 (`quest-db`) に全マイグレーション（`0003` 含む）が適用済みである [EV-4]。
 
-### [EV-5] 本番デプロイ（Version ID / 公開 URL）
+### [EV-12] 本番デプロイ（Version ID / 公開 URL）
 ```bash
 $ npm run deploy
-✨ Success! Uploaded 3 files (5 already uploaded) (1.27 sec)
-Total Upload: 144.26 KiB / gzip: 31.92 KiB
-Uploaded quest-habit-app (5.62 sec)
-Deployed quest-habit-app triggers (0.30 sec)
+Uploaded quest-habit-app (7.91 sec)
+Deployed quest-habit-app triggers (0.56 sec)
   https://quest-habit-app.keitaro-fukui.workers.dev
-Current Version ID: 23b12f94-70ee-442e-a547-9123f8fe98b8
+Current Version ID: 953e56ac-09e2-41d2-80f1-dd7b3e756da7
 ```
-- 【実測】Cloudflare Workers 本番デプロイが成功した（Version ID: `23b12f94-70ee-442e-a547-9123f8fe98b8`）[EV-5]。
 
-### [EV-6] デプロイ後 本番疎通確認（curl -i の生レスポンス）
+### [EV-13] デプロイ後 本番疎通確認（`curl -i -s` 生レスポンス）
 ```bash
-$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/" | head -n 12
+$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev" | head -n 14
 HTTP/2 200 
+date: Wed, 18 Nov 2026 06:15:18 GMT
 content-type: text/html
-server: cloudflare
-…(ヘッダ中略)
+…(8 行省略)
+
 <!DOCTYPE html>
 <html lang="ja" class="dark">
-
-$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes?category=driving_karimen" | head -c 500
-HTTP/2 200 
-content-type: application/json
-…(ヘッダ中略)
-{"success":true,"quizzes":[{"id":12124,"grade_level":"all","category":"driving_karimen","question_text":"横断歩道のない場所で歩行者が道路を横断している場合、車は必ず一時停止しなければならない。","options_json":"[\"○（正しい）\",\"×（誤り）\"]
-
-$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes/mock?examType=karimen"
-HTTP/2 200 
-{"success":true,"examType":"karimen","timeLimitMinutes":30,"passScore":90,"totalScore":100,"count":50,"firstQ":"自動車で自転車の側方を通過・追い越しするときは、自転車との間"}
-
-$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes/mock?examType=honmen"
-HTTP/2 200 
-{"success":true,"examType":"honmen","timeLimitMinutes":50,"passScore":90,"totalScore":100,"count":95,"firstQ":"マイナンバーカードと運転免許証を一体化した「マイナ免許証」を"}
-
-$ curl -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes?category=driving_karimen" | grep -niE "token|secret|password" || echo "NO_LEAK"
-NO_LEAK
 ```
-- 【実測】トップページおよび主要 3 API（通常出題・仮免模試 50 問・本免模試 95 問）すべて HTTP/2 200 を返し、機密漏洩も無い [EV-6]。
+```bash
+$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes?grade_level=junior_1&category=music" | head -c 500
+HTTP/2 200 
+date: Wed, 18 Nov 2026 06:15:20 GMT
+content-type: application/json
+content-length: 27481
+…(7 行省略)
 
-### [EV-7] Git 同期（commit / push）
-- `verify.sh audit` 通過後に `git add docs/audit-report.md && git commit && git push origin main` を実行（§8 に最終コミットハッシュを記録）。
+{"success":true,"quizzes":[{"id":13833,"grade_level":"junior_1_early_final","category":"music","question_text":"「魔王」で、語り手はどのような声で歌われますか。","options_json":"[\"中音域で客観的に\",\"高音で叫ぶように\",\"低音で恐ろしく\",\"歌わずに朗
+```
+```bash
+$ curl -i -s "https://quest-habit-app.keitaro-fukui.workers.dev/api/quizzes/mock?examType=school&gradeLevel=junior_1_late_mid&subject=minor_4" | node -e "..."
+HTTP/2 200 
+date: Wed, 18 Nov 2026 06:15:21 GMT
+content-type: application/json
+content-length: 16216
+…(7 行省略)
+---BODY_SUMMARY---
+{"success":true,"examType":"school","timeLimitMinutes":20,"passScore":80,"totalScore":100,"questionsCount":25,"firstQuestionCategory":"music","firstQuestionGradeLevel":"junior_1_late_mid","hasExplanation":true}
+```
+- 【実測】本番トップページ・`/api/quizzes?grade_level=junior_1&category=music`・`/api/quizzes/mock?examType=school&gradeLevel=junior_1_late_mid&subject=minor_4`（25問・100点満点・80点合格・解説付き）のすべてで HTTP 200 を確認した [EV-13]。
+
+### [EV-14] Git 同期（commit / push）
+- `verify.sh audit` 通過後、`docs/audit-report.md` をコミットし `origin/main` へプッシュする。
+
+---
 
 ## 5. 否定された仮説
 該当なし。
 
 ## 6. 未確認事項（E-4）
-- Chrome リモートデバッグ（`DevToolsActivePort`）未接続による実ブラウザ自動 UI 操作（G-13 / AC-5）: ユーザー明示承認に基づき自動操作を省略。本番 URL（`https://quest-habit-app.keitaro-fukui.workers.dev`）での手動確認が必要。
+- UI 実画面検証（G-13）: Chrome のリモートデバッグ（`DevToolsActivePort`）が未接続であったため、実ブラウザでの操作検証は未実施（ユーザー承認済み・デプロイ後に手動確認を行う）。
 
 ## 7. 品質ゲート実行結果（G-11）
 ```bash
 $ /Users/fukuikeitaro/antigravity-agents/scripts/verify.sh audit
 ========================================================
  verify.sh  role=audit  base=HEAD  repo=game
- HEAD=dea20fe  branch=main
+ HEAD=5d24efb  branch=main
 ========================================================
 [PASS] gate-track         フルトラック宣言。検査対象なし
 [N/A ] gate-swallow       コード差分なし（BASE_REF=HEAD）
@@ -172,6 +235,4 @@ RESULT: PASS  全ゲート通過（この出力を Artifact に貼付するこ�
 ```
 
 ## 8. 最終ステータス
-- 総合判定: **PASS**
-- 本番 URL: `https://quest-habit-app.keitaro-fukui.workers.dev`
-- Version ID: `23b12f94-70ee-442e-a547-9123f8fe98b8`
+- 総合判定: **PASS**（本番デプロイ完了・公開 URL 疎通確認済み）
