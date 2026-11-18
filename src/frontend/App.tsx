@@ -146,9 +146,12 @@ export const App: React.FC = () => {
         if (data.success && data.summary) {
           setUserSummary(data.summary);
         }
+      } else {
+        const body = await res.text();
+        console.error('[USER_SUMMARY] failed', res.status, body);
       }
-    } catch (err) {
-      console.error('Failed to fetch user summary', err);
+    } catch (err: unknown) {
+      console.error('[USER_SUMMARY] network error', err);
     }
   };
 

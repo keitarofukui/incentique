@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { User, ActionLog, UserGoal, UserSummary, DailyStatItem } from '../types';
-import { Clock, Banknote, X, Sparkles, AlertTriangle } from 'lucide-react';
-import { GoalPlannerWidget } from './GoalPlannerWidget';
+import { Banknote, X, AlertTriangle } from 'lucide-react';
 import { DailyChart } from './DailyChart';
-import { RivalPulse } from './RivalPulse';
 import { PersonalStreakCard } from './PersonalStreakCard';
+import { ActivityInsightsCard } from './ActivityInsightsCard';
 import { todayLocalDateStr } from '../dateUtils';
 
 interface DashboardProps {
@@ -144,73 +143,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* 2. BLOCK 2: 7日 / 30日 / 90日 3期間対応ニュルっと動く積み上げ面グラデーショングラフ */}
       <DailyChart actionLogs={actionLogs} userId={currentUser.id} dailyStats={dailyStats} />
 
-      {/* 4. BLOCK 4: 主な活動成果タイムライン */}
-      <div className="glass-card p-3.5 sm:p-5 rounded-2xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-slate-400" />
-              <span>主な活動成果</span>
-            </h3>
-            {quizSuccessCount > 0 && (
-              <span className="text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-0.5 rounded-full">
-                🧠 クイズ累積正解: {quizSuccessCount}問
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => onNavigate('action-logs')}
-            className="text-xs font-bold text-cyber-neonCyan hover:underline self-start sm:self-auto"
-          >
-            全ログ・絞り込み表示 →
-          </button>
-        </div>
-
-        {userMajorLogs.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">
-            読書や運動の報告ログはまだありません。上のボタンから感想や成果を投稿してみよう！
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {userMajorLogs.slice(0, 5).map((log) => (
-              <div
-                key={log.id}
-                className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start justify-between gap-3 text-xs"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="font-bold text-white break-words">
-                    {log.title_or_menu}
-                  </div>
-                  {log.review_text && (
-                    <p className="text-slate-300 text-xs break-words">{log.review_text}</p>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  <span className={`font-mono font-black text-sm ${
-                    log.earned_points > 0
-                      ? 'text-amber-400'
-                      : log.earned_points < 0
-                      ? 'text-rose-400'
-                      : 'text-slate-400'
-                  }`}>
-                    {log.earned_points > 0 ? `+${log.earned_points}` : `${log.earned_points}`} pt
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* FOOTER SECTION: Goal & Pace Planner (個人目標調整ウィジェット) */}
-      <div className="pt-4 border-t border-slate-800/80">
-        <GoalPlannerWidget
-          currentUser={currentUser}
-          currentGoal={currentGoal}
-          onGoalUpdated={onGoalUpdated}
-          onNavigate={onNavigate}
-        />
-      </div>
+      {/* 4. BLOCK 4: 活動インサイト（獲得内訳円グラフ・種目別回数・ご褒美＆失効履歴） */}
+      <ActivityInsightsCard
+        userSummary={userSummary}
+        quizSuccessCount={quizSuccessCount}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 };

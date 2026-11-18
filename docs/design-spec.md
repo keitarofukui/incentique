@@ -114,15 +114,16 @@ export interface UserInsights {
 ## 11. UI / コンポーネント設計
 - **重複点検**: `PersonalStreakCard` は「今日の達成・連続日数」、`DailyChart` は「日別推移」を担当しており、全期間の「獲得内訳円グラフ」「種目別累計回数」「交換ご褒美」「失効履歴」は新規領域。
 - `ActivityInsightsCard.tsx`:
-  - ヘッダー: 既存の `Dashboard.tsx:L155-166` の「🧠 クイズ累積正解: N問」バッジと「全ログ・絞り込み表示 →」リンクを引き継ぐ。
-  - 4 タブ: `📊 獲得内訳` / `🏅 種目別` / `🎁 ご褒美・失効` / `🕒 直近ログ`
+  - ヘッダー: 既存の `Dashboard.tsx:L155-166` の「🧠 クイズ累積正解: N問」バッジと「履歴・全ログを見る →」（`onNavigate('action-logs')`）リンクを引き継ぐ。
+  - 3 タブ（`ReflectionView` との重複タイムラインは廃止し、`Dashboard.tsx` の `GoalPlannerWidget` も削除）: `📊 獲得内訳` / `🏅 種目別回数` / `🎁 ご褒美・失効`
   - 配色: `quiz` (`#22d3ee` cyan), `training` (`#f97316` orange), `housework` (`#10b981` emerald), `input` (`#a855f7` purple), `meal` (`#eab308` yellow), `bonus` (`#ec4899` pink)
   - 次アクション誘導ボタン: `onNavigate('quiz' | 'training' | 'housework' | 'input_book' | 'eat_rice' | 'wishlist' | 'action-logs')` を接続（`App.tsx:L475-515` のタブ名に完全一致）。
 
 ## 12. 実装タスクチェックリスト（依存順・1 タスク 1 コミット・完了条件付き）
 - [x] T1: `src/frontend/types.ts`, `src/backend/index.ts`（`GET /api/users/:id/summary` の `insights` 集計追加）実装 / 完了条件: `npx tsc --noEmit` 0 error
   → 実装: `src/frontend/types.ts:L160-215`, `src/backend/index.ts:L624-715` 実装完了。`tsc 0 error`。
-- [ ] T2: `src/frontend/App.tsx`（`fetchUserSummary` の `else` エラーログ追加）, `src/frontend/components/ActivityInsightsCard.tsx`, `src/frontend/components/Dashboard.tsx` 実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
+- [x] T2: `src/frontend/App.tsx`（`fetchUserSummary` の `else` エラーログ追加）, `src/frontend/components/ActivityInsightsCard.tsx`, `src/frontend/components/Dashboard.tsx` 実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
+  → 実装: `App.tsx:L141-156`, `ActivityInsightsCard.tsx`, `Dashboard.tsx:L146-152` 実装完了。`tsc 0 error` / `npm run build` 成功。
 
 ## 13. 未確認事項（E-4）
 なし。
@@ -142,3 +143,4 @@ RESULT: PASS  全ゲート通過（この出力を Artifact に貼付するこ�
 | :--- | :--- | :--- | :--- |
 | 1.0 | - | 初版作成 | 初版作成 |
 | 1.1 | DR-1〜6 | §3, §7, §11, §12 | `App.tsx:L143` 訂正・`else`エラーログ追加、SQL→camelCase変換仕様、6グループマッピング、`input_book`/`eat_rice`遷移名修正 |
+| 1.2 | ユーザー合意 | §11 | 重複タイムラインタブと `GoalPlannerWidget` 削除を反映（3タブ構成） |
