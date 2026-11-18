@@ -32,17 +32,14 @@ export const RivalBoard: React.FC<RivalBoardProps> = ({ users, currentUser, acti
   const otherStreakers = activeStreakers.slice(1);
 
   return (
-    <div className="glass-card p-4 sm:p-6 md:p-8 rounded-3xl space-y-5 sm:space-y-6 border border-cyber-border">
+    <div className="glass-card p-3.5 sm:p-6 rounded-2xl space-y-3.5 sm:space-y-5 border border-cyber-border">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div>
-          <h3 className="text-xl font-black text-white flex items-center gap-2">
-            <Swords className="w-6 h-6 text-cyber-neonCyan" />
-            <span>ライバルの状況・ランキング</span>
-          </h3>
-          <p className="text-xs text-slate-400">お互いのポイント獲得状況を高め合おう！</p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+        <h3 className="text-base sm:text-xl font-black text-white flex items-center gap-1.5">
+          <Swords className="w-5 h-5 text-cyber-neonCyan" />
+          <span>ライバルランキング</span>
+        </h3>
 
         {isLeader ? (
           <div className="bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-amber-300 flex items-center gap-2 shadow-glow-gold">

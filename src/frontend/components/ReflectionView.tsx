@@ -94,30 +94,22 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
   const allBookshelfLogs = userLogs.filter((l) => (l.category || '').startsWith('input_'));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6">
       {/* Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 p-6 rounded-3xl border border-purple-500/30 shadow-2xl">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/50 flex items-center justify-center text-purple-300 shadow-glow-purple">
-            <CalendarIcon className="w-7 h-7" />
+      <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 p-3.5 sm:p-5 rounded-2xl border border-purple-500/30 shadow-xl">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/50 flex items-center justify-center text-purple-300 shrink-0">
+            <CalendarIcon className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-white flex items-center gap-2">
-              <span>📅 過去の振り返り・成長アーカイブ</span>
-            </h2>
-            <p className="text-xs text-slate-300">
-              月ごとの頑張り・読んだ本の感想・筋トレの軌跡をいつでもプレイバック！
-            </p>
-          </div>
+          <h2 className="text-base sm:text-xl font-black text-white truncate">📅 過去の振り返り</h2>
         </div>
 
         {/* Month Selector Dropdown */}
-        <div className="flex items-center gap-2 bg-slate-950/80 p-2 rounded-2xl border border-slate-800 self-start sm:self-auto">
-          <span className="text-xs font-bold text-slate-400 pl-2">対象月:</span>
+        <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shrink-0">
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="bg-slate-900 border border-purple-500/40 text-purple-300 font-mono font-bold text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-purple-400"
+            className="bg-slate-900 border border-purple-500/40 text-purple-300 font-mono font-bold text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-purple-400"
           >
             {(availableMonths.length > 0 ? availableMonths : [currentMonthStr]).map((m) => (
               <option key={m} value={m}>
@@ -129,54 +121,39 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({
       </div>
 
       {/* Monthly Achievements KPI Summary Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="glass-card p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-transparent space-y-1">
-          <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wider block">
-            今月の獲得ポイント
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3">
+        <div className="glass-card p-3 sm:p-4 rounded-xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-transparent space-y-0.5">
+          <span className="text-[11px] font-extrabold text-amber-300 block">今月の獲得pt</span>
+          <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
             +{totalMonthPoints.toLocaleString()} <span className="text-xs">pt</span>
           </div>
-          <span className="text-xs text-slate-400 block">累計頑張り成果</span>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-purple-500/30 bg-gradient-to-b from-purple-500/10 to-transparent space-y-1">
-          <span className="text-xs font-extrabold text-purple-300 uppercase tracking-wider block">
-            読書・映画の達成
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-purple-300 font-mono">
+        <div className="glass-card p-3 sm:p-4 rounded-xl border border-purple-500/30 bg-gradient-to-b from-purple-500/10 to-transparent space-y-0.5">
+          <span className="text-[11px] font-extrabold text-purple-300 block">読書・映画</span>
+          <div className="text-xl sm:text-2xl font-black text-purple-300 font-mono">
             {bookLogs.length + movieLogs.length} <span className="text-xs">作品</span>
           </div>
-          <span className="text-xs text-slate-400 block">
-            (本: {bookLogs.length}冊 / 映画: {movieLogs.length}本)
-          </span>
+          <span className="text-[10px] text-slate-400 block">本{bookLogs.length} / 映画{movieLogs.length}</span>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-500/10 to-transparent space-y-1">
-          <span className="text-xs font-extrabold text-cyan-300 uppercase tracking-wider block">
-            クイズ正解数
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">
+        <div className="glass-card p-3 sm:p-4 rounded-xl border border-cyan-500/30 bg-gradient-to-b from-cyan-500/10 to-transparent space-y-0.5">
+          <span className="text-[11px] font-extrabold text-cyan-300 block">クイズ正解</span>
+          <div className="text-xl sm:text-2xl font-black text-cyan-300 font-mono">
             {quizLogs.length} <span className="text-xs">問</span>
           </div>
-          <span className="text-xs text-slate-400 block">全5教科知識の完全マスター</span>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-transparent space-y-1">
-          <span className="text-xs font-extrabold text-emerald-300 uppercase tracking-wider block">
-            運動実施回数
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-300 font-mono">
+        <div className="glass-card p-3 sm:p-4 rounded-xl border border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-transparent space-y-0.5">
+          <span className="text-[11px] font-extrabold text-emerald-300 block">運動回数</span>
+          <div className="text-xl sm:text-2xl font-black text-emerald-300 font-mono">
             {trainingLogs.length} <span className="text-xs">回</span>
           </div>
-          <span className="text-xs text-slate-400 block">体力の継続強化</span>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-yellow-500/30 bg-gradient-to-b from-yellow-500/10 to-transparent space-y-1">
-          <span className="text-xs font-extrabold text-yellow-300 uppercase tracking-wider block">
-            食事完食回数
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-yellow-300 font-mono">
+        <div className="glass-card p-3 sm:p-4 rounded-xl border border-yellow-500/30 bg-gradient-to-b from-yellow-500/10 to-transparent space-y-0.5">
+          <span className="text-[11px] font-extrabold text-yellow-300 block">食事完食</span>
+          <div className="text-xl sm:text-2xl font-black text-yellow-300 font-mono">
             {eatRiceLogs.length + eatMeatLogs.length} <span className="text-xs">回</span>
           </div>
           <span className="text-xs text-slate-400 block">
