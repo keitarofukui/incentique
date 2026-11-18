@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MockExamQuestion, MockSubmitResponse, User } from '../types';
+import { MockExamQuestion, MockExamType, MockSubmitResponse, User } from '../types';
 import { API_ROUTES } from '../../shared/apiRoutes';
 import { TrafficSignSvg } from './TrafficSignSvg';
 import { Clock, CheckCircle2, XCircle, Award, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -10,9 +10,36 @@ interface MockExamViewProps {
   onPointsUpdate: (newPoints: number) => void;
 }
 
+const SCHOOL_TERM_OPTIONS = [
+  { id: 'junior_1_early_mid', label: '中1 前期中間' },
+  { id: 'junior_1_early_final', label: '中1 前期期末' },
+  { id: 'junior_1_late_mid', label: '中1 後期中間' },
+  { id: 'junior_1_late_final', label: '中1 後期期末' },
+  { id: 'junior_1_all', label: '中1 通年全範囲' },
+];
+
+const SCHOOL_SUBJECT_OPTIONS = [
+  { id: 'minor_4', label: '副教科4教科まとめ (音・美・保体・技家)' },
+  { id: 'music', label: '🎵 音楽' },
+  { id: 'art', label: '🎨 美術' },
+  { id: 'pe', label: '🏃 保健体育' },
+  { id: 'tech_home', label: '🛠️ 技術・家庭' },
+  { id: 'major_5', label: '主要5教科まとめ (英・数・理・社・国)' },
+  { id: 'all_9', label: '全9教科総合' },
+  { id: 'english', label: '英語' },
+  { id: 'math', label: '数学' },
+  { id: 'science', label: '理科' },
+  { id: 'social_studies', label: '社会' },
+  { id: 'japanese', label: '国語' },
+];
+
 export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPointsUpdate }) => {
   const [phase, setPhase] = useState<'select' | 'running' | 'result'>('select');
-  const [examType, setExamType] = useState<'karimen' | 'honmen'>('karimen');
+  const [examType, setExamType] = useState<MockExamType>('karimen');
+  const [schoolGrade, setSchoolGrade] = useState<string>('junior_1_late_mid');
+  const [schoolSubject, setSchoolSubject] = useState<string>('minor_4');
+  const [passScore, setPassScore] = useState<number>(90);
+  const isHighSchoolUser = (currentUser.grade_level || '').startsWith('high');
   const [questions, setQuestions] = useState<MockExamQuestion[]>([]);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(0);
@@ -35,13 +62,17 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
     return () => clearInterval(timer);
   }, [phase, secondsLeft, questions.length]);
 
-  const startExam = async (type: 'karimen' | 'honmen') => {
+  const startExam = async (type: MockExamType) => {
     setLoading(true);
     setErrorMsg('');
     setExamType(type);
     submittedRef.current = false;
     try {
-      const res = await fetch(`${API_ROUTES.QUIZZES_MOCK}?examType=${type}`, {
+      const query =
+        type === 'school'
+          ? `examType=school&gradeLevel=${encodeURIComponent(schoolGrade)}&subject=${encodeURIComponent(schoolSubject)}`
+          : `examType=${type}`;
+      const res = await fetch(`${API_ROUTES.QUIZZES_MOCK}?${query}`, {
         signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) {
@@ -55,14 +86,15 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
         setErrorMsg(data.error || '問題データを取得できませんでした');
         return;
       }
+      setPassScore(Number(data.passScore) || (type === 'school' ? 80 : 90));
       setQuestions(data.questions);
       setAnswers(new Array(data.questions.length).fill(null));
       setCurrentIdx(0);
-      setSecondsLeft((data.timeLimitMinutes || (type === 'karimen' ? 30 : 50)) * 60);
+      setSecondsLeft((data.timeLimitMinutes || (type === 'karimen' ? 30 : type === 'honmen' ? 50 : 20)) * 60);
       setResult(null);
       setPhase('running');
-    } catch (err) {
-      console.error('[QUIZZES_MOCK] network error', err);
+    } catch (err: unknown) {
+      console.error('[QUIZZES_MOCK] network error:', err);
       setErrorMsg('通信に失敗しました。再試行してください。');
     } finally {
       setLoading(false);
@@ -75,9 +107,12 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
     submittedRef.current = true;
     setErrorMsg('');
     try {
+      const termLabel = SCHOOL_TERM_OPTIONS.find((t) => t.id === schoolGrade)?.label || schoolGrade;
+      const subjLabel = SCHOOL_SUBJECT_OPTIONS.find((s) => s.id === schoolSubject)?.label || schoolSubject;
       const payload = {
         userId: currentUser.id,
         examType,
+        schoolLabel: examType === 'school' ? `${termLabel}・${subjLabel}` : undefined,
         answers: questions.map((q, idx) => ({
           questionId: q.id,
           selectedIndex: answers[idx] ?? null,
@@ -174,6 +209,46 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
             </div>
           ))}
         </div>
+
+        {!isHighSchoolUser && (
+          <div className="glass-card p-5 rounded-3xl border border-emerald-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">🏫 中学定期テスト対策</span>
+              <span className="text-xs text-slate-400">20分 / 25問（80点合格）</span>
+            </div>
+            <h3 className="text-lg font-black text-white">中学1年 定期テスト模擬試験（主要5＋副教科4）</h3>
+            <p className="text-xs text-slate-400">前期中間〜後期期末の4期間と全9教科から毎回ランダムに25問（1問4点）出題します。</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <select
+                aria-label="テスト期間"
+                value={schoolGrade}
+                onChange={(e) => setSchoolGrade(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white font-bold"
+              >
+                {SCHOOL_TERM_OPTIONS.map((t) => (
+                  <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
+              <select
+                aria-label="対象教科"
+                value={schoolSubject}
+                onChange={(e) => setSchoolSubject(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white font-bold"
+              >
+                {SCHOOL_SUBJECT_OPTIONS.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              disabled={loading}
+              onClick={() => startExam('school')}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm hover:opacity-90 disabled:opacity-50"
+            >
+              {loading && examType === 'school' ? '問題セット作成中...' : '定期テスト模試スタート (完了+10pt / 合格さらに+30pt)'}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -190,7 +265,7 @@ export const MockExamView: React.FC<MockExamViewProps> = ({ currentUser, onPoint
             {result.passed ? <Award className="w-12 h-12 text-emerald-400" /> : <XCircle className="w-12 h-12 text-rose-400" />}
           </div>
           <div className={`text-2xl font-black ${result.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {result.passed ? '🎉 合格ライン突破！' : '😢 不合格（合格ライン 90点）'}
+            {result.passed ? '🎉 合格ライン突破！' : `😢 不合格（合格ライン ${passScore}点）`}
           </div>
           <div className="text-4xl font-black text-white font-mono">
             {result.score} <span className="text-lg text-slate-400">/ 100点</span>

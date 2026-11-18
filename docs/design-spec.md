@@ -120,7 +120,8 @@ export interface MockExamResponse {
 ## 12. 実装タスクチェックリスト（依存順・1 タスク 1 コミット・完了条件付き）
 - [x] T1: `src/frontend/types.ts`, `src/backend/index.ts`（`junior_1` 前方一致、副教科ラベル、`school` 模試・採点・403反則チェック対応）実装 / 完了条件: `npx tsc --noEmit` 0 error
   → 実装: `src/frontend/types.ts:L59-115`, `src/backend/index.ts:L945-1305` 実装完了。`tsc 0 error`。
-- [ ] T2: `src/frontend/components/QuizQuest.tsx`, `src/frontend/components/MockExamView.tsx`（4期間×9教科 UI・`passScore` 動的表示・高校生非表示）実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
+- [x] T2: `src/frontend/components/QuizQuest.tsx`, `src/frontend/components/MockExamView.tsx`（4期間×9教科 UI・`passScore` 動的表示・高校生非表示）実装 / 完了条件: `npx tsc --noEmit && npm run build` 0 error
+  → 実装: `QuizQuest.tsx:L46-375`, `MockExamView.tsx:L13-270` 実装完了。`tsc 0 error` / `npm run build` 成功。
 - [ ] T3: `scripts/seeds/generate_junior1_4terms.mjs`（`.dev.vars` / 環境変数 `GEMINI_API_KEY` 参照、`gemini-3.1-flash-lite` で 4期間×9教科×各55〜60問・計約2,000問・全問 `explanation` 必須生成）& `validate_junior1_seed.mjs` で検証し local/remote D1 投入 / 完了条件: remote `COUNT(*)` 1,800問以上
 
 ## 13. 未確認事項（E-4）

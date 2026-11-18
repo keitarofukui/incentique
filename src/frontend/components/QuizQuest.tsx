@@ -44,6 +44,10 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
       case 'science': return '理科';
       case 'social_studies': return '社会';
       case 'japanese': return '国語';
+      case 'music': return '音楽';
+      case 'art': return '美術';
+      case 'pe': return '保健体育';
+      case 'tech_home': return '技術・家庭';
       case 'general_knowledge': return '小論文・教養';
       case 'anime_manga': return '🍿 箸休めアニメ';
       case 'driving_all': return '全免許分野';
@@ -57,8 +61,13 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
 
   const getGradeLabel = (g: string) => {
     switch (g) {
+      case 'junior_1': return '中1全体';
       case 'junior_1_early': return '中1前期';
+      case 'junior_1_early_mid': return '中1前期中間';
+      case 'junior_1_early_final': return '中1前期期末';
       case 'junior_1_late': return '中1後期';
+      case 'junior_1_late_mid': return '中1後期中間';
+      case 'junior_1_late_final': return '中1後期期末';
       case 'junior_2_early': return '中2前期';
       case 'junior_2_late': return '中2後期';
       case 'junior_3_early': return '中3前期';
@@ -305,6 +314,11 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
           >
             {[
               { id: 'all', label: '全学年' },
+              { id: 'junior_1', label: '中1全体' },
+              { id: 'junior_1_early_mid', label: '中1前期中間' },
+              { id: 'junior_1_early_final', label: '中1前期期末' },
+              { id: 'junior_1_late_mid', label: '中1後期中間' },
+              { id: 'junior_1_late_final', label: '中1後期期末' },
               { id: 'junior_1_early', label: '中1前期' },
               { id: 'junior_1_late', label: '中1後期' },
               { id: 'junior_2_early', label: '中2前期' },
@@ -351,6 +365,10 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
                   { id: 'science', label: '理科' },
                   { id: 'social_studies', label: '社会' },
                   { id: 'japanese', label: '国語' },
+                  { id: 'music', label: '🎵音楽' },
+                  { id: 'art', label: '🎨美術' },
+                  { id: 'pe', label: '🏃保健体育' },
+                  { id: 'tech_home', label: '🛠️技術家庭' },
                 ]
             ).map((cat) => (
               <button
