@@ -621,6 +621,75 @@ app.get('/api/users/:id/summary', async (c) => {
       eat_rice: categoryList.includes('eat_rice') || categoryList.includes('eat_meat'),
     };
 
+    // 全期間の横断集計（円グラフ・種目別回数・交換ご褒美・失効履歴）
+    const [catBreakdownRes, topActRes, claimedWishRes, penaltyRes] = await Promise.all([
+      c.env.DB.prepare(
+        "SELECT category, COUNT(*) as cnt, COALESCE(SUM(earned_points), 0) as pts FROM action_logs WHERE user_id = ? AND status = 'approved' AND earned_points > 0 GROUP BY category"
+      ).bind(userId).all<{ category: string; cnt: number; pts: number }>(),
+      c.env.DB.prepare(
+        "SELECT category, title_or_menu, COUNT(*) as cnt, COALESCE(SUM(earned_points), 0) as pts FROM action_logs WHERE user_id = ? AND status = 'approved' AND earned_points > 0 AND category IN ('training', 'housework', 'input_book', 'input_manga', 'input_movie', 'input_drama', 'eat_rice', 'eat_meat') GROUP BY category, title_or_menu ORDER BY cnt DESC LIMIT 30"
+      ).bind(userId).all<{ category: string; title_or_menu: string; cnt: number; pts: number }>(),
+      c.env.DB.prepare(
+        'SELECT id, title, required_points, approved_points, item_type, COALESCE(approved_at, created_at) as approved_at FROM wish_items WHERE user_id = ? AND is_approved = 1 ORDER BY COALESCE(approved_at, created_at) DESC LIMIT 20'
+      ).bind(userId).all<{ id: string; title: string; required_points: number; approved_points: number | null; item_type: string | null; approved_at: string }>(),
+      c.env.DB.prepare(
+        "SELECT id, title_or_menu, review_text, earned_points, created_at FROM action_logs WHERE user_id = ? AND earned_points < 0 AND (title_or_menu LIKE '%失効%' OR review_text LIKE '%失効%') ORDER BY created_at DESC LIMIT 20"
+      ).bind(userId).all<{ id: string; title_or_menu: string; review_text: string | null; earned_points: number; created_at: string }>(),
+    ]);
+
+    type GroupKey = 'quiz' | 'training' | 'housework' | 'input' | 'meal' | 'bonus';
+    const GROUP_META: Record<GroupKey, string> = {
+      quiz: 'クイズ・勉強',
+      training: '運動',
+      housework: '家事',
+      input: 'インプット',
+      meal: '食事',
+      bonus: 'ボーナス等',
+    };
+    const toGroup = (cat: string): GroupKey => {
+      if (cat === 'quiz' || cat === 'study') return 'quiz';
+      if (cat === 'training') return 'training';
+      if (cat === 'housework') return 'housework';
+      if (cat.startsWith('input_')) return 'input';
+      if (cat.startsWith('eat_')) return 'meal';
+      return 'bonus';
+    };
+    const groupAcc = new Map<GroupKey, { points: number; count: number }>();
+    for (const row of catBreakdownRes.results || []) {
+      const g = toGroup(row.category);
+      const cur = groupAcc.get(g) || { points: 0, count: 0 };
+      cur.points += Number(row.pts) || 0;
+      cur.count += Number(row.cnt) || 0;
+      groupAcc.set(g, cur);
+    }
+    const categoryBreakdown = Array.from(groupAcc.entries())
+      .map(([group, val]) => ({ group, label: GROUP_META[group], points: val.points, count: val.count }))
+      .filter((item) => item.points > 0)
+      .sort((a, b) => b.points - a.points);
+
+    const topActivities = (topActRes.results || []).map((r) => ({
+      category: r.category,
+      title: r.title_or_menu,
+      count: Number(r.cnt) || 0,
+      points: Number(r.pts) || 0,
+    }));
+
+    const claimedWishes = (claimedWishRes.results || []).map((r) => ({
+      id: r.id,
+      title: r.title,
+      points: Number(r.approved_points ?? r.required_points) || 0,
+      itemType: r.item_type || 'goods',
+      approvedAt: r.approved_at,
+    }));
+
+    const penaltyHistory = (penaltyRes.results || []).map((r) => ({
+      id: r.id,
+      title: r.title_or_menu,
+      reason: r.review_text || '',
+      points: Number(r.earned_points) || 0,
+      createdAt: r.created_at,
+    }));
+
     return c.json({
       success: true,
       summary: {
@@ -636,6 +705,12 @@ app.get('/api/users/:id/summary', async (c) => {
           daysUntilPenalty: nextPenaltyDays,
           penaltyLabel: nextPenaltyLabel,
         } : null,
+        insights: {
+          categoryBreakdown,
+          topActivities,
+          claimedWishes,
+          penaltyHistory,
+        },
       }
     });
   } catch (err: any) {

@@ -157,6 +157,43 @@ export interface ActionLog {
   created_at: string;
 }
 
+export interface InsightCategoryItem {
+  group: 'quiz' | 'training' | 'housework' | 'input' | 'meal' | 'bonus';
+  label: string;
+  points: number;
+  count: number;
+}
+
+export interface InsightActivityItem {
+  category: string;
+  title: string;
+  count: number;
+  points: number;
+}
+
+export interface InsightClaimedWish {
+  id: string;
+  title: string;
+  points: number;
+  itemType: string;
+  approvedAt: string;
+}
+
+export interface InsightPenaltyItem {
+  id: string;
+  title: string;
+  reason: string;
+  points: number;
+  createdAt: string;
+}
+
+export interface UserInsights {
+  categoryBreakdown: InsightCategoryItem[];
+  topActivities: InsightActivityItem[];
+  claimedWishes: InsightClaimedWish[];
+  penaltyHistory: InsightPenaltyItem[];
+}
+
 export interface UserSummary {
   /** 所持pt（= users.current_points）。交換承認で減る。既存キー名・意味は変更しない */
   totalPoints: number;
@@ -176,6 +213,7 @@ export interface UserSummary {
     daysUntilPenalty: number;
     penaltyLabel: string;
   } | null;
+  insights?: UserInsights;
 }
 
 export interface DailyStatItem {
