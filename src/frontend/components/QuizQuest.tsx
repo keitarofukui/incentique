@@ -252,33 +252,17 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
   const currentQuiz = quizzes[currentIndex];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-
-
+    <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
 
       {/* Header Banner & Total Questions Count Badge */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-cyan-950/40 via-slate-900 to-indigo-950/40 p-5 rounded-3xl border border-cyan-500/30">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                <Brain className="w-7 h-7 text-cyber-neonCyan" />
-                <span>5教科チャレンジクイズ (1正解 = 1pt)</span>
-              </h2>
-            </div>
-            <p className="text-xs text-slate-300 mt-1">
-              登録済みの大量クイズからランダム無限出題！解くほど知識とポイントが貯まる！
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 bg-cyan-500/10 px-4 py-2 rounded-2xl border border-cyan-500/30 text-cyan-300 shrink-0">
-            <Award className="w-5 h-5 text-cyan-400" />
-            <div className="text-right">
-              <div className="text-xs text-cyan-300 font-bold uppercase tracking-wider">現在プールされている問題数</div>
-              <div className="text-xl font-black text-white font-mono">
-                全 <span className="text-cyber-neonCyan">{totalCount}</span> 問
-              </div>
-            </div>
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-cyan-950/40 via-slate-900 to-indigo-950/40 px-3.5 py-2.5 rounded-2xl border border-cyan-500/30">
+          <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
+            <Brain className="w-5 h-5 text-cyber-neonCyan shrink-0" />
+            <span>チャレンジクイズ (1正解=1pt)</span>
+          </h2>
+          <div className="flex items-center gap-1.5 bg-cyan-500/10 px-2.5 py-1 rounded-xl border border-cyan-500/30 text-cyan-300 shrink-0 text-xs font-black font-mono">
+            全 <span className="text-cyber-neonCyan">{totalCount}</span> 問
           </div>
         </div>
 
@@ -394,11 +378,11 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
       <>
 
       {/* Session Earned Bar */}
-      <div className="flex items-center justify-between bg-slate-950/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Zap className="w-5 h-5 text-amber-400" />
+      <div className="flex items-center justify-between bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-amber-400" />
           <div className="text-xs text-slate-300">
-            今回のセッション獲得: <strong className="text-amber-400 font-mono text-base font-black">+{sessionPoints} pt</strong>
+            獲得: <strong className="text-amber-400 font-mono text-sm font-black">+{sessionPoints} pt</strong>
           </div>
         </div>
 
@@ -434,26 +418,26 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
           </button>
         </div>
       ) : currentQuiz ? (
-        <div className="glass-card p-6 sm:p-8 rounded-3xl space-y-6 border border-cyber-border shadow-2xl relative">
+        <div className="glass-card p-4 sm:p-6 rounded-2xl space-y-4 border border-cyber-border shadow-xl relative">
           
-          <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-4">
-            <span className="px-3 py-1 rounded-full bg-slate-800 text-cyber-neonCyan font-bold uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-2.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-cyber-neonCyan font-bold tracking-wider">
               {getCategoryLabel(currentQuiz.category)}
             </span>
             <span className="text-slate-400 font-mono text-xs">
-              ランダム連続問題 #{currentIndex + 1} / {quizzes.length}
+              #{currentIndex + 1} / {quizzes.length}
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {currentQuiz.image_key && <TrafficSignSvg imageKey={currentQuiz.image_key} />}
-            <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
+            <h3 className="text-base sm:text-xl font-black text-white leading-snug">
               {currentQuiz.question_text}
             </h3>
           </div>
 
           {/* Options */}
-          <div className="grid grid-cols-1 gap-3.5 pt-2">
+          <div className="grid grid-cols-1 gap-2">
             {currentQuiz.options.map((opt, idx) => {
               const isSelected = selectedOption === idx;
               const isCorrectOpt = currentQuiz.correct_index === idx;
@@ -474,7 +458,7 @@ export const QuizQuest: React.FC<QuizQuestProps> = ({ currentUser, onPointsUpdat
                   key={idx}
                   disabled={isAnswered}
                   onClick={() => handleSelectOption(idx)}
-                  className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between text-sm sm:text-base transition-all ${buttonStyle}`}
+                  className={`w-full p-3 rounded-xl border text-left flex items-center justify-between text-sm transition-all ${buttonStyle}`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center font-mono font-bold text-xs shrink-0">

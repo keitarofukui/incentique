@@ -132,20 +132,15 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="glass-card w-full rounded-3xl p-6 sm:p-8 border border-slate-700/80 shadow-2xl space-y-6">
+    <div className="space-y-3 max-w-3xl mx-auto">
+      <div className="glass-card w-full rounded-2xl p-4 sm:p-6 border border-slate-700/80 shadow-xl space-y-4">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-glow-purple">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-white">📚 読書・映画・ドラマ・漫画 インプット報告</h3>
-              <p className="text-xs text-slate-400 mt-0.5">読んだ本や観た映画・ドラマの気付きを提出してポイントを獲得！</p>
-            </div>
+        <div className="flex items-center gap-2.5 border-b border-slate-800 pb-2.5">
+          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            <BookOpen className="w-5 h-5" />
           </div>
+          <h3 className="text-base sm:text-lg font-black text-white">📚 インプット報告（読書・映画・漫画）</h3>
         </div>
 
 
@@ -157,16 +152,16 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           
           {/* Category Tabs */}
-          <div className="space-y-2">
-            <label className="text-xs font-extrabold text-slate-300">ジャンルを選択</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold text-slate-300">ジャンル</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => handleCategoryChange('input_book')}
-                className={`p-3 rounded-2xl border text-center text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                className={`p-2 rounded-xl border text-center text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                   category === 'input_book'
                     ? 'bg-purple-500/25 border-purple-400 text-purple-200 shadow-glow-purple font-black'
                     : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -236,35 +231,35 @@ export const InputReviewModal: React.FC<InputReviewModalProps> = ({
                   ? '例: 『VIVANT』第1話'
                   : '例: 『ONE PIECE 第1巻』'
               }
-              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-400 no-swipe"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-400 no-swipe"
             />
           </div>
 
           {/* Review text field */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <label className="text-xs font-extrabold text-slate-300">
-              感想メモ・学んだことレビュー
+              感想メモ・学んだこと
             </label>
             <textarea
-              rows={4}
+              rows={3}
               required
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
               placeholder="面白かったシーンや学んだ感想を書いて親にアピールしよう！"
-              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-400 no-swipe"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-400 no-swipe"
             ></textarea>
           </div>
 
           {/* Footer Submit */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <div className="text-xs text-slate-400">
-              獲得基本ポイント: <span className="text-lg font-black text-amber-400 font-mono">+{getPoints()} pt</span>
+          <div className="pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="text-xs text-slate-400 shrink-0">
+              素点: <span className="text-base font-black text-amber-400 font-mono">+{getPoints()} pt</span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black text-xs sm:text-sm hover:opacity-90 transition-all flex items-center gap-1.5 shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
               <span>{loading ? '獲得処理中...' : `📚 感想を記録して +${getPoints()}pt 獲得！`}</span>
