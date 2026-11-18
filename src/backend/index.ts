@@ -943,6 +943,10 @@ function getQuizCategoryLabel(cat: string): string {
     science: '理科',
     social_studies: '社会',
     japanese: '国語',
+    music: '音楽',
+    art: '美術',
+    pe: '保健体育',
+    tech_home: '技術・家庭',
     anime_manga: '🍿箸休めアニメ',
     driving_karimen: '仮免学科',
     driving_honmen: '本免学科',
@@ -972,8 +976,12 @@ app.get(API_ROUTES.QUIZZES, async (c) => {
     }
 
     if (!isDriving && gradeLevel && gradeLevel !== 'all' && gradeLevel !== 'other') {
-      studyWhere += " AND (grade_level = ? OR grade_level = 'all')";
-      studyParams.push(gradeLevel);
+      if (gradeLevel === 'junior_1') {
+        studyWhere += " AND (grade_level LIKE 'junior_1%' OR grade_level = 'all')";
+      } else {
+        studyWhere += " AND (grade_level = ? OR grade_level = 'all')";
+        studyParams.push(gradeLevel);
+      }
     }
 
     // id is an INTEGER PRIMARY KEY, so MAX(id) is a single b-tree lookup (1 row
@@ -1095,11 +1103,66 @@ app.get(API_ROUTES.QUIZZES, async (c) => {
   }
 });
 
+const SCHOOL_VALID_GRADES = new Set([
+  'junior_1_early_mid',
+  'junior_1_early_final',
+  'junior_1_late_mid',
+  'junior_1_late_final',
+  'junior_1_all',
+]);
+const SCHOOL_MAJOR_SUBJECTS = ['english', 'math', 'science', 'social_studies', 'japanese'];
+const SCHOOL_MINOR_SUBJECTS = ['music', 'art', 'pe', 'tech_home'];
+const SCHOOL_ALL_SUBJECTS = [...SCHOOL_MAJOR_SUBJECTS, ...SCHOOL_MINOR_SUBJECTS];
+const SCHOOL_VALID_SUBJECTS = new Set([...SCHOOL_ALL_SUBJECTS, 'major_5', 'minor_4', 'all_9']);
+
 app.get(API_ROUTES.QUIZZES_MOCK, async (c) => {
   try {
     const examType = c.req.query('examType');
-    if (examType !== 'karimen' && examType !== 'honmen') {
+    if (examType !== 'karimen' && examType !== 'honmen' && examType !== 'school') {
       return c.json({ success: false, error: 'Invalid examType' }, 400);
+    }
+
+    if (examType === 'school') {
+      const gradeLevel = c.req.query('gradeLevel') || '';
+      const subject = c.req.query('subject') || '';
+      if (!SCHOOL_VALID_GRADES.has(gradeLevel) || !SCHOOL_VALID_SUBJECTS.has(subject)) {
+        return c.json({ success: false, error: 'Invalid gradeLevel or subject' }, 400);
+      }
+      const gradeWhere = gradeLevel === 'junior_1_all' ? "grade_level LIKE 'junior_1%'" : 'grade_level = ?';
+      const params: string[] = gradeLevel === 'junior_1_all' ? [] : [gradeLevel];
+      let subjectWhere = '';
+      if (subject === 'major_5') {
+        subjectWhere = `category IN (${SCHOOL_MAJOR_SUBJECTS.map((s) => `'${s}'`).join(',')})`;
+      } else if (subject === 'minor_4') {
+        subjectWhere = `category IN (${SCHOOL_MINOR_SUBJECTS.map((s) => `'${s}'`).join(',')})`;
+      } else if (subject === 'all_9') {
+        subjectWhere = `category IN (${SCHOOL_ALL_SUBJECTS.map((s) => `'${s}'`).join(',')})`;
+      } else {
+        subjectWhere = 'category = ?';
+        params.push(subject);
+      }
+      const idsRes = await c.env.DB.prepare(
+        `SELECT id FROM quiz_questions WHERE ${gradeWhere} AND ${subjectWhere}`
+      ).bind(...params).all<{ id: number }>();
+      const sampledIds = sampleRandom((idsRes.results || []).map((r) => Number(r.id)), 25);
+      if (sampledIds.length === 0) {
+        return c.json({ success: false, error: '該当問題がありません' }, 404);
+      }
+      const rowsRes = await c.env.DB.prepare(
+        `SELECT ${QUIZ_SELECT_COLUMNS} FROM quiz_questions WHERE id IN (${sampledIds.join(',')})`
+      ).all();
+      const shuffled = sampleRandom((rowsRes.results || []) as Record<string, unknown>[], 25).map((q) => ({
+        ...formatQuizRow(q),
+        points: 4,
+      }));
+      return c.json({
+        success: true,
+        examType,
+        timeLimitMinutes: 20,
+        passScore: 80,
+        totalScore: shuffled.length * 4,
+        questions: shuffled,
+      });
     }
 
     if (examType === 'karimen') {
@@ -1168,19 +1231,27 @@ app.post(API_ROUTES.QUIZZES_MOCK_SUBMIT, async (c) => {
   try {
     const body = await c.req.json<{
       userId: string;
-      examType: 'karimen' | 'honmen';
+      examType: 'karimen' | 'honmen' | 'school';
+      schoolLabel?: string;
       answers: { questionId: number; selectedIndex: number | null }[];
     }>();
 
-    if (!body.userId || (body.examType !== 'karimen' && body.examType !== 'honmen') || !Array.isArray(body.answers)) {
+    if (
+      !body.userId ||
+      (body.examType !== 'karimen' && body.examType !== 'honmen' && body.examType !== 'school') ||
+      !Array.isArray(body.answers)
+    ) {
       return c.json({ success: false, error: 'Invalid request payload' }, 400);
     }
 
-    const userRow = await c.env.DB.prepare('SELECT current_points FROM users WHERE id = ?')
+    const userRow = await c.env.DB.prepare('SELECT current_points, grade_level FROM users WHERE id = ?')
       .bind(body.userId)
-      .first<{ current_points: number }>();
+      .first<{ current_points: number; grade_level: string }>();
     if (!userRow) {
       return c.json({ success: false, error: 'User not found' }, 404);
+    }
+    if (body.examType === 'school' && (userRow.grade_level || '').startsWith('high')) {
+      return c.json({ success: false, error: '高校生は中学生定期テスト模試ではポイントを獲得できません' }, 403);
     }
 
     const validAnswers = body.answers.filter((a) => Number.isInteger(a.questionId) && a.questionId > 0);
@@ -1202,18 +1273,23 @@ app.post(API_ROUTES.QUIZZES_MOCK_SUBMIT, async (c) => {
       const key = answerKeyMap.get(ans.questionId);
       if (key && ans.selectedIndex === key.correctIndex) {
         correctCount += 1;
-        score += body.examType === 'karimen' || key.category === 'driving_hazard' ? 2 : 1;
+        if (body.examType === 'school') {
+          score += 4;
+        } else {
+          score += body.examType === 'karimen' || key.category === 'driving_hazard' ? 2 : 1;
+        }
       }
     }
 
-    const passed = score >= 90;
-    const requiredCount = body.examType === 'karimen' ? 50 : 95;
+    const passScore = body.examType === 'school' ? 80 : 90;
+    const passed = score >= passScore;
+    const requiredCount = body.examType === 'karimen' ? 50 : body.examType === 'honmen' ? 95 : 25;
     const answeredCount = validAnswers.filter((a) => a.selectedIndex !== null).length;
     const isCompletedAll = validAnswers.length >= requiredCount && answeredCount >= requiredCount;
     let pointsEarned = 0;
     if (isCompletedAll) {
-      const baseCompletion = body.examType === 'karimen' ? 10 : 20;
-      const passBonus = passed ? (body.examType === 'karimen' ? 50 : 100) : 0;
+      const baseCompletion = body.examType === 'honmen' ? 20 : 10;
+      const passBonus = passed ? (body.examType === 'karimen' ? 50 : body.examType === 'honmen' ? 100 : 30) : 0;
       pointsEarned = baseCompletion + passBonus;
 
       await c.env.DB.prepare('UPDATE users SET current_points = current_points + ? WHERE id = ?')
@@ -1221,7 +1297,12 @@ app.post(API_ROUTES.QUIZZES_MOCK_SUBMIT, async (c) => {
         .run();
 
       const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-      const examLabel = body.examType === 'karimen' ? '仮免学科' : '本免学科';
+      const examLabel =
+        body.examType === 'karimen'
+          ? '仮免学科'
+          : body.examType === 'honmen'
+          ? '本免学科'
+          : body.schoolLabel || '中学定期テスト';
       const resultLabel = passed ? '合格' : '不合格';
       await c.env.DB.prepare(
         "INSERT INTO action_logs (id, user_id, category, title_or_menu, review_text, earned_points, base_points, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))"

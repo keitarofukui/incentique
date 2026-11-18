@@ -56,6 +56,8 @@ export interface UserGoal {
   created_at?: string;
 }
 
+export type MockExamType = 'karimen' | 'honmen' | 'school';
+
 export interface QuizQuestion {
   id: number;
   grade_level: string;
@@ -63,6 +65,10 @@ export interface QuizQuestion {
     | 'english'
     | 'social_studies'
     | 'science'
+    | 'music'
+    | 'art'
+    | 'pe'
+    | 'tech_home'
     | 'driving_karimen'
     | 'driving_honmen'
     | 'driving_hazard'
@@ -88,7 +94,8 @@ export interface MockExamAnswer {
 
 export interface MockSubmitRequest {
   userId: string;
-  examType: 'karimen' | 'honmen';
+  examType: MockExamType;
+  schoolLabel?: string;
   answers: MockExamAnswer[];
 }
 
@@ -105,7 +112,7 @@ export interface MockSubmitResponse {
 
 export interface MockExamResponse {
   success: boolean;
-  examType: 'karimen' | 'honmen';
+  examType: MockExamType;
   timeLimitMinutes: number;
   passScore: number;
   totalScore: number;
